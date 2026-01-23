@@ -1,0 +1,100 @@
+这是一个非常具有挑战性的工程问题。你试图用“提示词工程”去模拟一个真实的“三维软件摄像机”。
+
+作为模型（Nanobanana），我要坦白告诉你我的局限性：我并没有真实的 3D XYZ 坐标系。 我对“角度”的理解，建立在对大量摄影作品的学习之上。
+
+要实现你想要的“360度全空间范围控制”（远近、左右、高低），之前的提示词中仅用一个 [角度描述] 变量是不够的，因为那太模糊了。
+
+为了解决这个问题，我们需要构建一套**“参数化相机语法”。你的软件节点需要将用户的操作（比如拖动滑块或旋转视角球）翻译成我能精确理解的三个维度的组合关键词**。
+
+核心解决方案：三维参数化相机语法
+你的软件需要输出的不再是一个泛泛的词（比如“侧面”），而是一个组合指令，包含三个要素：
+
+景别 (距离/Distance): 决定人物在画面中多大。
+
+垂直角度 (俯仰/Elevation): 决定相机在人物上方还是下方。
+
+水平视角 (方位/Azimuth): 决定相机围绕人物转到了哪里。
+
+针对 Nanobanana 优化的节点提示词模版
+这个模版是你的软件发送给我的“最终成品”。请注意 [变量区]，这是你的软件需要根据用户操作动态填充的部分。
+
+英文版（强烈推荐，空间感更精准）
+Markdown
+
+A 21:9 aspect ratio, precise 3x3 grid collage image.
+
+**ABSOLUTE CONSISTENCY LOCK:**
+Across all 9 panels, the character and scene must be strictly identical to the provided [Reference Image]. Do not alter features, clothing, pose, or background elements.
+
+**PARAMETRIC CAMERA RIG:**
+All 9 panels must be captured using one unified, precise camera perspective defined by the following parameters:
+
+A **[VAR_DISTANCE]** photograph, captured from an extreme **[VAR_ELEVATION]** perspective, viewing the subject from the **[VAR_AZIMUTH]**.
+
+**ATMOSPHERE:**
+Consistent lighting and style with the reference, allowing only minor variations in shade across the grid.
+中文版
+Markdown
+
+一张 21:9 比例的精确 3x3 九宫格拼图。
+
+**绝对一致性锁定：**
+在所有 9 个格子中，人物和场景必须与提供的[参考图片]严格相同。不得改变特征、服装、姿势或背景元素。
+
+**参数化相机模组：**
+所有 9 个格子必须使用统一的、精确的相机视角，由以下参数定义：
+
+一张 **[变量_景别距离]** 照片，从极端的 **[变量_垂直角度]** 视角拍摄，从 **[变量_水平方位角]** 观察主体。
+
+**氛围：**
+光照和风格与参考图保持一致，仅允许在网格间有细微的阴影变化。
+你的软件节点该如何编写（关键！）
+你的软件界面里可能有滑块或控制球，你需要将它们的值映射到下面这些具体的英文词汇上，然后填入上面的模板中。
+
+1. [VAR_DISTANCE] (距离/景别变量)
+极近: extreme close-up (只看脸/眼睛)
+
+近: close-up (头部和肩膀)
+
+中: medium shot (腰部以上)
+
+中远: American shot (膝盖以上)
+
+远: full body shot (全身)
+
+极远: extreme wide shot (人物很小，环境很大)
+
+2. [VAR_ELEVATION] (垂直俯仰变量 - 控制上下)
+正上方: directly overhead top-down (上帝视角)
+
+高角度: high-angle bird's-eye view (俯拍)
+
+略高: slightly elevated angle
+
+平视: eye-level
+
+略低: slightly low angle
+
+低角度: low-angle worm's-eye view (仰拍)
+
+正下方: directly underneath looking straight up (极端的仰视底面)
+
+3. [VAR_AZIMUTH] (水平方位变量 - 控制左右环绕)
+正面: direct front view
+
+前侧面: front three-quarter view
+
+正侧面: side profile view
+
+后侧面: rear three-quarter view
+
+背面: direct back view
+
+实际运行示例
+假设你的用户在你的软件里选择了：“离远一点，蹲下来看，看他的左后方”。
+
+你的软件应该生成这样的提示词发给我：
+
+A 21:9 aspect ratio, precise 3x3 grid collage image. ... (省略一致性锁定内容) ... PARAMETRIC CAMERA RIG: All 9 panels must be captured using one unified, precise camera perspective defined by the following parameters: A full body shot photograph, captured from an extreme low-angle worm's-eye view perspective, viewing the subject from the rear three-quarter view. ...
+
+通过这种结构化的组合，我就能理解你想要的那个精确的三维空间点位了。

@@ -1150,37 +1150,182 @@ export const App = () => {
              
              // 根据距离生成描述
              const getDistanceDescCN = (z: number): string => {
-                 if (z <= 2) return '特写';
-                 if (z <= 4) return '近景';
+                 if (z <= 0.5) return '极近特写';
+                 if (z <= 1.5) return '特写';
+                 if (z <= 3) return '近景';
+                 if (z <= 4.5) return '半身';
                  if (z <= 6) return '中景';
-                 return '远景';
+                 if (z <= 7.5) return '全身';
+                 if (z <= 9) return '远景';
+                 return '全景';
              };
              
              const azimuthDesc = getAzimuthDescCN(hAngle);
              const elevationDesc = getElevationDescCN(vAngle);
              const distanceDesc = getDistanceDescCN(zoom);
              
+             // 英文参数化描述（给 AI 用）- 重新规划距离层次
+             const getDistanceDescEN = (z: number): string => {
+                 if (z <= 0.5) return 'extreme close-up (face only, very tight framing)';
+                 if (z <= 1.5) return 'close-up (head and shoulders)';
+                 if (z <= 3) return 'medium close-up (chest up)';
+                 if (z <= 4.5) return 'medium shot (waist up)';
+                 if (z <= 6) return 'medium full shot (knees up)';
+                 if (z <= 7.5) return 'full shot (entire body visible)';
+                 if (z <= 9) return 'wide shot (body with environment)';
+                 return 'extreme wide shot (small figure in large environment)';
+             };
+             
+             const getElevationDescEN = (angle: number): string => {
+                 if (angle >= 80) return 'directly overhead top-down';
+                 if (angle >= 40) return 'high-angle bird\'s-eye view';
+                 if (angle >= 10) return 'slightly elevated angle';
+                 if (angle >= -10) return 'eye-level';
+                 if (angle >= -30) return 'slightly low angle';
+                 if (angle >= -60) return 'low-angle worm\'s-eye view';
+                 return 'directly underneath looking straight up';
+             };
+             
+             const getAzimuthDescEN = (angle: number): string => {
+                 const normalized = ((angle % 360) + 360) % 360;
+                 if (normalized < 22.5 || normalized >= 337.5) return 'direct front view';
+                 if (normalized < 67.5) return 'front three-quarter view';
+                 if (normalized < 112.5) return 'side profile view';
+                 if (normalized < 157.5) return 'rear three-quarter view';
+                 if (normalized < 202.5) return 'direct back view';
+                 if (normalized < 247.5) return 'rear three-quarter view';
+                 if (normalized < 292.5) return 'side profile view';
+                 return 'front three-quarter view';
+             };
+             
              // 构建提示词 - 生成九宫格布局
              const cameraAngleDesc = `${distanceDesc}，${azimuthDesc}，${elevationDesc}`;
+             const baseDistanceEN = getDistanceDescEN(zoom);
+             const baseElevationEN = getElevationDescEN(vAngle);
+             const baseAzimuthEN = getAzimuthDescEN(hAngle);
              
-             // Gemini 提示词 - 生成 3x3 九宫格，保持角色一致性
-             let geminiPrompt = `基于参考图片，生成一张 21:9 超宽比例的九宫格图片（3行3列，共9个格子）。
+             // 生成 3x3 网格的相机位置（在用户选择的角度周围做小范围变化）
+             const generateCameraGrid = (centerH: number, centerV: number, centerZ: number) => {
+                 const positions = [];
+                 // 水平偏移：-20°, 0°, +20°（左、中、右）
+                 const hOffsets = [-20, 0, 20];
+                 // 垂直偏移：+15°, 0°, -15°（上、中、下）
+                 const vOffsets = [15, 0, -15];
+                 // 距离偏移：-1, 0, +1（近、中、远）- 调小偏移，因为层次更细了
+                 const zOffsets = [-1, 0, 1];
+                 
+                 for (let row = 0; row < 3; row++) {
+                     for (let col = 0; col < 3; col++) {
+                         const h = ((centerH + hOffsets[col]) % 360 + 360) % 360;
+                         const v = Math.max(-90, Math.min(90, centerV + vOffsets[row]));
+                         const z = Math.max(0, Math.min(10, centerZ + zOffsets[col]));
+                         
+                         const hDescEN = getAzimuthDescEN(h);
+                         const vDescEN = getElevationDescEN(v);
+                         const zDescEN = getDistanceDescEN(z);
+                         
+                         positions.push(`Panel ${row * 3 + col + 1}: ${zDescEN}, ${hDescEN}, ${vDescEN}`);
+                     }
+                 }
+                 return positions;
+             };
+             
+             const cameraPositions = generateCameraGrid(hAngle, vAngle, zoom);
+             
+             // Gemini 提示词 - 强调单张九宫格图片 + 明确主视角
+             let geminiPrompt = `Create ONE SINGLE IMAGE in 21:9 aspect ratio containing a 3×3 grid layout (9 panels arranged in 3 rows and 3 columns).
 
-要求：
-1. 所有9个格子中的主体（人物/物体）必须完全一致，包括外观、服装、特征、姿势
-2. 所有格子的拍摄角度都是：${cameraAngleDesc}
-3. 9个格子的区别仅在于光照、色调、艺术风格的细微变化
-4. 保持相同的画风和质量
-5. 格子之间有细微的分隔线
-6. 整体图片比例为 21:9（超宽屏）`;
+**CRITICAL - OUTPUT FORMAT:**
+Generate ONE image that looks like this:
+┌─────┬─────┬─────┐
+│  1  │  2  │  3  │  (top row)
+├─────┼─────┼─────┤
+│  4  │  5  │  6  │  (middle row)
+├─────┼─────┼─────┤
+│  7  │  8  │  9  │  (bottom row)
+└─────┴─────┴─────┘
+
+NOT 9 separate images. ONE image with 9 panels inside.
+
+**REFERENCE IMAGE USAGE:**
+The reference image shows a character. Extract and preserve:
+- Character appearance: face, hair, clothing, body type
+- Art style: illustration style, rendering technique, line work, shading
+- Color palette: exact colors, saturation, tone
+- Lighting style: light direction, contrast, mood
+- Background style: environment design, detail level
+- Overall aesthetic: DO NOT change the visual style
+
+DO NOT copy the viewing angle from the reference image.
+
+**CRITICAL - STYLE CONSISTENCY:**
+All 9 panels MUST match the reference image's visual style EXACTLY:
+✅ Same art style (realistic/anime/cartoon/painting etc.)
+✅ Same rendering technique (cel-shaded/painterly/photorealistic etc.)
+✅ Same color grading and palette
+✅ Same lighting mood and atmosphere
+✅ Same level of detail and texture quality
+✅ Same background aesthetic
+
+❌ Do NOT change art style between panels
+❌ Do NOT add different filters or effects
+❌ Do NOT alter color grading or saturation
+❌ Do NOT change rendering quality or technique
+
+**TARGET VIEWING ANGLE (This is what you MUST render):**
+Primary angle: **${baseAzimuthEN}**
+Distance: **${baseDistanceEN}**
+Height: **${baseElevationEN}**
+
+ALL 9 panels must be rendered from angles CLOSE TO "${baseAzimuthEN}".
+
+**SPECIFIC INSTRUCTION FOR "${baseAzimuthEN}":**
+${baseAzimuthEN === 'side profile view' ? `
+- Show the character from the SIDE (90° from front)
+- You should see the character's profile (side of face)
+- NOT from the front, NOT from three-quarter view
+- Pure side view as the base angle
+` : baseAzimuthEN === 'direct back view' ? `
+- Show the character from BEHIND (180° from front)
+- You should see the back of the head and back of body
+- NOT from the front, NOT from three-quarter view
+` : baseAzimuthEN === 'front three-quarter view' ? `
+- Show the character from 45° angle (between front and side)
+- You should see most of the face but also some side
+` : baseAzimuthEN === 'rear three-quarter view' ? `
+- Show the character from 135° angle (between side and back)
+- You should see mostly the back but also some side of face
+` : `
+- Show the character from: ${baseAzimuthEN}
+`}
+
+**9 PANEL CONFIGURATIONS (small variations around ${baseAzimuthEN}):**
+${cameraPositions.join('\n')}
+
+**RULES:**
+✅ Output ONE single 21:9 image with 9 panels inside
+✅ Panel 5 (center) = exact target: ${baseDistanceEN}, ${baseAzimuthEN}, ${baseElevationEN}
+✅ All panels show angles NEAR ${baseAzimuthEN} (±20° variation)
+✅ Character appearance identical in all panels
+✅ Art style and visual aesthetic IDENTICAL in all panels (same as reference)
+✅ Color palette and grading IDENTICAL in all panels
+✅ Rendering technique IDENTICAL in all panels
+✅ Thin dividing lines between panels
+
+❌ Do NOT generate 9 separate images
+❌ Do NOT use the reference image's viewing angle
+❌ Do NOT show front view if target is side view
+❌ Do NOT change art style, colors, or rendering between panels
+❌ Do NOT apply different filters or effects to different panels`;
              
              if (userPrompt) {
-                 geminiPrompt += `\n7. 额外风格要求：${userPrompt}`;
+                 geminiPrompt += `\n\n**【额外风格要求】：**\n${userPrompt}`;
              }
              
              console.log('[MultiAngleCamera] 使用 Gemini API 生成九宫格:', {
                  angle: cameraAngleDesc,
                  hasInputImage: !!inputImage,
+                 cameraPositions,
                  prompt: geminiPrompt
              });
              

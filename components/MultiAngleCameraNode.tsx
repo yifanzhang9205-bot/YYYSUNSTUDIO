@@ -1,7 +1,6 @@
-import React, { useRef, useEffect, useState } from 'react';
+﻿import React, { useRef, useEffect, useState } from 'react';
 import * as THREE from 'three';
 import { Settings, Play, X, RotateCcw, Image as ImageIcon, Camera, AlertCircle } from 'lucide-react';
-import { GridImageSelector } from './GridImageSelector';
 
 interface MultiAngleCameraNodeProps {
   horizontalAngle: number;
@@ -59,7 +58,6 @@ export const MultiAngleCameraNode: React.FC<MultiAngleCameraNodeProps> = ({
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0, h: 0, v: 0, z: 0 });
   const [showPanel, setShowPanel] = useState(false);
-  const [showResults, setShowResults] = useState(false);
 
   // 初始化 Three.js
   useEffect(() => {
@@ -539,12 +537,6 @@ export const MultiAngleCameraNode: React.FC<MultiAngleCameraNodeProps> = ({
                   <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
                   <span className="text-[12px] text-green-300 font-medium">已输出</span>
                 </div>
-                <button
-                  onClick={() => setShowResults(true)}
-                  className="h-10 px-4 bg-black/40 backdrop-blur-xl rounded-full border border-white/10 flex items-center gap-2 text-white/60 hover:text-white hover:bg-white/10 transition-all active:scale-95"
-                >
-                  <span className="text-[13px] font-medium">预览</span>
-                </button>
               </>
             )}
             <button
@@ -689,40 +681,6 @@ export const MultiAngleCameraNode: React.FC<MultiAngleCameraNodeProps> = ({
         </div>
       )}
 
-      {/* 结果面板 - 使用九宫格选择器 */}
-      {showResults && gridImages && gridImages.length > 0 && (
-        <div className="absolute inset-0 bg-[#0a0a0a]/95 backdrop-blur-2xl flex flex-col z-20 rounded-2xl">
-          {/* 头部 */}
-          <div className="h-14 flex items-center justify-between px-5 border-b border-white/5 shrink-0">
-            <span className="text-[15px] font-semibold text-white">生成结果</span>
-            <button 
-              onClick={() => setShowResults(false)} 
-              className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-white/60 hover:text-white hover:bg-white/20 transition-all"
-            >
-              <X size={16} />
-            </button>
-          </div>
-          
-          <div className="flex-1 p-4 overflow-y-auto custom-scrollbar">
-            {/* 九宫格选择器 - 自动识别并切割九宫格图片 */}
-            <GridImageSelector
-              gridImageUrl={gridImages[0]}
-              selectedIndex={selectedGridIndex}
-              onSelect={(index, croppedUrl) => {
-                // 当用户选择某张图片时，更新选中索引和裁剪后的图片
-                onGridSelect(index, croppedUrl);
-              }}
-              onConfirm={(index, croppedUrl) => {
-                // 确认选择时，传递裁剪后的图片并关闭面板
-                onGridSelect(index, croppedUrl);
-                setShowResults(false);
-              }}
-              showConfirmButton={true}
-              className="h-full"
-            />
-          </div>
-        </div>
-      )}
     </div>
   );
 };

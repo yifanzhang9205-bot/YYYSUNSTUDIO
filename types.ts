@@ -96,6 +96,12 @@ export interface AppNode {
     verticalAngle?: number;    // 垂直角度 -30 to 60
     cameraZoom?: number;       // 距离 0-10
     cameraPrompt?: string;     // 生成的相机提示词
+    
+    // 新增：九宫格处理节点数据
+    inputImage?: string;       // 输入的九宫格图片
+    croppedImages?: string[];  // 切割后的 9 张图片
+    selectedIndex?: number;    // 选中的图片索引
+    outputImage?: string;      // 输出的图片（选中的那张）
   };
   inputs: string[]; // IDs of nodes this node connects FROM
 }

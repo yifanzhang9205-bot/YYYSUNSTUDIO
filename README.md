@@ -80,11 +80,15 @@ sunstudio/
 ```
 GEMINI_API_KEY=your_gemini_api_key
 API_KEY=your_api_key
+IMGBB_API_KEY=your_imgbb_api_key
 ```
+
+**重要**：图生图功能需要配置 ImgBB API Key，详见 [ImgBB配置指南.md](./ImgBB配置指南.md)
 
 ### API 配置
 - **Gemini API**: https://ai.google.dev/
 - **Nano Banana API**: https://grsai.dakka.com.cn
+- **ImgBB API**: https://api.imgbb.com/ （图生图功能必需）
 
 ## 📚 文档
 

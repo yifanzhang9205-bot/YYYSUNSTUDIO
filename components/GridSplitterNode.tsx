@@ -7,8 +7,9 @@ interface GridSplitterNodeProps {
   selectedIndex?: number;
   outputImage?: string;
   isWorking?: boolean;
+  isExpanded?: boolean;
   onUpdate: (data: {
-    inputImage?: string;
+    inputImage?: string | null;
     croppedImages?: string[];
     selectedIndex?: number;
     outputImage?: string;
@@ -26,6 +27,7 @@ export const GridSplitterNode: React.FC<GridSplitterNodeProps> = ({
   inputImage,
   croppedImages = [],
   selectedIndex,
+  isExpanded = true,
   onUpdate
 }) => {
   const [isProcessing, setIsProcessing] = useState(false);
@@ -34,8 +36,20 @@ export const GridSplitterNode: React.FC<GridSplitterNodeProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // 是否处于单图展示模式
-  const hasSelection = selectedIndex !== undefined && selectedIndex >= 0;
+  const hasSelection = selectedIndex !== undefined && selectedIndex >= 0 && selectedIndex < croppedImages.length;
   const isSingleView = hasSelection && croppedImages.length > 0;
+  const selectedImage = hasSelection ? croppedImages[selectedIndex] : undefined;
+
+  // 调试日志
+  console.log('[GridSplitter] 渲染状态:', {
+    isExpanded,
+    hasSelection,
+    isSingleView,
+    selectedIndex,
+    croppedImagesCount: croppedImages.length,
+    hasInputImage: !!inputImage,
+    isProcessing
+  });
 
   /**
    * 切割九宫格图片
@@ -101,17 +115,25 @@ export const GridSplitterNode: React.FC<GridSplitterNodeProps> = ({
 
   /**
    * 外部输入图片变化时自动切割
+   * 使用 croppedImages 的存在来判断是否已经切割过
    */
-  const prevInputImageRef = useRef<string | undefined>(undefined);
-  
   useEffect(() => {
-    // 检测输入图片是否变化
-    const inputChanged = inputImage !== prevInputImageRef.current;
-    prevInputImageRef.current = inputImage;
+    // 如果已经有切割结果，不再重复切割
+    if (croppedImages && croppedImages.length > 0) {
+      console.log('[GridSplitter] 已有切割结果，跳过切割');
+      return;
+    }
     
-    if (inputImage && inputChanged && !isProcessing) {
-      console.log('[GridSplitter] 检测到新输入图片，开始切割');
+    // 如果正在处理中，不重复处理
+    if (isProcessing) {
+      return;
+    }
+    
+    // 如果有输入图片但没有切割结果，开始切割
+    if (inputImage) {
+      console.log('[GridSplitter] 检测到输入图片，开始切割');
       setIsProcessing(true);
+      
       cropGridImage(inputImage)
         .then(cropped => {
           console.log('[GridSplitter] 切割完成，共', cropped.length, '张');
@@ -124,18 +146,34 @@ export const GridSplitterNode: React.FC<GridSplitterNodeProps> = ({
         .catch(err => {
           console.error('[GridSplitter] 切割失败:', err);
         })
-        .finally(() => setIsProcessing(false));
+        .finally(() => {
+          setIsProcessing(false);
+        });
     }
-  }, [inputImage, isProcessing, cropGridImage, onUpdate]);
+  }, [inputImage, croppedImages, isProcessing, cropGridImage, onUpdate]);
 
   /**
    * 双击选择图片
    */
   const handleSelect = useCallback((index: number) => {
-    console.log('[GridSplitter] 选择图片:', index, '当前选中:', selectedIndex);
+    console.log('[GridSplitter] 选择图片:', index, '当前选中:', selectedIndex, '可用图片数:', croppedImages.length);
+    
+    // 边界检查
+    if (index < 0 || index >= croppedImages.length) {
+      console.error('[GridSplitter] 索引越界:', index);
+      return;
+    }
+    
+    const selectedImage = croppedImages[index];
+    if (!selectedImage) {
+      console.error('[GridSplitter] 图片不存在:', index);
+      return;
+    }
+    
+    console.log('[GridSplitter] 选中图片 URL 长度:', selectedImage.length);
     onUpdate({ 
       selectedIndex: index, 
-      outputImage: croppedImages[index] 
+      outputImage: selectedImage 
     });
   }, [croppedImages, onUpdate, selectedIndex]);
 
@@ -179,6 +217,66 @@ export const GridSplitterNode: React.FC<GridSplitterNodeProps> = ({
     if (file) handleFileSelect(file);
   };
 
+  // 收起状态 - 只显示一张图片，没有任何边框和标题栏
+  if (!isExpanded) {
+    return (
+      <div className="w-full h-full flex items-center justify-center bg-transparent rounded-2xl overflow-hidden">
+        {isSingleView ? (
+          // 显示选中的图片 - 充满整个节点，双击返回九宫格
+          selectedImage ? (
+            <img 
+              src={selectedImage} 
+              alt=""
+              className="w-full h-full object-contain cursor-pointer"
+              onDoubleClick={(e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                console.log('[GridSplitter] 双击返回九宫格（收起状态）');
+                handleBackToGrid();
+              }}
+            />
+          ) : (
+            <div className="flex items-center justify-center text-white/30 text-xs">
+              图片加载失败
+            </div>
+          )
+        ) : croppedImages.length > 0 ? (
+          // 显示九宫格缩略图 - 充满整个节点，双击选择
+          <div className="w-full h-full grid grid-cols-3 grid-rows-3 gap-0">
+            {croppedImages.map((img, i) => (
+              <div 
+                key={i} 
+                className="relative cursor-pointer hover:opacity-80 transition-opacity"
+                onDoubleClick={(e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  console.log('[GridSplitter] 双击格子（收起状态）:', i);
+                  handleSelect(i);
+                }}
+              >
+                <img src={img} alt="" className="w-full h-full object-cover" />
+              </div>
+            ))}
+          </div>
+        ) : inputImage ? (
+          // 显示输入图片 - 充满整个节点
+          <img 
+            src={inputImage} 
+            alt=""
+            className="w-full h-full object-contain opacity-60"
+          />
+        ) : (
+          // 无图片提示 - 最小化显示
+          <div className="flex flex-col items-center gap-2">
+            <Grid3X3 size={20} className="text-white/20" />
+            <span className="text-[11px] text-white/30 font-medium">九宫格</span>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // 展开状态 - 显示完整的九宫格处理界面
   return (
     <div className="w-full h-full flex flex-col bg-[#0a0a0a] rounded-2xl overflow-hidden">
       <canvas ref={canvasRef} style={{ display: 'none' }} />
@@ -262,26 +360,39 @@ export const GridSplitterNode: React.FC<GridSplitterNodeProps> = ({
         {!isProcessing && isSingleView && (
           <div 
             className="flex-1 relative rounded-2xl overflow-hidden cursor-pointer group"
-            onDoubleClick={handleBackToGrid}
+            onDoubleClick={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
+              console.log('[GridSplitter] 双击返回九宫格');
+              handleBackToGrid();
+            }}
           >
-            <img 
-              src={croppedImages[selectedIndex!]} 
-              alt=""
-              className="w-full h-full object-contain bg-black/30"
-            />
-            {/* 选中标记 */}
-            <div className="absolute top-3 right-3 w-8 h-8 bg-white rounded-full flex items-center justify-center shadow-lg">
-              <Check size={18} className="text-black" strokeWidth={2.5} />
-            </div>
-            {/* 提示 */}
-            <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between">
-              <div className="px-3 py-1.5 bg-black/60 backdrop-blur-sm rounded-full">
-                <span className="text-xs text-white font-medium">第 {(selectedIndex ?? 0) + 1} 张</span>
+            {selectedImage ? (
+              <>
+                <img 
+                  src={selectedImage} 
+                  alt=""
+                  className="w-full h-full object-contain bg-black/30"
+                />
+                {/* 选中标记 */}
+                <div className="absolute top-3 right-3 w-8 h-8 bg-white rounded-full flex items-center justify-center shadow-lg">
+                  <Check size={18} className="text-black" strokeWidth={2.5} />
+                </div>
+                {/* 提示 */}
+                <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between">
+                  <div className="px-3 py-1.5 bg-black/60 backdrop-blur-sm rounded-full">
+                    <span className="text-xs text-white font-medium">第 {(selectedIndex ?? 0) + 1} 张</span>
+                  </div>
+                  <div className="px-3 py-1.5 bg-black/60 backdrop-blur-sm rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
+                    <span className="text-xs text-white/70">双击重新选择</span>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-white/30 text-sm">
+                图片加载失败
               </div>
-              <div className="px-3 py-1.5 bg-black/60 backdrop-blur-sm rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
-                <span className="text-xs text-white/70">双击重新选择</span>
-              </div>
-            </div>
+            )}
           </div>
         )}
 
@@ -293,7 +404,12 @@ export const GridSplitterNode: React.FC<GridSplitterNodeProps> = ({
               {croppedImages.map((img, i) => (
                 <div
                   key={i}
-                  onDoubleClick={() => handleSelect(i)}
+                  onDoubleClick={(e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    console.log('[GridSplitter] 双击格子:', i);
+                    handleSelect(i);
+                  }}
                   className="relative rounded-lg overflow-hidden cursor-pointer transition-all hover:ring-2 hover:ring-white/40 hover:z-10 active:scale-[0.98]"
                 >
                   <img src={img} alt="" className="w-full h-full object-cover" draggable={false} />

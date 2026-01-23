@@ -444,6 +444,7 @@ const NodeComponent: React.FC<NodeProps> = ({
              {(node.data.image || node.data.videoUri || node.data.audioUri) && (
                 <div className="flex items-center gap-1">
                     <button onClick={handleDownload} className="p-1.5 bg-black/40 border border-white/10 backdrop-blur-md rounded-md text-slate-400 hover:text-white hover:border-white/30 transition-colors" title="下载"><Download size={14} /></button>
+                    <button onClick={() => fileInputRef.current?.click()} className="p-1.5 bg-black/40 border border-white/10 backdrop-blur-md rounded-md text-slate-400 hover:text-white hover:border-white/30 transition-colors" title="上传替换"><Upload size={14} /></button>
                     {node.type !== NodeType.AUDIO_GENERATOR && <button onClick={handleExpand} className="p-1.5 bg-black/40 border border-white/10 backdrop-blur-md rounded-md text-slate-400 hover:text-white hover:border-white/30 transition-colors" title="全屏预览"><Maximize2 size={14} /></button>}
                 </div>
              )}
@@ -603,7 +604,16 @@ const NodeComponent: React.FC<NodeProps> = ({
                       }
                   }}
                   onUserPromptChange={(value) => onUpdate(node.id, { userPrompt: value })}
-                  onGenerate={() => onAction(node.id)}
+                  onGenerate={() => {
+                      // 清除旧的生成结果，允许重新生成
+                      onUpdate(node.id, { 
+                          gridImages: undefined,
+                          image: undefined,
+                          error: undefined
+                      });
+                      // 触发生成
+                      setTimeout(() => onAction(node.id), 0);
+                  }}
                   onGridSelect={(index, croppedImageUrl) => {
                       // 同时更新 selectedGridIndex 和 image
                       // 如果有裁剪后的图片 URL，使用它；否则使用原始九宫格图片
@@ -620,28 +630,30 @@ const NodeComponent: React.FC<NodeProps> = ({
       // 九宫格处理节点
       if (node.type === NodeType.GRID_SPLITTER) {
           // 获取输入图片
-          // 如果用户主动清除了（inputImage 为 null），则不从连接节点获取
-          // 如果 inputImage 是 undefined，则可以从连接节点获取
           let inputImageSrc: string | undefined;
+          let shouldSaveInput = false;
+          
           if (node.data.inputImage === null) {
               // 用户主动清除，不使用任何图片
               inputImageSrc = undefined;
           } else if (node.data.inputImage) {
-              // 有自己上传的图片
+              // 有自己保存的图片
               inputImageSrc = node.data.inputImage;
           } else if (inputAssets && inputAssets.length > 0 && inputAssets[0].type === 'image') {
-              // 从连接的节点获取
+              // 从连接的节点获取，并标记需要保存
               inputImageSrc = inputAssets[0].src;
-              console.log('[GridSplitter] 从连接节点获取图片:', inputAssets[0].src?.substring(0, 50));
+              shouldSaveInput = true;
+              console.log('[GridSplitter] 从连接节点获取图片，将保存到节点数据');
           }
           
-          // 调试日志
-          console.log('[GridSplitter] 输入状态:', {
-              hasInputImage: !!inputImageSrc,
-              nodeDataInputImage: node.data.inputImage === null ? 'null' : (node.data.inputImage ? 'has-value' : 'undefined'),
-              inputAssetsCount: inputAssets?.length || 0,
-              inputAssetsSrc: inputAssets?.[0]?.src?.substring(0, 50)
-          });
+          // 如果需要保存输入图片，立即保存
+          if (shouldSaveInput && inputImageSrc) {
+              // 异步保存，不阻塞渲染
+              setTimeout(() => {
+                  onUpdate(node.id, { inputImage: inputImageSrc });
+                  console.log('[GridSplitter] 已保存输入图片到节点数据');
+              }, 0);
+          }
           
           return (
               <GridSplitterNode
@@ -650,10 +662,10 @@ const NodeComponent: React.FC<NodeProps> = ({
                   selectedIndex={node.data.selectedGridIndex}
                   outputImage={node.data.image}
                   isWorking={node.status === NodeStatus.WORKING}
+                  isExpanded={isSelected || false}
                   onUpdate={(data) => {
                       const updateData: any = {};
                       // inputImage: 只有明确传入 null 或有值时才更新
-                      // 不传入 inputImage 或传入 undefined 表示不改变
                       if (data.inputImage === null) {
                           // 用户主动清除
                           updateData.inputImage = null;
@@ -787,9 +799,11 @@ const NodeComponent: React.FC<NodeProps> = ({
      const isOpen = (isHovered || isInputFocused);
      let models: {l: string, v: string}[] = [];
      if (node.type === NodeType.VIDEO_GENERATOR) {
+        // 视频生成模型 - 西瓜皮 Hailuo 优先
         models = [
-            {l: 'Veo 极速版 (Fast)', v: 'veo-3.1-fast-generate-preview'},
-            {l: 'Veo 专业版 (Pro)', v: 'veo-3.1-generate-preview'},
+            {l: 'Hailuo (推荐)', v: 'hailuo'},
+            {l: 'Veo 极速版 (备用)', v: 'veo-3.1-fast-generate-preview'},
+            {l: 'Veo 专业版 (备用)', v: 'veo-3.1-generate-preview'},
             {l: 'Wan 2.1 (Animate)', v: 'wan-2.1-t2v-14b'}
         ];
      } else if (node.type === NodeType.VIDEO_ANALYZER) {
@@ -797,7 +811,12 @@ const NodeComponent: React.FC<NodeProps> = ({
      } else if (node.type === NodeType.AUDIO_GENERATOR) {
          models = [{l: 'Voice Factory (Gemini 2.0)', v: 'gemini-2.5-flash-preview-tts'}];
      } else {
-        models = [{l: 'Gemini 2.5', v: 'gemini-2.5-flash-image'}, {l: 'Gemini 3 Pro', v: 'gemini-3-pro-image-preview'}];
+        // 图片生成模型 - 西瓜皮 API 优先
+        models = [
+            {l: 'Nano Banana Pro (推荐)', v: 'nanobananapro'},
+            {l: 'Gemini 2.5 (备用)', v: 'gemini-2.5-flash-image'},
+            {l: 'Gemini 3 Pro (备用)', v: 'gemini-3-pro-image-preview'}
+        ];
      }
 
      return (
