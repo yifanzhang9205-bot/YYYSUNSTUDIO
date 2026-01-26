@@ -8,10 +8,14 @@ export enum NodeType {
   AUDIO_GENERATOR = 'AUDIO_GENERATOR',
   
   // 新增：故事创作流程节点
-  STORY_STUDIO = 'STORY_STUDIO',           // 创意工作室
+  STORY_STUDIO = 'STORY_STUDIO',           // 创意工作室（已废弃）
   CHARACTER_REFERENCE = 'CHARACTER_REFERENCE', // 角色参考
   SCENE_REFERENCE = 'SCENE_REFERENCE',     // 场景参考
-  STORYBOARD_SHOT = 'STORYBOARD_SHOT',     // 分镜生成
+  STORYBOARD_SHOT = 'STORYBOARD_SHOT',     // 分镜生成（已废弃）
+  
+  // 新增：AI 协作工作室节点
+  SCRIPT_NODE = 'SCRIPT_NODE',             // 剧本节点
+  SHOT_IMAGE_GENERATOR = 'SHOT_IMAGE_GENERATOR', // 分镜图生成
   
   // 新增：多角度相机节点
   MULTI_ANGLE_CAMERA = 'MULTI_ANGLE_CAMERA', // 多角度相机
@@ -106,7 +110,51 @@ export interface AppNode {
   inputs: string[]; // IDs of nodes this node connects FROM
 }
 
-// 剧本数据结构
+// 剧本数据结构（AI 协作工作室）
+export interface ScriptData {
+  title: string;              // 剧本标题
+  logline: string;            // 一句话概述
+  theme: string;              // 主题/情绪
+  targetDuration: number;     // 目标时长（秒）
+  characters: Character[];    // 角色列表
+  scenes: Scene[];            // 场景列表
+  shots: Shot[];              // 分镜列表
+  createdAt: number;
+  updatedAt: number;
+  version: number;
+}
+
+// 镜头类型枚举
+export enum ShotType {
+  EXTREME_WIDE = 'Extreme Wide Shot',    // 极远景
+  WIDE = 'Wide Shot',                    // 远景
+  FULL = 'Full Shot',                    // 全景
+  MEDIUM = 'Medium Shot',                // 中景
+  CLOSE_UP = 'Close-Up',                 // 特写
+  EXTREME_CLOSE_UP = 'Extreme Close-Up', // 大特写
+}
+
+// 机位角度枚举
+export enum CameraAngle {
+  EYE_LEVEL = 'Eye Level',       // 平视
+  HIGH_ANGLE = 'High Angle',     // 俯视
+  LOW_ANGLE = 'Low Angle',       // 仰视
+  BIRDS_EYE = "Bird's Eye View", // 鸟瞰
+  DUTCH = 'Dutch Angle',         // 荷兰角
+}
+
+// 运镜方式枚举
+export enum CameraMovement {
+  STATIC = 'Static',       // 静止
+  PAN = 'Pan',             // 摇镜
+  TILT = 'Tilt',           // 俯仰
+  DOLLY = 'Dolly',         // 推拉
+  TRACK = 'Track',         // 跟随
+  CRANE = 'Crane',         // 升降
+  HANDHELD = 'Handheld',   // 手持
+}
+
+// 剧本数据结构（旧版，保留兼容性）
 export interface StoryData {
   title: string;
   logline: string;

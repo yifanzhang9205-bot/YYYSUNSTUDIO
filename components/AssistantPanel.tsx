@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { X, Eraser, Copy, CornerDownLeft, Loader2, Sparkles, Brain, PenLine, Wand2 } from 'lucide-react';
-import { sendChatMessage, ChatMessage } from '../services/chatService';
+import { chat } from '../services/cozeService';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -152,19 +152,9 @@ export const AssistantPanel: React.FC<AssistantPanelProps> = ({ isOpen, onClose 
     setIsLoading(true);
 
     try {
-        // 转换消息格式为 ChatMessage[]
-        const chatMessages: ChatMessage[] = messages.map(m => ({ 
-            role: m.role === 'user' ? 'user' : 'assistant', 
-            content: m.text 
-        }));
-        // 添加当前用户消息
-        chatMessages.push({ role: 'user', content: userText });
-        
-        const responseText = await sendChatMessage(chatMessages, { 
-            isThinkingMode, 
-            isStoryboard: isStoryboardActive,
-            isHelpMeWrite: isHelpMeWriteActive 
-        });
+        // 使用新的 Coze API - 简单直接
+        const result = await chat(userText);
+        const responseText = result.message || result;
         setMessages(prev => [...prev, { role: 'assistant', text: responseText }]);
     } catch (error: any) {
         setMessages(prev => [...prev, { role: 'assistant', text: error.message || "连接错误，请稍后重试。" }]);

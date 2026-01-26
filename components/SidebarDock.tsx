@@ -39,6 +39,7 @@ const getNodeNameCN = (t: string) => {
         case NodeType.VIDEO_ANALYZER: return '视频分析';
         case NodeType.IMAGE_EDITOR: return '图像编辑';
         case NodeType.STORY_STUDIO: return '创意工作室';
+        case NodeType.SCRIPT_NODE: return '剧本';
         case NodeType.CHARACTER_REFERENCE: return '角色参考';
         case NodeType.SCENE_REFERENCE: return '场景参考';
         case NodeType.STORYBOARD_SHOT: return '分镜生成';
@@ -57,6 +58,7 @@ const getNodeIcon = (t: string) => {
         case NodeType.VIDEO_ANALYZER: return ScanFace;
         case NodeType.IMAGE_EDITOR: return Brush;
         case NodeType.STORY_STUDIO: return Sparkles;
+        case NodeType.SCRIPT_NODE: return AlignJustify;
         case NodeType.CHARACTER_REFERENCE: return ScanFace;
         case NodeType.SCENE_REFERENCE: return ImageIcon;
         case NodeType.STORYBOARD_SHOT: return Film;
@@ -306,7 +308,7 @@ export const SidebarDock: React.FC<SidebarDockProps> = ({
                     {/* 故事创作 */}
                     <div className="space-y-2 pt-2 border-t border-white/5">
                         <div className="px-2 text-[9px] font-bold uppercase tracking-wider text-white/30">故事创作</div>
-                        {[NodeType.STORY_STUDIO, NodeType.CHARACTER_REFERENCE, NodeType.SCENE_REFERENCE, NodeType.STORYBOARD_SHOT].map(t => {
+                        {[NodeType.STORY_STUDIO, NodeType.SCRIPT_NODE, NodeType.CHARACTER_REFERENCE, NodeType.SCENE_REFERENCE, NodeType.STORYBOARD_SHOT].map(t => {
                             const ItemIcon = getNodeIcon(t);
                             return (
                                 <button 

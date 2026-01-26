@@ -2,12 +2,12 @@
 import { GoogleGenAI, GenerateContentResponse, Type, Modality, Part, FunctionDeclaration } from "@google/genai";
 import { SmartSequenceItem, VideoGenerationMode } from "../types";
 import { generateImage as generateXiguapiImage, generateVideo as generateXiguapiVideo } from "./xiguapiService";
-import { 
-    sendChatMessageCompat as sendBltcyChatMessage, 
-    planStoryboard as planBltcyStoryboard,
-    orchestrateVideoPrompt as orchestrateBltcyVideoPrompt 
-} from "./bltcyService";
 import { uploadMultipleImagesToImgBB, isImgBBConfigured } from "./imgbbService";
+import { 
+    sendChatMessageCompat as sendCozeChatMessage, 
+    planStoryboard as planCozeStoryboard,
+    orchestrateVideoPrompt as orchestrateCozeVideoPrompt 
+} from "./cozeService";
 
 // --- Initialization ---
 
@@ -319,43 +319,8 @@ export const sendChatMessage = async (
     newMessage: string,
     options?: { isThinkingMode?: boolean, isStoryboard?: boolean, isHelpMeWrite?: boolean }
 ): Promise<string> => {
-    // 优先使用 BLTCY API
-    try {
-        console.log('[Chat] 使用 BLTCY API');
-        return await sendBltcyChatMessage(history, newMessage, options);
-    } catch (bltcyError: any) {
-        console.warn('BLTCY 对话失败，尝试使用 Gemini 备用:', bltcyError);
-        
-        // 备用方案：使用 Gemini API
-        const ai = getClient();
-        
-        let modelName = 'gemini-2.5-flash';
-        let systemInstruction = SYSTEM_INSTRUCTION;
-
-        if (options?.isThinkingMode) {
-            modelName = 'gemini-2.5-flash';
-        }
-
-        if (options?.isStoryboard) {
-            systemInstruction = STORYBOARD_INSTRUCTION;
-        } else if (options?.isHelpMeWrite) {
-            systemInstruction = HELP_ME_WRITE_INSTRUCTION;
-        }
-
-        try {
-            const chat = ai.chats.create({
-                model: modelName,
-                config: { systemInstruction },
-                history: history
-            });
-
-            const result = await chat.sendMessage({ message: newMessage });
-            return result.text || "No response";
-        } catch (geminiError: any) {
-            console.error('Gemini 备用方案也失败:', geminiError);
-            throw new Error(bltcyError.message || 'Chat service unavailable');
-        }
-    }
+    // 使用 Coze AI 导演助手
+    return await sendCozeChatMessage(history, newMessage, options);
 };
 
 export const generateImageFromText = async (
@@ -596,67 +561,13 @@ export const editImageWithText = async (imageBase64: string, prompt: string, mod
 };
 
 export const planStoryboard = async (prompt: string, context: string): Promise<string[]> => {
-    // 优先使用 BLTCY API
-    try {
-        console.log('[Storyboard] 使用 BLTCY API');
-        return await planBltcyStoryboard(prompt, context);
-    } catch (bltcyError: any) {
-        console.warn('BLTCY 分镜生成失败，尝试使用 Gemini 备用:', bltcyError);
-        
-        // 备用方案：使用 Gemini API
-        const ai = getClient();
-        try {
-            const response = await ai.models.generateContent({
-                model: 'gemini-2.5-flash',
-                config: { 
-                    responseMimeType: 'application/json',
-                    systemInstruction: STORYBOARD_INSTRUCTION 
-                },
-                contents: { parts: [{ text: `Context: ${context}\n\nUser Idea: ${prompt}` }] }
-            });
-            
-            return JSON.parse(response.text || "[]");
-        } catch (geminiError) {
-            console.error('Gemini 备用方案也失败:', geminiError);
-            return [];
-        }
-    }
+    // 使用 Coze AI 导演助手
+    return await planCozeStoryboard(prompt, context);
 };
 
 export const orchestrateVideoPrompt = async (images: string[], userPrompt: string): Promise<string> => {
-     // 注意：BLTCY API 不支持图片输入，所以这里需要先描述图片
-     // 简化处理：直接使用 BLTCY 的文本编排能力
-     try {
-         console.log('[Video Orchestration] 使用 BLTCY API');
-         // 创建图片描述（简化版，实际应该先用视觉模型分析图片）
-         const imageDescriptions = images.map((_, i) => `Image ${i + 1}`);
-         return await orchestrateBltcyVideoPrompt(imageDescriptions, userPrompt);
-     } catch (bltcyError: any) {
-         console.warn('BLTCY 视频编排失败，尝试使用 Gemini 备用:', bltcyError);
-         
-         // 备用方案：使用 Gemini 的视觉能力
-         const ai = getClient();
-         try {
-             const parts: Part[] = images.map(img => ({ 
-                 inlineData: { 
-                     data: img.replace(/^data:.*;base64,/, ""), 
-                     mimeType: "image/png" 
-                 } 
-             }));
-             parts.push({ text: `Create a single video prompt that transitions between these images. User Intent: ${userPrompt}` });
-             
-             const response = await ai.models.generateContent({
-                model: 'gemini-2.5-flash',
-                config: { systemInstruction: VIDEO_ORCHESTRATOR_INSTRUCTION },
-                contents: { parts }
-             });
-             
-             return response.text || userPrompt;
-         } catch (geminiError) {
-             console.error('Gemini 备用方案也失败:', geminiError);
-             return userPrompt;
-         }
-     }
+     // 使用 Coze AI 导演助手
+     return await orchestrateCozeVideoPrompt(images, userPrompt);
 };
 
 export const compileMultiFramePrompt = (frames: any[]) => {

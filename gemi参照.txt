@@ -1,0 +1,29 @@
+你的代码生成 Prompt 时必须严格遵循这个语序，而不是乱序堆砌：
+
+公式：
+
+主体 (Subject) + 动作 (Action) + 环境 (Environment) + 艺术风格 (Art Style) + 光照 (Lighting) + 细节 (Details)
+
+以及 5 个关键“动作词” (Action Words)： 用于修改图片时最有效的指令词：
+
+Add (添加)
+
+Change (改变)
+
+Make (制作/使变成)
+
+Remove (移除)
+
+Replace (替换) —— 这个对你最重要！
+第一部分：核心逻辑解构（视频 + 模型）1. 视频的核心精髓：精准的动词（The Verbs）视频作者反复强调，单纯的名词（Side view）是弱指令，动词（Change/Rotate）才是强指令。弱指令： “侧视图” —— 模型理解为：“画一张侧视图，内容随意。”强指令： “把相机移到侧面” —— 模型理解为：“对象不变，改变观察者的位置。”2. Nano Banana 的特性：它是个“听得懂话”的盲人Nano Banana (Gemini) 看到图片时，它提取的是语义（Semantics）。它看到的不是像素，而是：“一个穿着红衣服的长发女孩”。核心痛点： 当你让它画“侧面”时，它容易丢失“红衣服”或“长发”这些特征，因为它觉得自己在画一张新图。解决方案： 必须强制它进行**“特征锁定” (Feature Locking)**。第二部分：你的执行代码逻辑（Prompt 组装工厂）你需要在后台写一个“提示词组装器”。请按照下面这个4层结构来拼接最终发送给 API 的 Prompt。第 1 层：身份设定与输入 (Context & Role)目的： 告诉模型它在干什么工作（从生成模式切换到“重绘/编辑”模式）。固定话术："You are an expert 3D CGI artist and photographer. I have provided a reference image of a character. Your task is to re-render this exact same character from a new specific camera angle. Do not generate a new person."(中文意译：你是一个专家级CGI艺术家。我提供了一张参考图。你的任务是从一个新的特定角度重新渲染同一个角色。不要生成新的人。)第 2 层：角度指令 (The Variable - 你的下拉菜单)核心操作： 这里是你前端“选择角度”对应的核心变量。视频结合点： 使用视频强调的 "Change" 和 "Position"。请直接复制这些文案到你的代码库作为 Value 值：你菜单上的选项对应的 Nano Banana 专用指令 (Angle Block)正侧面 (90° Side)"Action: Move the camera 90 degrees to the right. Show a strict side profile view. The camera should be parallel to the ground. The nose and chin should form a clear silhouette. Only one eye and one ear should be visible."45度侧 (3/4 View)"Action: Rotate the camera 45 degrees around the subject. Show a three-quarter view. The subject's body is turned slightly away, creating depth. Both eyes are visible, but the far eye is slightly foreshortened."背面 (Back View)"Action: Move the camera directly behind the subject for a full back view. Focus on the details of the hair, the back of the clothing, and the posture. The face should not be visible."俯视 (Top-down)"Action: Lift the camera high above the subject's head. Shoot straight down (90-degree vertical). This is a bird's-eye view. Emphasize the top of the head/hair and the shoulders relative to the feet."仰视 (Low Angle)"Action: Place the camera low on the ground, looking up at the subject. This is a worm's-eye view. The subject should look tall and imposing. The chin and jawline are prominent from below."第 3 层：特征一致性锁定 (Feature Locking)目的： 解决“角色不统一”的问题。视频结合点： 使用 "Keep" 和 "Maintain"。固定话术："Constraint: STRICTLY MAINTAIN the character's identity. Keep the following elements exactly as they appear in the reference image:Facial Features: Eye shape, nose shape, and mouth.Hair: Same hairstyle, length, and color.Outfit: Same clothing design, patterns, and colors.Body Type: Same build and proportions."第 4 层：环境与风格控制 (Environment & Style)目的： 防止背景干扰主体。固定话术："Background: Use a solid white background (or consistent with original). Lighting: Soft studio lighting to clearly show the 3D form."第三部分：具体执行步骤（怎么对照）现在你有了上面的拼装逻辑，怎么验证它是“好”还是“不好”？请按照以下步骤测试：步骤 1：构建测试 Prompt假设用户选了“正侧面”。你的代码拼接出来的完整 Prompt 应该是这样的（直接发给 Nano Banana）：Plaintext[Role]
+You are an expert 3D CGI artist. Your task is to re-render the character in the attached image from a new angle.
+
+[Action - 来自你的菜单]
+Action: Move the camera 90 degrees to the right. Show a strict side profile view. The camera should be parallel to the ground. The nose and chin should form a clear silhouette. Only one eye and one ear should be visible.
+
+[Constraint]
+Constraint: STRICTLY MAINTAIN the character's identity. Keep the facial features, hairstyle, and outfit exactly the same as the reference image.
+
+[Environment]
+Background: Solid white. Style: Photorealistic 3D render.
+步骤 2：视觉对照表（Checklist）拿到生成图后，不要只凭感觉，要用这 3 点去“卡”结果：几何检查（Geometry Check）：问： 鼻子有没有变成轮廓？是不是只看到一只耳朵？如果否： 说明 Prompt 里的 Action 描述还不够物理化。你需要加强“Camera position（相机位置）”的描述，比如加上 "The camera is positioned at ear-level"（相机位于耳部高度）。特征检查（Identity Check）：问： 衣服上的花纹还在吗？刘海的分叉方向对吗？如果否： 说明 Nano Banana 正在“重绘”。修正： 将 [Constraint] 部分的权重提高，或者在 Prompt 里重复一遍关键特征（例如：Keep the red scarf）。Nano Banana 的“幻觉”检查：现象： 有时候侧视图会出现“扭曲的脸”或“多余的手指”。原因： 2D 转 3D 时，模型填补了它没看到的信息（比如背后的样子）。修正： 在 Prompt 最后加一句 Negative Constraint（负面约束）： "Do not distort facial proportions. Do not add extra limbs."第四部分：给你的终极
