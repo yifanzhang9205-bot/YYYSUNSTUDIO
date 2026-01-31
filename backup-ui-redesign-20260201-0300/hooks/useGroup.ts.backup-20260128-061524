@@ -1,0 +1,899 @@
+﻿/**
+ * useGroup Hook - 分组逻辑
+ * 
+ * 职责：
+ * - 处理分组创建（框选）
+ * - 处理分组拖动（包含子节点）
+ * - 处理分组删除
+ * - 处理一键整理（拓扑排序、网格布局）
+ * - 管理分组状态
+ * 
+ * 架构重构 - 阶段 A：
+ * - 使用 groupStore 管理分组数据
+ * - 使用 selectionStore 管理选择状态
+ * - 不再使用内部 useState
+ */
+
+import React, { useState, useCallback, useRef, useEffect } from 'react';
+import { AppNode, Group, Connection } from '../types';
+
+interface UseGroupOptions {
+  groups: Group[];
+  nodes: Map<string, AppNode>;
+  connections: Connection[];
+  scale: number;
+  onAddGroup: (group: Group) => void;
+  onUpdateGroup: (id: string, updates: Partial<Group>) => void;
+  onDeleteGroup: (id: string) => void;
+  onUpdateNode: (id: string, updates: Partial<AppNode>) => void;
+  onSaveHistory: () => void;
+  getApproxNodeHeight: (node: AppNode) => number;
+}
+
+interface DragGroupContext {
+  id: string;
+  startX: number;
+  startY: number;
+  mouseStartX: number;
+  mouseStartY: number;
+  childNodes: Array<{ id: string; startX: number; startY: number }>;
+}
+
+export const useGroup = ({
+  groups,
+  nodes,
+  connections,
+  scale,
+  onAddGroup,
+  onUpdateGroup,
+  onDeleteGroup,
+  onUpdateNode,
+  onSaveHistory,
+  getApproxNodeHeight,
+}: UseGroupOptions) => {
+  
+  // === 状态管理 ===
+  const [resizingGroupId, setResizingGroupId] = useState<string | null>(null);
+  const [isDraggingGroup, setIsDraggingGroup] = useState<boolean>(false);
+  const dragGroupRef = useRef<DragGroupContext | null>(null);
+  
+  // === Ref 存储（避免 useEffect 重复注册）===
+  const scaleRef = useRef(scale);
+  
+  // 更新 scaleRef
+  useEffect(() => {
+    scaleRef.current = scale;
+  }, [scale]);
+
+  // === 辅助函数 ===
+  
+  /**
+   * 获取节点所在的分组
+   */
+  const getNodeGroup = useCallback((nodeId: string): Group | undefined => {
+    const node = nodes.get(nodeId);
+    if (!node) return undefined;
+
+    const nodeWidth = node.width || 420;
+    const nodeHeight = getApproxNodeHeight(node);
+    const cx = node.x + nodeWidth / 2;
+    const cy = node.y + nodeHeight / 2;
+
+    return groups.find(g => 
+      cx > g.x && cx < g.x + g.width && 
+      cy > g.y && cy < g.y + g.height
+    );
+  }, [groups, nodes, getApproxNodeHeight]);
+
+  /**
+   * 获取组内的所有节点
+   */
+  const getGroupNodes = useCallback((groupId: string): AppNode[] => {
+    const group = groups.find(g => g.id === groupId);
+    if (!group) return [];
+
+    return Array.from(nodes.values()).filter(n => {
+      const nodeWidth = n.width || 420;
+      const nodeHeight = getApproxNodeHeight(n);
+      const cx = n.x + nodeWidth / 2;
+      const cy = n.y + nodeHeight / 2;
+      return cx > group.x && cx < group.x + group.width && 
+             cy > group.y && cy < group.y + group.height;
+    });
+  }, [groups, nodes, getApproxNodeHeight]);
+
+  // === 分组拖动 ===
+  
+  /**
+   * 开始拖动分组
+   * 
+   * 注意：App.tsx 调用时传递 (e, groupId, group)
+   */
+  const startGroupDrag = useCallback((e: React.MouseEvent, groupId: string, group: Group) => {
+    // ❌ 不要 stopPropagation，会阻止选中事件
+    // e.stopPropagation();
+    
+    // 获取组内的所有节点
+    const childNodes = getGroupNodes(groupId).map(n => ({
+      id: n.id,
+      startX: n.x,
+      startY: n.y,
+    }));
+
+
+
+    dragGroupRef.current = {
+      id: groupId,
+      startX: group.x,
+      startY: group.y,
+      mouseStartX: e.clientX,
+      mouseStartY: e.clientY,
+      childNodes,
+    };
+
+    // ✅ 禁用 transition（避免拖动滞涩）
+    const groupElement = document.querySelector(`[data-group-id="${groupId}"]`) as HTMLElement;
+    if (groupElement) {
+      groupElement.style.transition = 'none';
+      groupElement.style.willChange = 'transform';
+    }
+
+    // ✅ 同时禁用子节点的 transition
+    // 🔥 修复：节点可能还没渲染到 DOM，不禁用 transition 也没关系
+    // 因为 updateGroupDrag 会直接使用 transform，不会触发 transition
+
+    // ✅ 设置拖动状态
+    setIsDraggingGroup(true);
+  }, [getGroupNodes]);
+
+  /**
+   * 更新分组拖动
+   * 
+   * 使用 CSS transform 优化性能（GPU 加速，0 次 React 重渲染）
+   * 
+   * @returns {boolean} 是否处理了拖动（true = 正在拖动 Group，false = 没有拖动）
+   */
+  const updateGroupDrag = useCallback((e: MouseEvent, currentScale: number): boolean => {
+    if (!dragGroupRef.current) {
+      return false;
+    }
+
+    const { id, mouseStartX, mouseStartY, childNodes } = dragGroupRef.current;
+
+    // 计算偏移量（屏幕坐标）
+    const screenDx = e.clientX - mouseStartX;
+    const screenDy = e.clientY - mouseStartY;
+
+    // 使用 CSS transform 优化性能（直接操作 DOM）
+    const groupElement = document.querySelector(`[data-group-id="${id}"]`) as HTMLElement;
+    
+    if (groupElement) {
+      groupElement.style.transform = `translate(${screenDx}px, ${screenDy}px)`;
+      groupElement.style.willChange = 'transform';
+    }
+
+    // 同时移动子节点
+    childNodes.forEach((child: { id: string; startX: number; startY: number }) => {
+      // 方法 1：使用 data-node-id 属性选择器
+      let nodeElement = document.querySelector(`[data-node-id="${child.id}"]`) as HTMLElement;
+      
+      // 方法 2：使用 id 选择器（备用方案）
+      if (!nodeElement) {
+        nodeElement = document.getElementById(`node-${child.id}`) as HTMLElement;
+      }
+      
+      if (nodeElement) {
+        nodeElement.style.transform = `translate(${screenDx}px, ${screenDy}px)`;
+        nodeElement.style.willChange = 'transform';
+      }
+    });
+    
+    return true; // 返回 true 表示处理了拖动
+  }, []);
+
+  /**
+   * 结束分组拖动
+   * 
+   * 计算最终位置并更新 Store
+   */
+  const endGroupDrag = useCallback((e: MouseEvent, currentScale: number) => {
+    if (!dragGroupRef.current) return;
+
+    const { id, startX, startY, mouseStartX, mouseStartY, childNodes } = dragGroupRef.current;
+
+    // 计算最终位置（世界坐标）
+    const screenDx = e.clientX - mouseStartX;
+    const screenDy = e.clientY - mouseStartY;
+    const worldDx = screenDx / currentScale;
+    const worldDy = screenDy / currentScale;
+    const finalX = startX + worldDx;
+    const finalY = startY + worldDy;
+
+    // 保存历史
+    onSaveHistory();
+
+    // 更新分组位置（使用 Store）
+    onUpdateGroup(id, { x: finalX, y: finalY });
+
+    // 更新子节点位置（使用 Store）
+    childNodes.forEach((child: { id: string; startX: number; startY: number }) => {
+      onUpdateNode(child.id, {
+        x: child.startX + worldDx,
+        y: child.startY + worldDy,
+      });
+    });
+
+    // 清理 transform（让 React 接管）
+    const groupElement = document.querySelector(`[data-group-id="${id}"]`) as HTMLElement;
+    if (groupElement) {
+      groupElement.style.transition = 'none';
+      groupElement.style.transform = '';
+      groupElement.style.willChange = 'auto';
+      // 下一帧恢复 transition
+      requestAnimationFrame(() => {
+        if (groupElement) {
+          groupElement.style.transition = '';
+        }
+      });
+    }
+
+    childNodes.forEach((child: { id: string; startX: number; startY: number }) => {
+      // 方法 1：使用 data-node-id 属性选择器
+      let nodeElement = document.querySelector(`[data-node-id="${child.id}"]`) as HTMLElement;
+      
+      // 方法 2：使用 id 选择器（备用方案）
+      if (!nodeElement) {
+        nodeElement = document.getElementById(`node-${child.id}`) as HTMLElement;
+      }
+      
+      if (nodeElement) {
+        nodeElement.style.transition = 'none';
+        nodeElement.style.transform = '';
+        nodeElement.style.willChange = 'auto';
+        // 下一帧恢复 transition
+        requestAnimationFrame(() => {
+          if (nodeElement) {
+            nodeElement.style.transition = '';
+          }
+        });
+      }
+    });
+
+    // 清理状态
+    dragGroupRef.current = null;
+    setIsDraggingGroup(false);
+  }, [onSaveHistory, onUpdateGroup, onUpdateNode]);
+
+  /**
+   * 取消分组拖动
+   */
+  const cancelGroupDrag = useCallback(() => {
+    if (!dragGroupRef.current) return;
+
+    const { id, childNodes } = dragGroupRef.current;
+
+    // 清理 transform
+    const groupElement = document.querySelector(`[data-group-id="${id}"]`) as HTMLElement;
+    if (groupElement) {
+      groupElement.style.transform = '';
+      groupElement.style.willChange = 'auto';
+    }
+
+    childNodes.forEach((child: { id: string; startX: number; startY: number }) => {
+      // 方法 1：使用 data-node-id 属性选择器
+      let nodeElement = document.querySelector(`[data-node-id="${child.id}"]`) as HTMLElement;
+      
+      // 方法 2：使用 id 选择器（备用方案）
+      if (!nodeElement) {
+        nodeElement = document.getElementById(`node-${child.id}`) as HTMLElement;
+      }
+      
+      if (nodeElement) {
+        nodeElement.style.transform = '';
+        nodeElement.style.willChange = 'auto';
+      }
+    });
+
+    dragGroupRef.current = null;
+    setIsDraggingGroup(false);
+  }, []);
+
+  // === 全局事件监听（自动处理拖动）===
+  useEffect(() => {
+    const handleGlobalMouseMove = (e: MouseEvent) => {
+      if (!dragGroupRef.current) return;
+      
+      // 使用 scaleRef.current 而不是 scale
+      updateGroupDrag(e, scaleRef.current);
+    };
+
+    const handleGlobalMouseUp = (e: MouseEvent) => {
+      if (!dragGroupRef.current) return;
+      
+      // 使用 scaleRef.current 而不是 scale
+      endGroupDrag(e, scaleRef.current);
+    };
+
+    window.addEventListener('mousemove', handleGlobalMouseMove);
+    window.addEventListener('mouseup', handleGlobalMouseUp);
+
+    return () => {
+      window.removeEventListener('mousemove', handleGlobalMouseMove);
+      window.removeEventListener('mouseup', handleGlobalMouseUp);
+    };
+  }, [updateGroupDrag, endGroupDrag]); // 不依赖 scale
+
+  // === 对齐功能（6 种）===
+  
+  /**
+   * 左对齐
+   */
+  const alignLeft = useCallback((groupId: string) => {
+    const groupNodes = getGroupNodes(groupId);
+    if (groupNodes.length < 2) return;
+
+    onSaveHistory();
+
+    // 找到最左边的节点
+    const minX = Math.min(...groupNodes.map(n => n.x));
+
+    // 将所有节点对齐到最左边
+    groupNodes.forEach(node => {
+      onUpdateNode(node.id, { x: minX });
+    });
+  }, [getGroupNodes, onSaveHistory, onUpdateNode]);
+
+  /**
+   * 水平居中对齐
+   */
+  const alignCenterH = useCallback((groupId: string) => {
+    const groupNodes = getGroupNodes(groupId);
+    if (groupNodes.length < 2) return;
+
+    onSaveHistory();
+
+    // 计算所有节点的水平中心点的平均值
+    const avgCenterX = groupNodes.reduce((sum, n) => {
+      const nodeWidth = n.width || 420;
+      return sum + (n.x + nodeWidth / 2);
+    }, 0) / groupNodes.length;
+
+    // 将所有节点的中心对齐到平均中心
+    groupNodes.forEach(node => {
+      const nodeWidth = node.width || 420;
+      onUpdateNode(node.id, { x: avgCenterX - nodeWidth / 2 });
+    });
+  }, [getGroupNodes, onSaveHistory, onUpdateNode]);
+
+  /**
+   * 右对齐
+   */
+  const alignRight = useCallback((groupId: string) => {
+    const groupNodes = getGroupNodes(groupId);
+    if (groupNodes.length < 2) return;
+
+    onSaveHistory();
+
+    // 找到最右边的节点
+    const maxRight = Math.max(...groupNodes.map(n => n.x + (n.width || 420)));
+
+    // 将所有节点对齐到最右边
+    groupNodes.forEach(node => {
+      const nodeWidth = node.width || 420;
+      onUpdateNode(node.id, { x: maxRight - nodeWidth });
+    });
+  }, [getGroupNodes, onSaveHistory, onUpdateNode]);
+
+  /**
+   * 顶部对齐
+   */
+  const alignTop = useCallback((groupId: string) => {
+    const groupNodes = getGroupNodes(groupId);
+    if (groupNodes.length < 2) return;
+
+    onSaveHistory();
+
+    // 找到最上边的节点
+    const minY = Math.min(...groupNodes.map(n => n.y));
+
+    // 将所有节点对齐到最上边
+    groupNodes.forEach(node => {
+      onUpdateNode(node.id, { y: minY });
+    });
+  }, [getGroupNodes, onSaveHistory, onUpdateNode]);
+
+  /**
+   * 垂直居中对齐
+   */
+  const alignCenterV = useCallback((groupId: string) => {
+    const groupNodes = getGroupNodes(groupId);
+    if (groupNodes.length < 2) return;
+
+    onSaveHistory();
+
+    // 计算所有节点的垂直中心点的平均值
+    const avgCenterY = groupNodes.reduce((sum, n) => {
+      const nodeHeight = getApproxNodeHeight(n);
+      return sum + (n.y + nodeHeight / 2);
+    }, 0) / groupNodes.length;
+
+    // 将所有节点的中心对齐到平均中心
+    groupNodes.forEach(node => {
+      const nodeHeight = getApproxNodeHeight(node);
+      onUpdateNode(node.id, { y: avgCenterY - nodeHeight / 2 });
+    });
+  }, [getGroupNodes, getApproxNodeHeight, onSaveHistory, onUpdateNode]);
+
+  /**
+   * 底部对齐
+   */
+  const alignBottom = useCallback((groupId: string) => {
+    const groupNodes = getGroupNodes(groupId);
+    if (groupNodes.length < 2) return;
+
+    onSaveHistory();
+
+    // 找到最下边的节点
+    const maxBottom = Math.max(...groupNodes.map(n => n.y + getApproxNodeHeight(n)));
+
+    // 将所有节点对齐到最下边
+    groupNodes.forEach(node => {
+      const nodeHeight = getApproxNodeHeight(node);
+      onUpdateNode(node.id, { y: maxBottom - nodeHeight });
+    });
+  }, [getGroupNodes, getApproxNodeHeight, onSaveHistory, onUpdateNode]);
+
+  // === 分布功能（2 种）===
+  
+  /**
+   * 水平间距分布
+   */
+  const distributeH = useCallback((groupId: string) => {
+    const groupNodes = getGroupNodes(groupId);
+    if (groupNodes.length < 3) return; // 至少需要 3 个节点
+
+    onSaveHistory();
+
+    // 按 x 坐标排序
+    const sortedNodes = [...groupNodes].sort((a, b) => a.x - b.x);
+
+    // 计算总间距
+    const firstNode = sortedNodes[0];
+    const lastNode = sortedNodes[sortedNodes.length - 1];
+    const firstRight = firstNode.x + (firstNode.width || 420);
+    const lastLeft = lastNode.x;
+    const totalGap = lastLeft - firstRight;
+
+    // 计算中间节点的总宽度
+    const middleNodesWidth = sortedNodes
+      .slice(1, -1)
+      .reduce((sum, n) => sum + (n.width || 420), 0);
+
+    // 计算平均间距
+    const avgGap = (totalGap - middleNodesWidth) / (sortedNodes.length - 1);
+
+    // 重新分布节点
+    let currentX = firstRight + avgGap;
+    for (let i = 1; i < sortedNodes.length - 1; i++) {
+      const node = sortedNodes[i];
+      onUpdateNode(node.id, { x: currentX });
+      currentX += (node.width || 420) + avgGap;
+    }
+  }, [getGroupNodes, onSaveHistory, onUpdateNode]);
+
+  /**
+   * 垂直间距分布
+   */
+  const distributeV = useCallback((groupId: string) => {
+    const groupNodes = getGroupNodes(groupId);
+    if (groupNodes.length < 3) return; // 至少需要 3 个节点
+
+    onSaveHistory();
+
+    // 按 y 坐标排序
+    const sortedNodes = [...groupNodes].sort((a, b) => a.y - b.y);
+
+    // 计算总间距
+    const firstNode = sortedNodes[0];
+    const lastNode = sortedNodes[sortedNodes.length - 1];
+    const firstBottom = firstNode.y + getApproxNodeHeight(firstNode);
+    const lastTop = lastNode.y;
+    const totalGap = lastTop - firstBottom;
+
+    // 计算中间节点的总高度
+    const middleNodesHeight = sortedNodes
+      .slice(1, -1)
+      .reduce((sum, n) => sum + getApproxNodeHeight(n), 0);
+
+    // 计算平均间距
+    const avgGap = (totalGap - middleNodesHeight) / (sortedNodes.length - 1);
+
+    // 重新分布节点
+    let currentY = firstBottom + avgGap;
+    for (let i = 1; i < sortedNodes.length - 1; i++) {
+      const node = sortedNodes[i];
+      onUpdateNode(node.id, { y: currentY });
+      currentY += getApproxNodeHeight(node) + avgGap;
+    }
+  }, [getGroupNodes, getApproxNodeHeight, onSaveHistory, onUpdateNode]);
+
+  // === 拓扑排序（Kahn 算法）===
+  
+  /**
+   * 拓扑排序布局
+   */
+  const arrangeTopology = useCallback((groupId: string) => {
+    const group = groups.find(g => g.id === groupId);
+    if (!group) return;
+
+    const groupNodes = getGroupNodes(groupId);
+    if (groupNodes.length === 0) return;
+
+    onSaveHistory();
+
+    // 构建邻接表和入度表
+    const nodeIds = new Set(groupNodes.map(n => n.id));
+    const groupConnections = connections.filter(c => nodeIds.has(c.from) && nodeIds.has(c.to));
+
+    const adjacency = new Map<string, string[]>();
+    const inDegree = new Map<string, number>();
+
+    groupNodes.forEach(n => {
+      adjacency.set(n.id, []);
+      inDegree.set(n.id, 0);
+    });
+
+    groupConnections.forEach(conn => {
+      adjacency.get(conn.from)?.push(conn.to);
+      inDegree.set(conn.to, (inDegree.get(conn.to) || 0) + 1);
+    });
+
+    // Kahn 算法拓扑排序
+    const layers: string[][] = [];
+    const queue: string[] = [];
+    const processed = new Set<string>();
+
+    // 找到所有入度为 0 的节点
+    groupNodes.forEach(n => {
+      if (inDegree.get(n.id) === 0) {
+        queue.push(n.id);
+      }
+    });
+
+    // 按层级处理节点
+    while (queue.length > 0) {
+      const currentLayer: string[] = [...queue];
+      layers.push(currentLayer);
+      queue.length = 0;
+
+      currentLayer.forEach(nodeId => {
+        processed.add(nodeId);
+
+        const outputs = adjacency.get(nodeId) || [];
+        outputs.forEach(outputId => {
+          const degree = inDegree.get(outputId) || 0;
+          inDegree.set(outputId, degree - 1);
+
+          if (degree - 1 === 0 && !processed.has(outputId)) {
+            queue.push(outputId);
+          }
+        });
+      });
+    }
+
+    // 处理未被处理的节点（孤立节点或循环依赖）
+    const unprocessed = groupNodes.filter(n => !processed.has(n.id));
+    if (unprocessed.length > 0) {
+      layers.push(unprocessed.map(n => n.id));
+    }
+
+    // 布局参数
+    const nodeWidth = 420;
+    const nodeHeight = 300;
+    const horizontalGap = 80;
+    const verticalGap = 100;
+    const padding = 40;
+
+    // 计算每层的位置
+    let currentY = group.y + padding;
+
+    layers.forEach(layer => {
+      const layerWidth = layer.length * nodeWidth + (layer.length - 1) * horizontalGap;
+      let currentX = group.x + padding + (group.width - padding * 2 - layerWidth) / 2;
+
+      layer.forEach(nodeId => {
+        onUpdateNode(nodeId, {
+          x: currentX,
+          y: currentY,
+        });
+        currentX += nodeWidth + horizontalGap;
+      });
+
+      currentY += nodeHeight + verticalGap;
+    });
+
+    // 更新分组大小
+    const totalWidth = Math.max(...layers.map(layer => 
+      layer.length * nodeWidth + (layer.length - 1) * horizontalGap
+    )) + padding * 2;
+    const totalHeight = layers.length * nodeHeight + (layers.length - 1) * verticalGap + padding * 2;
+
+    onUpdateGroup(groupId, {
+      width: totalWidth,
+      height: totalHeight,
+    });
+  }, [groups, getGroupNodes, connections, onSaveHistory, onUpdateNode, onUpdateGroup]);
+
+  // === 批量缩放功能 ===
+  
+  /**
+   * 批量缩放节点（以组中心为基准）
+   */
+  const scaleNodes = useCallback((groupId: string, scaleFactor: number) => {
+    const group = groups.find(g => g.id === groupId);
+    if (!group) return;
+
+    const groupNodes = getGroupNodes(groupId);
+    if (groupNodes.length === 0) return;
+
+    onSaveHistory();
+
+    // 计算组的中心点
+    const groupCenterX = group.x + group.width / 2;
+    const groupCenterY = group.y + group.height / 2;
+
+    // 缩放每个节点
+    groupNodes.forEach(node => {
+      const nodeWidth = node.width || 420;
+      const nodeHeight = getApproxNodeHeight(node);
+      
+      // 节点中心点
+      const nodeCenterX = node.x + nodeWidth / 2;
+      const nodeCenterY = node.y + nodeHeight / 2;
+
+      // 计算相对于组中心的偏移
+      const offsetX = nodeCenterX - groupCenterX;
+      const offsetY = nodeCenterY - groupCenterY;
+
+      // 缩放后的偏移
+      const newOffsetX = offsetX * scaleFactor;
+      const newOffsetY = offsetY * scaleFactor;
+
+      // 新的节点中心点
+      const newNodeCenterX = groupCenterX + newOffsetX;
+      const newNodeCenterY = groupCenterY + newOffsetY;
+
+      // 新的节点位置（左上角）
+      const newX = newNodeCenterX - nodeWidth / 2;
+      const newY = newNodeCenterY - nodeHeight / 2;
+
+      onUpdateNode(node.id, { x: newX, y: newY });
+    });
+  }, [groups, getGroupNodes, getApproxNodeHeight, onSaveHistory, onUpdateNode]);
+
+  // === 动态扩展组 ===
+  
+  /**
+   * 扩展或创建组
+   * 
+   * 逻辑：
+   * 1. 检测选中的节点是否有部分已在某个组内
+   * 2. 如果是，扩展该组的边界包含所有选中节点
+   * 3. 如果不是，创建新组
+   */
+  const expandOrCreateGroup = useCallback((selectedNodeIds: string[]) => {
+    if (selectedNodeIds.length === 0) return;
+
+    const selectedNodes = selectedNodeIds
+      .map(id => nodes.get(id))
+      .filter((n): n is AppNode => n !== undefined);
+
+    if (selectedNodes.length === 0) return;
+
+    // 检测选中的节点是否有部分已在某个组内
+    const nodesInGroups = new Map<string, AppNode[]>(); // groupId -> nodes
+
+    selectedNodes.forEach(node => {
+      const nodeWidth = node.width || 420;
+      const nodeHeight = getApproxNodeHeight(node);
+      const cx = node.x + nodeWidth / 2;
+      const cy = node.y + nodeHeight / 2;
+
+      // 查找节点所在的组
+      const group = groups.find(g => 
+        cx > g.x && cx < g.x + g.width && 
+        cy > g.y && cy < g.y + g.height
+      );
+
+      if (group) {
+        if (!nodesInGroups.has(group.id)) {
+          nodesInGroups.set(group.id, []);
+        }
+        nodesInGroups.get(group.id)!.push(node);
+      }
+    });
+
+    // 如果有节点已在组内，扩展该组
+    if (nodesInGroups.size > 0) {
+      // 选择包含最多节点的组进行扩展
+      let targetGroupId: string | null = null;
+      let maxNodesCount = 0;
+
+      nodesInGroups.forEach((nodesInGroup, groupId) => {
+        if (nodesInGroup.length > maxNodesCount) {
+          maxNodesCount = nodesInGroup.length;
+          targetGroupId = groupId;
+        }
+      });
+
+      if (targetGroupId) {
+        onSaveHistory();
+
+        // 计算所有选中节点的边界
+        const minX = Math.min(...selectedNodes.map(n => n.x));
+        const minY = Math.min(...selectedNodes.map(n => n.y));
+        const maxX = Math.max(...selectedNodes.map(n => n.x + (n.width || 420)));
+        const maxY = Math.max(...selectedNodes.map(n => n.y + getApproxNodeHeight(n)));
+
+        const padding = 32;
+
+        // 扩展组的边界
+        onUpdateGroup(targetGroupId, {
+          x: minX - padding,
+          y: minY - padding,
+          width: (maxX - minX) + padding * 2,
+          height: (maxY - minY) + padding * 2,
+        });
+
+        return; // 扩展完成，不创建新组
+      }
+    }
+
+    // 如果没有节点在组内，创建新组
+    onSaveHistory();
+
+    const minX = Math.min(...selectedNodes.map(n => n.x));
+    const minY = Math.min(...selectedNodes.map(n => n.y));
+    const maxX = Math.max(...selectedNodes.map(n => n.x + (n.width || 420)));
+    const maxY = Math.max(...selectedNodes.map(n => n.y + getApproxNodeHeight(n)));
+
+    const padding = 32;
+
+    const newGroup: Group = {
+      id: `g-${Date.now()}`,
+      title: '新建分组',
+      x: minX - padding,
+      y: minY - padding,
+      width: (maxX - minX) + padding * 2,
+      height: (maxY - minY) + padding * 2,
+      nodeIds: selectedNodeIds,
+    };
+
+    onAddGroup(newGroup);
+  }, [nodes, groups, getApproxNodeHeight, onSaveHistory, onUpdateGroup, onAddGroup]);
+  
+  /**
+   * 创建分组
+   */
+  const createGroup = useCallback((group: Group) => {
+    onSaveHistory();
+    onAddGroup(group);
+  }, [onSaveHistory, onAddGroup]);
+
+  /**
+   * 删除分组（只删除分组，保留节点）
+   */
+  const deleteGroup = useCallback((groupId: string) => {
+    onSaveHistory();
+    onDeleteGroup(groupId);
+  }, [onSaveHistory, onDeleteGroup]);
+
+  /**
+   * 删除分组及其内部的所有节点
+   */
+  const deleteGroupWithNodes = useCallback((groupId: string, onDeleteNodes: (nodeIds: string[]) => void) => {
+    const group = groups.find(g => g.id === groupId);
+    if (!group) return;
+
+    onSaveHistory();
+
+    // 获取组内的所有节点
+    const groupNodes = getGroupNodes(groupId);
+    const nodeIdsToDelete = groupNodes.map(n => n.id);
+
+    // 先删除节点
+    if (nodeIdsToDelete.length > 0) {
+      onDeleteNodes(nodeIdsToDelete);
+    }
+
+    // 再删除分组
+    onDeleteGroup(groupId);
+  }, [groups, getGroupNodes, onSaveHistory, onDeleteGroup]);
+
+  /**
+   * 更新分组标题
+   */
+  const updateGroupTitle = useCallback((groupId: string, title: string) => {
+    onSaveHistory();
+    onUpdateGroup(groupId, { title });
+  }, [onSaveHistory, onUpdateGroup]);
+
+  // === 自动调整分组大小功能已移除 ===
+  // autoResizeGroup 功能已从右键菜单移除（2026-01-28）
+
+  /**
+   * 折叠/展开分组（占位，待实现）
+   */
+  const toggleCollapse = useCallback((_groupId: string) => {
+    // TODO: 实现折叠/展开功能
+  }, []);
+
+  /**
+   * 判断分组是否折叠（占位，待实现）
+   */
+  const isCollapsed = useCallback((_groupId: string): boolean => {
+    // TODO: 实现折叠状态判断
+    return false;
+  }, []);
+
+  /**
+   * 开始调整分组大小（占位，待实现）
+   */
+  const startGroupResize = useCallback((_groupId: string, _e: React.MouseEvent) => {
+    // TODO: 实现调整大小功能
+    setResizingGroupId(_groupId);
+  }, []);
+
+  /**
+   * 结束调整分组大小（占位，待实现）
+   */
+  const endGroupResize = useCallback(() => {
+    // TODO: 实现调整大小功能
+    setResizingGroupId(null);
+  }, []);
+
+  return {
+    // 状态
+    resizingGroupId,
+    isDraggingGroup,
+
+    // 查询
+    getNodeGroup,
+    getGroupNodes,
+
+    // 拖动
+    startGroupDrag,
+    updateGroupDrag,
+    endGroupDrag,
+    cancelGroupDrag,
+
+    // 对齐功能
+    alignLeft,
+    alignCenterH,
+    alignRight,
+    alignTop,
+    alignCenterV,
+    alignBottom,
+
+    // 分布功能
+    distributeH,
+    distributeV,
+
+    // 拓扑排序
+    arrangeTopology,
+
+    // 批量缩放
+    scaleNodes,
+
+    // 其他
+    createGroup,
+    deleteGroup,
+    deleteGroupWithNodes, // 新增：删除分组及其节点
+    updateGroupTitle,
+    toggleCollapse,
+    isCollapsed,
+    startGroupResize,
+    endGroupResize,
+    expandOrCreateGroup, // 新增：动态扩展组或创建新组
+  };
+};
