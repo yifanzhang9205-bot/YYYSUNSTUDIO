@@ -1,0 +1,43 @@
+﻿{/* Groups Layer */}
+              {groups.map(g => (
+                  <div 
+                      key={g.id} 
+                      data-group-id={g.id}
+                      className={`absolute rounded-[32px] border ${selectedGroupId === g.id ? 'border-cyan-500/30 bg-cyan-500/5' : 'border-white/10 bg-white/5'}`} 
+                      style={{ 
+                          left: g.x, 
+                          top: g.y, 
+                          width: g.width, 
+                          height: g.height,
+                          transition: 'all 0.3s cubic-bezier(0.32, 0.72, 0, 1)'
+                      }} 
+                      onMouseDown={(e) => { 
+                          e.stopPropagation(); 
+                          selectGroup(g.id); // 使用 Store 的方法
+                          
+                          const childNodes = Array.from(nodes.values()).filter(n => { 
+                              const b = getNodeBounds(n); 
+                              const cx = b.x + b.width/2; 
+                              const cy = b.y + b.height/2; 
+                              return cx>g.x && cx<g.x+g.width && cy>g.y && cy<g.y+g.height; 
+                          }).map(n=>({id:n.id, startX:n.x, startY:n.y}));
+                          
+                          // 缓存 Group 和子节点的 DOM 元素
+                          const groupElement = document.querySelector(`[data-group-id="${g.id}"]`) as HTMLElement;
+                          const childElements = new Map<string, HTMLElement>();
+                          childNodes.forEach(child => {
+                              const el = document.querySelector(`[data-node-id="${child.id}"]`) as HTMLElement;
+                              if (el) childElements.set(child.id, el);
+                          });
+                          
+                          dragGroupRef.current = { 
+                              id: g.id, 
+                              startX: g.x, 
+                              startY: g.y, 
+                              mouseStartX: e.clientX, 
+                              mouseStartY: e.clientY, 
+                              childNodes,
+                              groupElement,
+                              childElements
+                          };
+                      }}

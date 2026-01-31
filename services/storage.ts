@@ -283,3 +283,18 @@ export const loadFromStorage = async <T>(key: string): Promise<T | undefined> =>
       };
     });
 };
+
+/**
+ * 从 IndexedDB 删除数据
+ */
+export const deleteFromStorage = async (key: string): Promise<void> => {
+    const db = await getDB();
+    return new Promise<void>((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, 'readwrite');
+      const store = tx.objectStore(STORE_NAME);
+      const request = store.delete(key);
+
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+};

@@ -3,7 +3,7 @@ import {
     Plus, RotateCcw, History, MessageSquare, FolderHeart, X, 
     ImageIcon, Video as VideoIcon, Film, Save, 
     Edit, Trash2, Type, Workflow as WorkflowIcon,
-    Clapperboard, Mic2, Settings, ScanFace, Brush, AlignJustify, Grid3X3, Camera, Sparkles
+    Clapperboard, Mic2, Settings, ScanFace, Brush, AlignJustify, Grid3X3, Camera, Sparkles, Check
 } from 'lucide-react';
 import { NodeType, Workflow } from '../types';
 
@@ -19,6 +19,8 @@ interface SidebarDockProps {
     assetHistory: any[];
     onHistoryItemClick: (item: any) => void;
     onDeleteAsset: (id: string) => void;
+    onDeleteMultipleAssets?: (ids: string[]) => Promise<void>; // 🔥 新增：批量删除方法
+    onDownloadSelectedAndClear?: (selectedIds: Set<string>) => void;
     workflows: Workflow[];
     selectedWorkflowId: string | null;
     onSelectWorkflow: (id: string | null) => void;
@@ -26,8 +28,6 @@ interface SidebarDockProps {
     onDeleteWorkflow: (id: string) => void;
     onRenameWorkflow: (id: string, title: string) => void;
     onOpenSettings: () => void;
-    selectedGroupId: string | null;
-    onArrangeGroup: () => void;
 }
 
 const getNodeNameCN = (t: string) => {
@@ -80,18 +80,19 @@ export const SidebarDock: React.FC<SidebarDockProps> = ({
     assetHistory,
     onHistoryItemClick,
     onDeleteAsset,
+    onDeleteMultipleAssets, // 🔥 新增：批量删除方法
+    onDownloadSelectedAndClear,
     workflows,
     selectedWorkflowId,
     onSelectWorkflow,
     onSaveWorkflow,
     onDeleteWorkflow,
     onRenameWorkflow,
-    onOpenSettings,
-    selectedGroupId,
-    onArrangeGroup
+    onOpenSettings
 }) => {
     const [activePanel, setActivePanel] = useState<'history' | 'workflow' | 'add' | null>(null);
     const [activeHistoryTab, setActiveHistoryTab] = useState<'image' | 'video'>('image');
+    const [selectedImageIds, setSelectedImageIds] = useState<Set<string>>(new Set());
     const [editingWorkflowId, setEditingWorkflowId] = useState<string | null>(null);
     const [contextMenu, setContextMenu] = useState<{ visible: boolean, x: number, y: number, id: string, type: 'workflow' | 'history' } | null>(null);
     const closeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -130,10 +131,13 @@ export const SidebarDock: React.FC<SidebarDockProps> = ({
                 if (activeHistoryTab === 'video') return a.type === 'video' || a.type.includes('video');
                 return false;
             });
+            
+            const hasImages = filteredAssets.length > 0;
+            const allSelected = hasImages && filteredAssets.every(a => selectedImageIds.has(a.id));
 
             return (
                 <>
-                    <div className="p-4 border-b border-white/5 flex flex-col gap-3 bg-white/5 backdrop-blur-xl">
+                    <div className="p-1 border-b border-white/5 flex flex-col gap-2 bg-white/5 backdrop-blur-xl">
                         <div className="flex justify-between items-center">
                             <button onClick={() => setActivePanel(null)} className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-all active:scale-95">
                                 <X size={14} className="text-white/60" />
@@ -155,8 +159,99 @@ export const SidebarDock: React.FC<SidebarDockProps> = ({
                                 <VideoIcon size={12} /> 视频
                             </button>
                         </div>
+                        {/* 操作按钮 */}
+                        {hasImages && (
+                            <div className="flex gap-2">
+                                {/* 清除缓存（红色，左侧） */}
+                                <button 
+                                    onClick={async () => {
+                                        const unselectedCount = filteredAssets.length - selectedImageIds.size;
+                                        if (unselectedCount === 0) {
+                                            alert('没有未选中的图片');
+                                            return;
+                                        }
+                                        
+                                        const confirmed = window.confirm(
+                                            `⚠️ 确认删除？\n\n将永久删除 ${unselectedCount} 张未选中的图片\n\n此操作不可恢复！`
+                                        );
+                                        
+                                        if (confirmed) {
+                                            const unselectedIds = filteredAssets
+                                                .filter(img => !selectedImageIds.has(img.id))
+                                                .map(img => img.id);
+                                            
+                                            // 🔥 修复：使用批量删除方法，一次性更新 Store
+                                            if (onDeleteMultipleAssets) {
+                                                try {
+                                                    await onDeleteMultipleAssets(unselectedIds);
+                                                    setSelectedImageIds(new Set());
+                                                    alert(`✅ 已删除 ${unselectedCount} 张图片\n\n内存和磁盘空间已释放！`);
+                                                } catch (error) {
+                                                    console.error('[SidebarDock] 批量删除失败:', error);
+                                                    alert(`❌ 删除失败：${error instanceof Error ? error.message : '未知错误'}`);
+                                                }
+                                            } else {
+                                                // 降级方案：逐个删除（不推荐）
+                                                for (const id of unselectedIds) {
+                                                    try {
+                                                        await onDeleteAsset(id);
+                                                    } catch (error) {
+                                                        console.error('[SidebarDock] 删除失败:', id, error);
+                                                    }
+                                                }
+                                                setSelectedImageIds(new Set());
+                                                alert(`✅ 已删除 ${unselectedCount} 张图片\n\n内存已释放！`);
+                                            }
+                                        }
+                                    }}
+                                    className="flex-1 px-3 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-300 rounded-lg flex items-center justify-center gap-1.5 transition-all active:scale-95 text-[11px] font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                                    disabled={!hasImages || selectedImageIds.size === filteredAssets.length}
+                                    title="删除所有未选中的图片（不下载）"
+                                >
+                                    <Trash2 size={12} />
+                                    清除缓存
+                                </button>
+                                
+                                {/* 全选（白色，中间） */}
+                                <button 
+                                    onClick={() => {
+                                        if (allSelected) {
+                                            setSelectedImageIds(new Set());
+                                        } else {
+                                            setSelectedImageIds(new Set(filteredAssets.map(a => a.id)));
+                                        }
+                                    }}
+                                    className="px-3 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg flex items-center justify-center gap-1.5 transition-all active:scale-95 text-[11px] font-semibold"
+                                    title={allSelected ? "取消全选" : "全选"}
+                                >
+                                    <Check size={12} />
+                                    {allSelected ? '取消' : '全选'}
+                                </button>
+                                
+                                {/* 下载并清除（绿色，右侧） */}
+                                <button 
+                                    onClick={() => {
+                                        if (selectedImageIds.size === 0) {
+                                            alert('请先勾选要下载的图片');
+                                            return;
+                                        }
+                                        
+                                        if (onDownloadSelectedAndClear) {
+                                            onDownloadSelectedAndClear(selectedImageIds);
+                                            setSelectedImageIds(new Set());
+                                        }
+                                    }}
+                                    className="flex-1 px-3 py-2 bg-green-500/20 hover:bg-green-500/30 text-green-300 rounded-lg flex items-center justify-center gap-1.5 transition-all active:scale-95 text-[11px] font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                                    disabled={selectedImageIds.size === 0}
+                                    title="下载选中的图片并清除缓存"
+                                >
+                                    <Save size={12} />
+                                    下载并清除
+                                </button>
+                            </div>
+                        )}
                     </div>
-                    <div className="flex-1 overflow-y-auto p-3 custom-scrollbar space-y-2 relative">
+                    <div className="flex-1 overflow-y-auto p-1 custom-scrollbar space-y-2 relative">
                         {filteredAssets.length === 0 ? (
                             <div className="flex flex-col items-center justify-center py-16 text-white/30">
                                 <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mb-4">
@@ -166,35 +261,91 @@ export const SidebarDock: React.FC<SidebarDockProps> = ({
                             </div>
                         ) : (
                             <div className="grid grid-cols-2 gap-2">
-                                {filteredAssets.map(a => (
-                                    <div 
-                                        key={a.id} 
-                                        className="aspect-square rounded-2xl overflow-hidden cursor-grab active:cursor-grabbing border border-white/10 hover:border-white/30 transition-all group relative bg-white/5 hover:scale-[1.02] active:scale-[0.98]"
-                                        draggable={true}
-                                        onDragStart={(e) => {
-                                            e.dataTransfer.setData('application/json', JSON.stringify(a));
-                                            e.dataTransfer.effectAllowed = 'copy';
-                                        }}
-                                        onClick={() => onHistoryItemClick(a)}
-                                        onContextMenu={(e) => {
-                                            e.preventDefault();
-                                            e.stopPropagation();
-                                            setContextMenu({ visible: true, x: e.clientX, y: e.clientY, id: a.id, type: 'history' });
-                                        }}
-                                    >
-                                        {a.type.includes('image') ? (
-                                            <img src={a.src} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" draggable={false} />
-                                        ) : (
-                                            <video src={a.src} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" draggable={false} />
-                                        )}
-                                        <div className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-black/60 backdrop-blur-md text-[9px] font-semibold text-white/80">
-                                            {a.type.includes('image') ? 'IMG' : 'MOV'}
+                                {filteredAssets.map(a => {
+                                    const isSelected = selectedImageIds.has(a.id);
+                                    return (
+                                        <div 
+                                            key={a.id} 
+                                            className={`aspect-square rounded-2xl overflow-hidden cursor-grab active:cursor-grabbing border transition-all group relative bg-white/5 hover:scale-[1.02] active:scale-[0.98] ${
+                                                isSelected ? 'border-green-400 ring-2 ring-green-400/50' : 'border-white/10 hover:border-white/30'
+                                            }`}
+                                            draggable={true}
+                                            onDragStart={(e) => {
+                                                e.dataTransfer.setData('application/json', JSON.stringify(a));
+                                                e.dataTransfer.effectAllowed = 'copy';
+                                            }}
+                                            onClick={() => onHistoryItemClick(a)}
+                                            onContextMenu={(e) => {
+                                                e.preventDefault();
+                                                e.stopPropagation();
+                                                setContextMenu({ visible: true, x: e.clientX, y: e.clientY, id: a.id, type: 'history' });
+                                            }}
+                                        >
+                                            {/* 复选框 */}
+                                            <div 
+                                                className="absolute top-2 left-2 z-10 w-5 h-5 rounded-md bg-black/60 backdrop-blur-md border border-white/20 flex items-center justify-center cursor-pointer hover:scale-110 transition-transform"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    const newSelected = new Set(selectedImageIds);
+                                                    if (isSelected) {
+                                                        newSelected.delete(a.id);
+                                                    } else {
+                                                        newSelected.add(a.id);
+                                                    }
+                                                    setSelectedImageIds(newSelected);
+                                                }}
+                                            >
+                                                {isSelected && <Check size={14} className="text-green-400" />}
+                                            </div>
+                                            
+                                            {a.type.includes('image') ? (
+                                                <img 
+                                                    src={a.src} 
+                                                    className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" 
+                                                    draggable={false}
+                                                    onError={(e) => {
+                                                        // Blob URL 失效时显示占位符
+                                                        const target = e.currentTarget;
+                                                        target.style.display = 'none';
+                                                        const parent = target.parentElement;
+                                                        if (parent) {
+                                                            const placeholder = parent.querySelector('.error-placeholder');
+                                                            if (placeholder) (placeholder as HTMLElement).style.display = 'flex';
+                                                        }
+                                                    }}
+                                                />
+                                            ) : (
+                                                <video 
+                                                    src={a.src} 
+                                                    className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" 
+                                                    draggable={false}
+                                                    onError={(e) => {
+                                                        // Blob URL 失效时显示占位符
+                                                        const target = e.currentTarget;
+                                                        target.style.display = 'none';
+                                                        const parent = target.parentElement;
+                                                        if (parent) {
+                                                            const placeholder = parent.querySelector('.error-placeholder');
+                                                            if (placeholder) (placeholder as HTMLElement).style.display = 'flex';
+                                                        }
+                                                    }}
+                                                />
+                                            )}
+                                            {/* Blob URL 失效占位符 */}
+                                            <div className="error-placeholder absolute inset-0 bg-red-500/10 backdrop-blur-sm hidden flex-col items-center justify-center text-red-300 text-[10px] font-medium">
+                                                <ImageIcon size={20} className="mb-1 opacity-50" />
+                                                <span>图片已失效</span>
+                                                <span className="text-[8px] mt-1 opacity-60">请重新生成</span>
+                                            </div>
+                                            <div className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-black/60 backdrop-blur-md text-[9px] font-semibold text-white/80">
+                                                {a.type.includes('image') ? 'IMG' : 'MOV'}
+                                            </div>
+                                            <div className="absolute bottom-0 left-0 w-full p-2 bg-gradient-to-t from-black/80 to-transparent text-[10px] text-white/90 truncate font-medium">
+                                                {a.title || 'Untitled'}
+                                            </div>
                                         </div>
-                                        <div className="absolute bottom-0 left-0 w-full p-2 bg-gradient-to-t from-black/80 to-transparent text-[10px] text-white/90 truncate font-medium">
-                                            {a.title || 'Untitled'}
-                                        </div>
-                                    </div>
-                                ))}
+                                    );
+                                })}
                             </div>
                         )}
                     </div>
@@ -205,7 +356,7 @@ export const SidebarDock: React.FC<SidebarDockProps> = ({
         if (activePanel === 'workflow') {
             return (
                 <>
-                    <div className="p-4 border-b border-white/5 flex justify-between items-center bg-white/5 backdrop-blur-xl">
+                    <div className="p-1 border-b border-white/5 flex justify-between items-center bg-white/5 backdrop-blur-xl">
                         <span className="text-xs font-semibold text-white/60 uppercase tracking-wider">我的工作流</span>
                         <button 
                             onClick={onSaveWorkflow} 
@@ -215,7 +366,7 @@ export const SidebarDock: React.FC<SidebarDockProps> = ({
                             <Save size={14} />
                         </button>
                     </div>
-                    <div className="flex-1 overflow-y-auto p-3 custom-scrollbar space-y-3 relative">
+                    <div className="flex-1 overflow-y-auto p-1 custom-scrollbar space-y-2 relative">
                         {workflows.length === 0 ? (
                             <div className="flex flex-col items-center justify-center py-16 text-white/30">
                                 <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center mb-4">
@@ -278,23 +429,23 @@ export const SidebarDock: React.FC<SidebarDockProps> = ({
         // Default: Add Node
         return (
             <>
-                <div className="p-4 border-b border-white/5 flex justify-between items-center bg-white/5 backdrop-blur-xl">
+                <div className="p-1 border-b border-white/5 flex justify-between items-center bg-white/5 backdrop-blur-xl">
                     <button onClick={() => setActivePanel(null)} className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-all active:scale-95">
                         <X size={14} className="text-white/60" />
                     </button>
                     <span className="text-xs font-semibold text-white/60 uppercase tracking-wider">添加节点</span>
                 </div>
-                <div className="flex-1 overflow-y-auto p-3 custom-scrollbar space-y-3">
+                <div className="flex-1 overflow-y-auto p-1 custom-scrollbar space-y-2">
                     {/* 基础节点 */}
                     <div className="space-y-2">
-                        <div className="px-2 text-[9px] font-bold uppercase tracking-wider text-white/30">基础节点</div>
+                        <div className="px-1 text-[9px] font-bold uppercase tracking-wider text-white/30">基础节点</div>
                         {[NodeType.PROMPT_INPUT, NodeType.IMAGE_GENERATOR, NodeType.VIDEO_GENERATOR].map(t => {
                             const ItemIcon = getNodeIcon(t);
                             return (
                                 <button 
                                     key={t} 
                                     onClick={(e) => { e.stopPropagation(); onAddNode(t); setActivePanel(null); }} 
-                                    className="w-full text-left p-2.5 rounded-xl bg-white/5 hover:bg-white/10 flex items-center gap-2.5 text-sm text-white/80 transition-all border border-transparent hover:border-white/10 active:scale-[0.98]"
+                                    className="w-full text-left p-2 rounded-xl bg-white/5 hover:bg-white/10 flex items-center gap-2.5 text-sm text-white/80 transition-all border border-transparent hover:border-white/10 active:scale-[0.98]"
                                 >
                                     <div className="w-8 h-8 bg-white/10 rounded-lg flex items-center justify-center text-white/70">
                                         <ItemIcon size={15} />
@@ -307,14 +458,14 @@ export const SidebarDock: React.FC<SidebarDockProps> = ({
                     
                     {/* 故事创作 */}
                     <div className="space-y-2 pt-2 border-t border-white/5">
-                        <div className="px-2 text-[9px] font-bold uppercase tracking-wider text-white/30">故事创作</div>
+                        <div className="px-1 text-[9px] font-bold uppercase tracking-wider text-white/30">故事创作</div>
                         {[NodeType.STORY_STUDIO, NodeType.SCRIPT_NODE, NodeType.CHARACTER_REFERENCE, NodeType.SCENE_REFERENCE, NodeType.STORYBOARD_SHOT].map(t => {
                             const ItemIcon = getNodeIcon(t);
                             return (
                                 <button 
                                     key={t} 
                                     onClick={(e) => { e.stopPropagation(); onAddNode(t); setActivePanel(null); }} 
-                                    className="w-full text-left p-2.5 rounded-xl bg-white/5 hover:bg-white/10 flex items-center gap-2.5 text-sm text-white/80 transition-all border border-transparent hover:border-white/10 active:scale-[0.98]"
+                                    className="w-full text-left p-2 rounded-xl bg-white/5 hover:bg-white/10 flex items-center gap-2.5 text-sm text-white/80 transition-all border border-transparent hover:border-white/10 active:scale-[0.98]"
                                 >
                                     <div className="w-8 h-8 bg-white/10 rounded-lg flex items-center justify-center text-white/70">
                                         <ItemIcon size={15} />
@@ -327,14 +478,14 @@ export const SidebarDock: React.FC<SidebarDockProps> = ({
                     
                     {/* 高级工具 */}
                     <div className="space-y-2 pt-2 border-t border-white/5">
-                        <div className="px-2 text-[9px] font-bold uppercase tracking-wider text-white/30">高级工具</div>
+                        <div className="px-1 text-[9px] font-bold uppercase tracking-wider text-white/30">高级工具</div>
                         {[NodeType.MULTI_ANGLE_CAMERA, NodeType.GRID_SPLITTER].map(t => {
                             const ItemIcon = getNodeIcon(t);
                             return (
                                 <button 
                                     key={t} 
                                     onClick={(e) => { e.stopPropagation(); onAddNode(t); setActivePanel(null); }} 
-                                    className="w-full text-left p-2.5 rounded-xl bg-white/5 hover:bg-white/10 flex items-center gap-2.5 text-sm text-white/80 transition-all border border-transparent hover:border-white/10 active:scale-[0.98]"
+                                    className="w-full text-left p-2 rounded-xl bg-white/5 hover:bg-white/10 flex items-center gap-2.5 text-sm text-white/80 transition-all border border-transparent hover:border-white/10 active:scale-[0.98]"
                                 >
                                     <div className="w-8 h-8 bg-white/10 rounded-lg flex items-center justify-center text-white/70">
                                         <ItemIcon size={15} />
@@ -347,10 +498,10 @@ export const SidebarDock: React.FC<SidebarDockProps> = ({
                     
                     {/* 特殊功能 */}
                     <div className="space-y-2 pt-2 border-t border-white/5">
-                        <div className="px-2 text-[9px] font-bold uppercase tracking-wider text-white/30">特殊功能</div>
+                        <div className="px-1 text-[9px] font-bold uppercase tracking-wider text-white/30">特殊功能</div>
                         <button 
                             onClick={(e) => { e.stopPropagation(); onToggleMultiFrame(); setActivePanel(null); }} 
-                            className="w-full text-left p-2.5 rounded-xl bg-white/5 hover:bg-white/10 flex items-center gap-2.5 text-sm text-white/80 transition-all border border-transparent hover:border-white/10 active:scale-[0.98]"
+                            className="w-full text-left p-2 rounded-xl bg-white/5 hover:bg-white/10 flex items-center gap-2.5 text-sm text-white/80 transition-all border border-transparent hover:border-white/10 active:scale-[0.98]"
                         >
                             <div className="w-8 h-8 bg-white/10 rounded-lg flex items-center justify-center text-white/70">
                                 <Clapperboard size={15} />
@@ -359,7 +510,7 @@ export const SidebarDock: React.FC<SidebarDockProps> = ({
                         </button>
                         <button 
                             onClick={(e) => { e.stopPropagation(); onToggleSonicStudio?.(); setActivePanel(null); }} 
-                            className="w-full text-left p-2.5 rounded-xl bg-white/5 hover:bg-white/10 flex items-center gap-2.5 text-sm text-white/80 transition-all border border-transparent hover:border-white/10 active:scale-[0.98]"
+                            className="w-full text-left p-2 rounded-xl bg-white/5 hover:bg-white/10 flex items-center gap-2.5 text-sm text-white/80 transition-all border border-transparent hover:border-white/10 active:scale-[0.98]"
                         >
                             <div className="w-8 h-8 bg-white/10 rounded-lg flex items-center justify-center text-white/70">
                                 <Mic2 size={15} />
@@ -376,7 +527,7 @@ export const SidebarDock: React.FC<SidebarDockProps> = ({
         <>
             {/* Left Vertical Dock - iOS Style */}
             <div 
-                className="fixed left-6 top-1/2 -translate-y-1/2 flex flex-col items-center gap-2 p-2 bg-[#2c2c2e]/80 backdrop-blur-2xl border border-white/10 rounded-3xl shadow-2xl z-50"
+                className="fixed left-6 top-1/2 -translate-y-1/2 flex flex-col items-center gap-0.5 p-0.5 bg-[#2c2c2e]/70 backdrop-blur-xl border border-white/5 rounded-3xl shadow-xl z-50"
                 onMouseLeave={handleSidebarLeave}
             >
                 {[
@@ -385,33 +536,31 @@ export const SidebarDock: React.FC<SidebarDockProps> = ({
                     { id: 'history', icon: History, tooltip: '历史记录' },
                     { id: 'chat', icon: MessageSquare, action: onToggleChat, active: isChatOpen, tooltip: 'AI 助手' },
                     { id: 'undo', icon: RotateCcw, action: onUndo, tooltip: '撤销' },
-                    { id: 'arrange', icon: AlignJustify, action: onArrangeGroup, disabled: !selectedGroupId, tooltip: '一键整理' },
                 ].map(item => (
                     <div key={item.id} className="relative group">
                         <button 
                             onMouseEnter={() => handleSidebarHover(item.id)}
                             onClick={() => item.action ? item.action() : setActivePanel(item.id as any)}
                             disabled={item.disabled}
-                            className={`relative w-11 h-11 rounded-2xl flex items-center justify-center transition-all active:scale-90 ${
+                            className={`relative w-10 h-10 rounded-xl flex items-center justify-center transition-all active:scale-90 ${
                                 item.disabled 
                                     ? 'opacity-30 cursor-not-allowed' 
                                     : activePanel === item.id || item.active 
-                                        ? 'bg-white text-black shadow-lg shadow-white/20' 
-                                        : 'hover:bg-white/10 text-white/60 hover:text-white'
+                                        ? 'bg-white text-black shadow-md shadow-white/10' 
+                                        : 'hover:bg-white/5 text-white/50 hover:text-white'
                             }`}
                         >
-                            <item.icon size={20} strokeWidth={1.8} />
+                            <item.icon size={18} strokeWidth={2} />
                         </button>
                         {/* Tooltip */}
-                        <div className="absolute left-full ml-3 top-1/2 -translate-y-1/2 px-3 py-1.5 bg-[#2c2c2e]/95 backdrop-blur-xl rounded-lg border border-white/10 text-[11px] text-white/90 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 font-medium">
+                        <div className="absolute left-full ml-2.5 top-1/2 -translate-y-1/2 px-2.5 py-1 bg-[#2c2c2e]/95 backdrop-blur-xl rounded-lg border border-white/5 text-[10px] text-white/90 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 font-medium">
                             {item.tooltip}
-                            {item.id === 'arrange' && !selectedGroupId && <span className="text-white/50 ml-1">(需选中组)</span>}
                         </div>
                     </div>
                 ))}
                 
                 {/* Divider */}
-                <div className="w-8 h-px bg-white/10 my-1"></div>
+                <div className="w-7 h-px bg-white/5 my-0.5"></div>
                 
                 {/* Settings */}
                 <div className="relative group">
@@ -429,7 +578,7 @@ export const SidebarDock: React.FC<SidebarDockProps> = ({
 
             {/* Slide-out Panels - iOS Style */}
             <div 
-                className={`fixed left-24 top-1/2 -translate-y-1/2 max-h-[75vh] h-auto w-72 bg-[#1c1c1e]/90 backdrop-blur-3xl border border-white/10 rounded-3xl shadow-2xl transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] z-40 flex flex-col overflow-hidden ${activePanel ? 'translate-x-0 opacity-100' : '-translate-x-10 opacity-0 pointer-events-none scale-95'}`}
+                className={`fixed left-20 top-1/2 -translate-y-1/2 max-h-[75vh] h-auto w-72 bg-[#1c1c1e]/90 backdrop-blur-3xl border border-white/10 rounded-3xl shadow-2xl transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] z-40 flex flex-col overflow-hidden ${activePanel ? 'translate-x-0 opacity-100' : '-translate-x-10 opacity-0 pointer-events-none scale-95'}`}
                 onMouseEnter={handlePanelEnter}
                 onMouseLeave={handlePanelLeave}
                 onMouseDown={(e) => e.stopPropagation()}

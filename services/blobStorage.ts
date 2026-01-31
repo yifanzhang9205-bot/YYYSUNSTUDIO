@@ -258,3 +258,65 @@ export const getDisplayUrl = (imageData: string | undefined): string | undefined
     // 其他情况返回 undefined
     return undefined;
 };
+
+// ============================================
+// 🔥 新增：零拷贝方案（内存优化）
+// ============================================
+
+/**
+ * 异步保存 File 到 IndexedDB（不阻塞 UI）
+ * @param assetId - 资源 ID
+ * @param file - File 对象
+ */
+export const saveFileToIndexedDBAsync = async (assetId: string, file: File): Promise<void> => {
+    try {
+        const storageKey = `blob-${assetId}`;
+        await saveToStorage(storageKey, file);
+        console.log(`[BlobStorage] 异步保存完成: ${storageKey}, 大小: ${(file.size / 1024 / 1024).toFixed(2)}MB`);
+    } catch (error) {
+        console.error('[BlobStorage] 异步保存失败:', error);
+    }
+};
+
+/**
+ * 从 IndexedDB 恢复 Blob URL
+ * @param assetId - 资源 ID
+ * @returns Blob URL 或 undefined
+ */
+export const restoreBlobUrlFromIndexedDB = async (assetId: string): Promise<string | undefined> => {
+    try {
+        const storageKey = `blob-${assetId}`;
+        const blob = await loadFromStorage<Blob>(storageKey);
+        
+        if (!blob) {
+            console.warn(`[BlobStorage] 未找到: ${storageKey}`);
+            return undefined;
+        }
+        
+        // 创建 Blob URL
+        const blobUrl = URL.createObjectURL(blob);
+        console.log(`[BlobStorage] 恢复成功: ${storageKey}, URL: ${blobUrl.substring(0, 50)}`);
+        return blobUrl;
+    } catch (error) {
+        console.error('[BlobStorage] 恢复失败:', error);
+        return undefined;
+    }
+};
+
+/**
+ * 批量恢复 Blob URL
+ * @param assetIds - 资源 ID 数组
+ * @returns Blob URL 数组（失败的返回 undefined）
+ */
+export const restoreMultipleBlobUrls = async (assetIds: string[]): Promise<(string | undefined)[]> => {
+    console.log(`[BlobStorage] 批量恢复 ${assetIds.length} 个 Blob URL...`);
+    
+    const blobUrls = await Promise.all(
+        assetIds.map(id => restoreBlobUrlFromIndexedDB(id))
+    );
+    
+    const successCount = blobUrls.filter(url => url !== undefined).length;
+    console.log(`[BlobStorage] 批量恢复完成: ${successCount}/${assetIds.length}`);
+    
+    return blobUrls;
+};

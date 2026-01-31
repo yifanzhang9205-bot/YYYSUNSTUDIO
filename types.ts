@@ -106,6 +106,35 @@ export interface AppNode {
     croppedImages?: string[];  // 切割后的 9 张图片
     selectedIndex?: number;    // 选中的图片索引
     outputImage?: string;      // 输出的图片（选中的那张）
+    
+    // 新增：角色/场景/镜头关联 ID
+    characterId?: string;      // 关联的角色 ID
+    sceneId?: string;          // 关联的场景 ID
+    shotId?: string;           // 关联的镜头 ID
+    
+    // 新增：角色/场景/镜头名称和编号
+    characterName?: string;    // 角色名称
+    sceneNumber?: number;      // 场景编号
+    shotNumber?: number;       // 镜头编号
+    
+    // 新增：剧本节点相关
+    scriptData?: ScriptData;   // 剧本数据（完整）
+    description?: string;      // 角色/场景描述
+    location?: string;         // 场景位置
+    shotType?: string;         // 镜头类型
+    
+    // 新增：角色相关属性
+    personality?: string;      // 角色性格
+    visualKeywords?: string;   // 视觉关键词
+    scriptNodeId?: string;     // 关联的剧本节点 ID
+    
+    // 新增：场景相关属性
+    timeOfDay?: string;        // 时间段（白天/夜晚等）
+    mood?: string;             // 场景氛围/情绪
+    
+    // 新增：镜头相关属性
+    cameraAngle?: string;      // 镜头角度
+    cameraMovement?: string;   // 镜头运动
   };
   inputs: string[]; // IDs of nodes this node connects FROM
 }
@@ -206,6 +235,7 @@ export interface Group {
   width: number;
   height: number;
   title: string;
+  nodeIds?: string[]; // 组内节点 ID 列表（可选）
 }
 
 export interface Connection {
@@ -241,6 +271,10 @@ export interface SmartSequenceItem {
 
 // Window interface for Google AI Studio key selection
 declare global {
+  interface Window {
+    aistudio?: AIStudio;
+  }
+  
   interface AIStudio {
     hasSelectedApiKey: () => Promise<boolean>;
     openSelectKey: () => Promise<void>;

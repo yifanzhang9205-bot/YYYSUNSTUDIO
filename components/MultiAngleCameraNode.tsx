@@ -55,24 +55,43 @@ export const MultiAngleCameraNode: React.FC<MultiAngleCameraNodeProps> = ({
     };
   } | null>(null);
   const frameRef = useRef<number>(0);
+  
+  // 使用 ref 存储拖动状态（不触发 re-render）
+  const dragStateRef = useRef<{
+    isDragging: boolean;
+    hasMoved: boolean;
+    startX: number;
+    startY: number;
+    startH: number;
+    startV: number;
+    startZ: number;
+  }>({ 
+    isDragging: false, 
+    hasMoved: false,
+    startX: 0, 
+    startY: 0, 
+    startH: 0, 
+    startV: 0, 
+    startZ: 0 
+  });
+  
   const [isDragging, setIsDragging] = useState(false);
-  const [dragStart, setDragStart] = useState({ x: 0, y: 0, h: 0, v: 0, z: 0 });
   const [showPanel, setShowPanel] = useState(false);
+  
+  // 用于实时显示的值（拖动时会更新）
+  const [displayValues, setDisplayValues] = useState({ h: horizontalAngle, v: verticalAngle, z: cameraZoom });
 
   // 初始化 Three.js
   useEffect(() => {
     if (!containerRef.current) return;
     
-    // 清理旧的
-    if (sceneRef.current) {
-      sceneRef.current.renderer.dispose();
-      if (containerRef.current.contains(sceneRef.current.renderer.domElement)) {
-        containerRef.current.removeChild(sceneRef.current.renderer.domElement);
-      }
-      sceneRef.current = null;
-    }
-
     const container = containerRef.current;
+    
+    // 🔥 防止重复初始化：如果已经有场景了，直接返回
+    if (sceneRef.current) {
+      return;
+    }
+    
     // 使用容器实际尺寸
     const rect = container.getBoundingClientRect();
     const w = Math.max(rect.width || 400, 300);
@@ -312,82 +331,179 @@ export const MultiAngleCameraNode: React.FC<MultiAngleCameraNodeProps> = ({
     resizeObserver.observe(container);
 
     return () => {
+      // 🔥 完整的 Three.js 资源清理（防止内存泄漏和崩溃）
       cancelAnimationFrame(frameRef.current);
       resizeObserver.disconnect();
-      renderer.dispose();
-      if (container.contains(renderer.domElement)) {
-        container.removeChild(renderer.domElement);
+      
+      if (sceneRef.current) {
+        const { renderer, scene, camera, cameraRig, card, helpers } = sceneRef.current;
+        
+        // 1. 停止渲染循环
+        cancelAnimationFrame(frameRef.current);
+        
+        // 2. 清理所有 Geometry
+        scene.traverse((object) => {
+          if (object instanceof THREE.Mesh || object instanceof THREE.Line) {
+            if (object.geometry) {
+              object.geometry.dispose();
+            }
+          }
+        });
+        
+        // 3. 清理所有 Material
+        scene.traverse((object) => {
+          if (object instanceof THREE.Mesh || object instanceof THREE.Line) {
+            if (object.material) {
+              if (Array.isArray(object.material)) {
+                object.material.forEach((mat) => mat.dispose());
+              } else {
+                object.material.dispose();
+              }
+            }
+          }
+        });
+        
+        // 4. 清理所有 Texture
+        scene.traverse((object) => {
+          if (object instanceof THREE.Mesh) {
+            const material = object.material as THREE.MeshStandardMaterial;
+            if (material.map) material.map.dispose();
+            if (material.lightMap) material.lightMap.dispose();
+            if (material.bumpMap) material.bumpMap.dispose();
+            if (material.normalMap) material.normalMap.dispose();
+            if (material.roughnessMap) material.roughnessMap.dispose();
+            if (material.metalnessMap) material.metalnessMap.dispose();
+            if (material.envMap) material.envMap.dispose();
+          }
+        });
+        
+        // 5. 清理 Scene
+        while (scene.children.length > 0) {
+          scene.remove(scene.children[0]);
+        }
+        
+        // 6. 清理 Renderer
+        renderer.dispose();
+        renderer.forceContextLoss();
+        if (container.contains(renderer.domElement)) {
+          container.removeChild(renderer.domElement);
+        }
+        
+        // 7. 清空 ref（防止重复清理）
+        sceneRef.current = null;
       }
     };
   }, []);
 
-  // 更新相机位置和辅助元素
-  useEffect(() => {
+  // 更新相机位置和辅助元素（手动调用，不用 useEffect）
+  const updateCameraPosition = (h: number, v: number, z: number) => {
     if (!sceneRef.current) return;
+    
+    // 更新当前值的 ref（记录 Three.js 的真实状态）
+    currentValuesRef.current = { h, v, z };
+    
+    // 更新显示值（触发 UI 更新）
+    setDisplayValues({ h, v, z });
+    
     const { cameraRig, camera, helpers } = sceneRef.current;
     
-    const hRad = (horizontalAngle * Math.PI) / 180;
-    const vRad = (verticalAngle * Math.PI) / 180;
-    // 距离计算：特写(0)=2.5, 中景(4)=4.5, 远景(8)=6.5
-    const dist = 2.5 + cameraZoom * 0.5;
+    const hRad = (h * Math.PI) / 180;
+    const vRad = (v * Math.PI) / 180;
+    const dist = 2.5 + z * 0.5;
     
     // 相机位置计算
     const x = dist * Math.sin(hRad) * Math.cos(vRad);
     const y = dist * Math.sin(vRad) + 1.5;
-    const z = dist * Math.cos(hRad) * Math.cos(vRad);
+    const z_pos = dist * Math.cos(hRad) * Math.cos(vRad);
     
-    // 地面投影点（相机正下方）
+    // 地面投影点
     const groundX = dist * Math.sin(hRad) * Math.cos(vRad);
     const groundZ = dist * Math.cos(hRad) * Math.cos(vRad);
-    
-    // 水平距离（用于高度圆环半径）
     const horizontalDist = Math.sqrt(groundX * groundX + groundZ * groundZ);
     
-    // 更新相机位置，让相机看向目标
-    cameraRig.position.set(x, y, z);
+    // 更新相机位置
+    cameraRig.position.set(x, y, z_pos);
     cameraRig.lookAt(0, 1.5, 0);
     
-    // 更新高度参考圆环
-    const ringPoints: THREE.Vector3[] = [];
-    for (let i = 0; i <= 64; i++) {
-      const angle = (i / 64) * Math.PI * 2;
-      ringPoints.push(new THREE.Vector3(
-        Math.cos(angle) * horizontalDist,
-        y,
-        Math.sin(angle) * horizontalDist
-      ));
+    // 复用 BufferAttribute - 高度参考圆环
+    const heightRingAttr = helpers.heightRing.geometry.attributes.position;
+    if (heightRingAttr) {
+      const positions = heightRingAttr.array as Float32Array;
+      for (let i = 0; i <= 64; i++) {
+        const angle = (i / 64) * Math.PI * 2;
+        const idx = i * 3;
+        positions[idx] = Math.cos(angle) * horizontalDist;
+        positions[idx + 1] = y;
+        positions[idx + 2] = Math.sin(angle) * horizontalDist;
+      }
+      heightRingAttr.needsUpdate = true;
+      helpers.heightRing.computeLineDistances();
     }
-    helpers.heightRing.geometry.dispose();
-    helpers.heightRing.geometry = new THREE.BufferGeometry().setFromPoints(ringPoints);
-    helpers.heightRing.computeLineDistances();
     
-    // 更新垂直线（相机到地面）
-    helpers.verticalLine.geometry.dispose();
-    helpers.verticalLine.geometry = new THREE.BufferGeometry().setFromPoints([
-      new THREE.Vector3(x, y, z),
-      new THREE.Vector3(groundX, 0.02, groundZ)
-    ]);
-    helpers.verticalLine.computeLineDistances();
+    // 复用 BufferAttribute - 垂直线
+    const verticalLineAttr = helpers.verticalLine.geometry.attributes.position;
+    if (verticalLineAttr) {
+      const positions = verticalLineAttr.array as Float32Array;
+      positions[0] = x;
+      positions[1] = y;
+      positions[2] = z_pos;
+      positions[3] = groundX;
+      positions[4] = 0.02;
+      positions[5] = groundZ;
+      verticalLineAttr.needsUpdate = true;
+      helpers.verticalLine.computeLineDistances();
+    }
     
-    // 更新地面连线（投影点到目标中心）
-    helpers.groundLine.geometry.dispose();
-    helpers.groundLine.geometry = new THREE.BufferGeometry().setFromPoints([
-      new THREE.Vector3(groundX, 0.02, groundZ),
-      new THREE.Vector3(0, 0.02, 0)
-    ]);
-    helpers.groundLine.computeLineDistances();
+    // 复用 BufferAttribute - 地面连线
+    const groundLineAttr = helpers.groundLine.geometry.attributes.position;
+    if (groundLineAttr) {
+      const positions = groundLineAttr.array as Float32Array;
+      positions[0] = groundX;
+      positions[1] = 0.02;
+      positions[2] = groundZ;
+      positions[3] = 0;
+      positions[4] = 0.02;
+      positions[5] = 0;
+      groundLineAttr.needsUpdate = true;
+      helpers.groundLine.computeLineDistances();
+    }
     
-    // 更新地面投影点标记位置
+    // 更新地面投影点标记
     helpers.groundMarker.position.set(groundX, 0.02, groundZ);
     
     // 观察相机跟随
-    const camDist = 10 + cameraZoom * 0.15;
+    const camDist = 10 + z * 0.15;
     camera.position.set(
       camDist * Math.sin(hRad * 0.1),
-      5 + verticalAngle * 0.02,
+      5 + v * 0.02,
       camDist * Math.cos(hRad * 0.1)
     );
     camera.lookAt(0, 1, 0);
+    
+    // 立即渲染
+    sceneRef.current.renderer.render(sceneRef.current.scene, camera);
+  };
+
+  // 使用 ref 记录当前的实际值（Three.js 的真实状态）
+  const currentValuesRef = useRef({ h: horizontalAngle, v: verticalAngle, z: cameraZoom });
+  
+  // 使用 ref 记录上次的 props 值，只在真正变化时更新
+  const lastPropsRef = useRef({ h: horizontalAngle, v: verticalAngle, z: cameraZoom });
+
+  // 只在 props 真正变化时更新（拖动过程中不更新）
+  useEffect(() => {
+    if (!sceneRef.current) return;
+    
+    // 如果正在拖动，不更新（避免复位）
+    if (dragStateRef.current.isDragging) return;
+    
+    const { h, v, z } = lastPropsRef.current;
+    
+    // 只有当 props 真正变化时才更新
+    if (h !== horizontalAngle || v !== verticalAngle || z !== cameraZoom) {
+      updateCameraPosition(horizontalAngle, verticalAngle, cameraZoom);
+      lastPropsRef.current = { h: horizontalAngle, v: verticalAngle, z: cameraZoom };
+    }
   }, [horizontalAngle, verticalAngle, cameraZoom]);
 
   // 加载图片纹理
@@ -403,29 +519,87 @@ export const MultiAngleCameraNode: React.FC<MultiAngleCameraNodeProps> = ({
     });
   }, [inputImage]);
 
-  // 3D 视口拖拽（不影响节点移动）
+  // 3D 视口拖拽（直接操作 Three.js，不经过 React）
   const handleViewportMouseDown = (e: React.MouseEvent) => {
-    e.stopPropagation(); // 阻止冒泡到节点
+    // 🔥 生成中禁止交互
+    if (isWorking) {
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
+    
+    e.stopPropagation();
+    
+    // ✅ 使用 currentValuesRef（Three.js 的真实状态），而不是 props
+    dragStateRef.current = {
+      isDragging: true,
+      hasMoved: false,
+      startX: e.clientX,
+      startY: e.clientY,
+      startH: currentValuesRef.current.h,  // ✅ 从 ref 读取当前值
+      startV: currentValuesRef.current.v,  // ✅ 从 ref 读取当前值
+      startZ: currentValuesRef.current.z,  // ✅ 从 ref 读取当前值
+    };
     setIsDragging(true);
-    setDragStart({ x: e.clientX, y: e.clientY, h: horizontalAngle, v: verticalAngle, z: cameraZoom });
   };
 
   useEffect(() => {
-    if (!isDragging) return;
+    if (!dragStateRef.current.isDragging) return;
+    
+    const minDistance = 3; // 最小移动距离（防止点击触发拖动）
     
     const onMove = (e: MouseEvent) => {
-      const dx = e.clientX - dragStart.x;
-      const dy = e.clientY - dragStart.y;
+      if (!dragStateRef.current.isDragging) return;
+      
+      const dx = e.clientX - dragStateRef.current.startX;
+      const dy = e.clientY - dragStateRef.current.startY;
+      
+      // 判断是否超过最小移动距离
+      if (!dragStateRef.current.hasMoved && Math.abs(dx) < minDistance && Math.abs(dy) < minDistance) {
+        return;
+      }
+      
+      dragStateRef.current.hasMoved = true;
       
       if (e.shiftKey) {
-        onZoomChange(Math.max(0, Math.min(10, dragStart.z + dy * 0.025)));
+        // Shift + 拖拽：控制距离
+        const newZ = Math.max(0, Math.min(10, dragStateRef.current.startZ + dy * 0.025));
+        updateCameraPosition(dragStateRef.current.startH, dragStateRef.current.startV, newZ);
       } else {
-        onHorizontalAngleChange((dragStart.h + dx * 0.4 + 360) % 360);
-        onVerticalAngleChange(Math.max(-30, Math.min(60, dragStart.v - dy * 0.25)));
+        // 普通拖拽：控制角度
+        const newH = (dragStateRef.current.startH + dx * 0.4 + 360) % 360;
+        const newV = Math.max(-30, Math.min(60, dragStateRef.current.startV - dy * 0.25));
+        updateCameraPosition(newH, newV, dragStateRef.current.startZ);
       }
     };
     
-    const onUp = () => setIsDragging(false);
+    const onUp = (e: MouseEvent) => {
+      if (!dragStateRef.current.hasMoved) {
+        // 只是点击，不是拖动，不更新 state
+        dragStateRef.current.isDragging = false;
+        setIsDragging(false);
+        return;
+      }
+      
+      const dx = e.clientX - dragStateRef.current.startX;
+      const dy = e.clientY - dragStateRef.current.startY;
+      
+      if (e.shiftKey) {
+        // 更新距离
+        const newZ = Math.max(0, Math.min(10, dragStateRef.current.startZ + dy * 0.025));
+        onZoomChange(newZ);
+      } else {
+        // 更新角度
+        const newH = (dragStateRef.current.startH + dx * 0.4 + 360) % 360;
+        const newV = Math.max(-30, Math.min(60, dragStateRef.current.startV - dy * 0.25));
+        onHorizontalAngleChange(newH);
+        onVerticalAngleChange(newV);
+      }
+      
+      dragStateRef.current.isDragging = false;
+      dragStateRef.current.hasMoved = false;
+      setIsDragging(false);
+    };
     
     window.addEventListener('mousemove', onMove);
     window.addEventListener('mouseup', onUp);
@@ -433,21 +607,33 @@ export const MultiAngleCameraNode: React.FC<MultiAngleCameraNodeProps> = ({
       window.removeEventListener('mousemove', onMove);
       window.removeEventListener('mouseup', onUp);
     };
-  }, [isDragging, dragStart]);
+  }, [isDragging, horizontalAngle, verticalAngle, cameraZoom, onHorizontalAngleChange, onVerticalAngleChange, onZoomChange]);
 
   const handleWheel = (e: React.WheelEvent) => {
-    e.stopPropagation();
-    // 限制在 0-10 范围内，不循环
-    const newZoom = cameraZoom + e.deltaY * 0.008;
-    if (newZoom >= 0 && newZoom <= 10) {
-      onZoomChange(newZoom);
+    // 🔥 生成中禁止交互
+    if (isWorking) {
+      e.preventDefault();
+      e.stopPropagation();
+      return;
     }
+    
+    e.stopPropagation();
+    e.preventDefault();
+    
+    // 计算新的缩放值
+    const newZoom = Math.max(0, Math.min(10, cameraZoom + e.deltaY * 0.008));
+    
+    // 直接更新 Three.js 场景（不经过 React）
+    updateCameraPosition(horizontalAngle, verticalAngle, newZoom);
+    
+    // 更新 React state（用于显示数值）
+    onZoomChange(newZoom);
   };
 
-  // 找最近预设
-  const nearestAz = AZIMUTH.reduce((p, c) => Math.abs(((horizontalAngle - c.v + 180) % 360) - 180) < Math.abs(((horizontalAngle - p.v + 180) % 360) - 180) ? c : p);
-  const nearestEl = ELEVATION.reduce((p, c) => Math.abs(verticalAngle - c.v) < Math.abs(verticalAngle - p.v) ? c : p);
-  const nearestDist = DISTANCE.reduce((p, c) => Math.abs(cameraZoom - c.v) < Math.abs(cameraZoom - p.v) ? c : p);
+  // 找最近预设（使用 displayValues，实时显示）
+  const nearestAz = AZIMUTH.reduce((p, c) => Math.abs(((displayValues.h - c.v + 180) % 360) - 180) < Math.abs(((displayValues.h - p.v + 180) % 360) - 180) ? c : p);
+  const nearestEl = ELEVATION.reduce((p, c) => Math.abs(displayValues.v - c.v) < Math.abs(displayValues.v - p.v) ? c : p);
+  const nearestDist = DISTANCE.reduce((p, c) => Math.abs(displayValues.z - c.v) < Math.abs(displayValues.z - p.v) ? c : p);
 
   return (
     <div className="w-full h-full flex flex-col bg-[#0a0a0a] overflow-hidden rounded-2xl">
@@ -460,6 +646,8 @@ export const MultiAngleCameraNode: React.FC<MultiAngleCameraNodeProps> = ({
           <span className="text-[11px] text-white/50 font-medium">{nearestAz.label}</span>
           <span className="text-white/20">·</span>
           <span className="text-[11px] text-white/50 font-medium">{nearestEl.label}</span>
+          <span className="text-white/20">·</span>
+          <span className="text-[11px] text-white/50 font-medium">{nearestDist.label}</span>
         </div>
       </div>
 
@@ -467,7 +655,7 @@ export const MultiAngleCameraNode: React.FC<MultiAngleCameraNodeProps> = ({
       <div className="flex-1 relative" style={{ minHeight: '400px' }}>
         <div
           ref={containerRef}
-          className={`absolute inset-0 ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
+          className={`absolute inset-0 ${isDragging ? 'cursor-grabbing' : isWorking ? 'cursor-not-allowed' : 'cursor-grab'}`}
           onMouseDown={handleViewportMouseDown}
           onWheel={handleWheel}
           onContextMenu={(e: React.MouseEvent) => e.preventDefault()}
@@ -476,9 +664,9 @@ export const MultiAngleCameraNode: React.FC<MultiAngleCameraNodeProps> = ({
         {/* 角度显示 - iOS 毛玻璃胶囊 */}
         <div className="absolute top-4 right-4 flex flex-col gap-2 pointer-events-none">
           {[
-            { label: '水平', value: `${Math.round(horizontalAngle)}°` },
-            { label: '垂直', value: `${Math.round(verticalAngle)}°` },
-            { label: '距离', value: cameraZoom.toFixed(1) },
+            { label: '水平', value: `${Math.round(displayValues.h)}°` },
+            { label: '垂直', value: `${Math.round(displayValues.v)}°` },
+            { label: '距离', value: displayValues.z.toFixed(1) },
           ].map((item) => (
             <div key={item.label} className="flex items-center gap-2 px-3 py-1.5 bg-black/40 backdrop-blur-xl rounded-full border border-white/10">
               <span className="text-[10px] text-white/40 font-medium">{item.label}</span>
@@ -657,7 +845,8 @@ export const MultiAngleCameraNode: React.FC<MultiAngleCameraNodeProps> = ({
                     step={s.step || 1} 
                     value={s.v}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => s.fn(Number(e.target.value))}
-                    className="w-full h-1.5 rounded-full appearance-none cursor-pointer bg-white/10"
+                    disabled={isWorking}
+                    className={`w-full h-1.5 rounded-full appearance-none ${isWorking ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'} bg-white/10`}
                     style={{ 
                       background: `linear-gradient(to right, white ${((s.v - s.min) / (s.max - s.min)) * 100}%, rgba(255,255,255,0.1) ${((s.v - s.min) / (s.max - s.min)) * 100}%)` 
                     }} 
@@ -670,11 +859,12 @@ export const MultiAngleCameraNode: React.FC<MultiAngleCameraNodeProps> = ({
             <div>
               <div className="text-[11px] text-white/40 uppercase tracking-wider font-semibold mb-3">补充描述</div>
               <textarea
-                className="w-full px-4 py-3 bg-white/5 border border-white/5 rounded-xl text-[13px] text-white resize-none focus:border-white/20 focus:outline-none focus:ring-0 placeholder-white/30 transition-colors"
+                className={`w-full px-4 py-3 bg-white/5 border border-white/5 rounded-xl text-[13px] text-white resize-none focus:border-white/20 focus:outline-none focus:ring-0 placeholder-white/30 transition-colors ${isWorking ? 'cursor-not-allowed opacity-50' : ''}`}
                 rows={3}
                 placeholder="光照、材质、风格等..."
                 value={userPrompt || ''}
                 onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => onUserPromptChange(e.target.value)}
+                disabled={isWorking}
               />
             </div>
           </div>

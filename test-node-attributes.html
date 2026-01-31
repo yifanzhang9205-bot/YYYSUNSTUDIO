@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Node 属性测试</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            background: #1a1a1a;
+            color: #00ff00;
+            padding: 20px;
+        }
+        .test-section {
+            background: #2a2a2a;
+            border: 2px solid #00ff00;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .success {
+            color: #00ff00;
+        }
+        .error {
+            color: #ff0000;
+        }
+        .warning {
+            color: #ffaa00;
+        }
+        button {
+            background: #00ff00;
+            color: #1a1a1a;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            margin: 5px;
+        }
+        button:hover {
+            background: #00cc00;
+        }
+        pre {
+            background: #000;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 Node 组件属性验证工具</h1>
+    
+    <div class="test-section">
+        <h2>📋 使用说明</h2>
+        <p>1. 确保你的应用正在运行（npm run dev）</p>
+        <p>2. 在应用页面打开开发者工具（F12）</p>
+        <p>3. 在控制台中复制粘贴下面的测试脚本</p>
+        <p>4. 按回车运行，查看结果</p>
+    </div>
+
+    <div class="test-section">
+        <h2>🧪 测试脚本 1: 基础检查</h2>
+        <button onclick="copyScript1()">📋 复制脚本</button>
+        <pre id="script1">// ===== Node 属性验证脚本 1: 基础检查 =====
+console.clear();
+console.log('%c🔍 开始验证 Node 组件属性...', 'color: #00ff00; font-size: 16px; font-weight: bold;');
+console.log('');
+
+// 1. 查找所有带 data-node-id 的元素
+const nodesWithDataAttr = document.querySelectorAll('[data-node-id]');
+console.log(`%c✅ 找到 ${nodesWithDataAttr.length} 个带 data-node-id 的节点`, 'color: #00ff00; font-weight: bold;');
+
+if (nodesWithDataAttr.length === 0) {
+    console.log('%c❌ 错误：没有找到任何带 data-node-id 的节点！', 'color: #ff0000; font-weight: bold;');
+    console.log('%c💡 可能的原因：', 'color: #ffaa00;');
+    console.log('   1. 浏览器缓存未清除（按 Ctrl+Shift+R 硬刷新）');
+    console.log('   2. Vite 开发服务器需要重启');
+    console.log('   3. React 组件未正确渲染');
+} else {
+    console.log('');
+    console.log('%c📊 节点详情：', 'color: #00aaff; font-weight: bold;');
+    nodesWithDataAttr.forEach((node, index) => {
+        const dataNodeId = node.getAttribute('data-node-id');
+        const id = node.id;
+        const hasDataAttr = node.hasAttribute('data-node-id');
+        const hasIdAttr = node.hasAttribute('id');
+        
+        console.log(`%c节点 ${index + 1}:`, 'color: #ffaa00; font-weight: bold;');
+        console.log(`  data-node-id: ${dataNodeId} ${hasDataAttr ? '✅' : '❌'}`);
+        console.log(`  id: ${id} ${hasIdAttr ? '✅' : '❌'}`);
+        console.log(`  className: ${node.className.substring(0, 50)}...`);
+        console.log('');
+    });
+}
+
+console.log('%c🎯 验证完成！', 'color: #00ff00; font-size: 16px; font-weight: bold;');</pre>
+    </div>
+
+    <div class="test-section">
+        <h2>🧪 测试脚本 2: DOM 查询测试</h2>
+        <button onclick="copyScript2()">📋 复制脚本</button>
+        <pre id="script2">// ===== Node 属性验证脚本 2: DOM 查询测试 =====
+console.clear();
+console.log('%c🔍 测试 DOM 查询功能...', 'color: #00ff00; font-size: 16px; font-weight: bold;');
+console.log('');
+
+// 获取所有节点
+const allNodes = document.querySelectorAll('[data-node-id]');
+console.log(`%c找到 ${allNodes.length} 个节点`, 'color: #00aaff;');
+
+if (allNodes.length > 0) {
+    // 测试第一个节点
+    const firstNode = allNodes[0];
+    const testNodeId = firstNode.getAttribute('data-node-id');
+    
+    console.log('');
+    console.log('%c🎯 测试查询第一个节点...', 'color: #ffaa00; font-weight: bold;');
+    console.log(`  节点 ID: ${testNodeId}`);
+    
+    // 方法 1: 通过 data-node-id 查询
+    const foundByDataAttr = document.querySelector(`[data-node-id="${testNodeId}"]`);
+    console.log(`  方法 1 (data-node-id): ${foundByDataAttr ? '✅ 成功' : '❌ 失败'}`);
+    
+    // 方法 2: 通过 id 查询
+    const foundById = document.getElementById(`node-${testNodeId}`);
+    console.log(`  方法 2 (id): ${foundById ? '✅ 成功' : '❌ 失败'}`);
+    
+    // 方法 3: 通过 querySelector 查询 id
+    const foundByQueryId = document.querySelector(`#node-${testNodeId}`);
+    console.log(`  方法 3 (querySelector id): ${foundByQueryId ? '✅ 成功' : '❌ 失败'}`);
+    
+    console.log('');
+    console.log('%c📊 查询结果对比：', 'color: #00aaff; font-weight: bold;');
+    console.log('  原始节点:', firstNode);
+    console.log('  data-node-id 查询:', foundByDataAttr);
+    console.log('  id 查询:', foundById);
+    console.log('  相同节点?', firstNode === foundByDataAttr && foundByDataAttr === foundById ? '✅ 是' : '❌ 否');
+} else {
+    console.log('%c❌ 没有节点可供测试！', 'color: #ff0000; font-weight: bold;');
+}
+
+console.log('');
+console.log('%c🎯 测试完成！', 'color: #00ff00; font-size: 16px; font-weight: bold;');</pre>
+    </div>
+
+    <div class="test-section">
+        <h2>🧪 测试脚本 3: useGroup 模拟测试</h2>
+        <button onclick="copyScript3()">📋 复制脚本</button>
+        <pre id="script3">// ===== Node 属性验证脚本 3: useGroup 模拟测试 =====
+console.clear();
+console.log('%c🔍 模拟 useGroup.ts 的 DOM 查询...', 'color: #00ff00; font-size: 16px; font-weight: bold;');
+console.log('');
+
+// 获取所有节点
+const allNodes = document.querySelectorAll('[data-node-id]');
+console.log(`%c找到 ${allNodes.length} 个节点`, 'color: #00aaff;');
+
+if (allNodes.length > 0) {
+    // 模拟 useGroup.ts 的查询逻辑
+    console.log('');
+    console.log('%c🎯 模拟 useGroup.ts 查询逻辑...', 'color: #ffaa00; font-weight: bold;');
+    
+    let successCount = 0;
+    let failCount = 0;
+    
+    allNodes.forEach((node, index) => {
+        const nodeId = node.getAttribute('data-node-id');
+        
+        // 这是 useGroup.ts 中使用的查询方法
+        const foundNode = document.querySelector(`[data-node-id="${nodeId}"]`);
+        
+        if (foundNode) {
+            successCount++;
+            console.log(`  ✅ 节点 ${index + 1} (${nodeId}): 查询成功`);
+        } else {
+            failCount++;
+            console.log(`  ❌ 节点 ${index + 1} (${nodeId}): 查询失败`);
+        }
+    });
+    
+    console.log('');
+    console.log('%c📊 查询统计：', 'color: #00aaff; font-weight: bold;');
+    console.log(`  成功: ${successCount} 个 ✅`);
+    console.log(`  失败: ${failCount} 个 ❌`);
+    console.log(`  成功率: ${(successCount / allNodes.length * 100).toFixed(1)}%`);
+    
+    if (failCount === 0) {
+        console.log('');
+        console.log('%c🎉 完美！所有节点都可以被 useGroup.ts 找到！', 'color: #00ff00; font-size: 14px; font-weight: bold;');
+        console.log('%c✅ Group 拖动功能应该可以正常工作了！', 'color: #00ff00; font-weight: bold;');
+    } else {
+        console.log('');
+        console.log('%c⚠️ 警告：有节点无法被查询到！', 'color: #ff0000; font-weight: bold;');
+        console.log('%c💡 请检查 Node.tsx 的 props 透传是否正确', 'color: #ffaa00;');
+    }
+} else {
+    console.log('%c❌ 没有节点可供测试！', 'color: #ff0000; font-weight: bold;');
+}
+
+console.log('');
+console.log('%c🎯 测试完成！', 'color: #00ff00; font-size: 16px; font-weight: bold;');</pre>
+    </div>
+
+    <div class="test-section">
+        <h2>🧪 测试脚本 4: 实时监控</h2>
+        <button onclick="copyScript4()">📋 复制脚本</button>
+        <pre id="script4">// ===== Node 属性验证脚本 4: 实时监控 =====
+console.clear();
+console.log('%c🔍 启动实时监控...', 'color: #00ff00; font-size: 16px; font-weight: bold;');
+console.log('%c按 Ctrl+C 停止监控', 'color: #ffaa00;');
+console.log('');
+
+let lastCount = 0;
+
+const monitor = setInterval(() => {
+    const nodes = document.querySelectorAll('[data-node-id]');
+    const currentCount = nodes.length;
+    
+    if (currentCount !== lastCount) {
+        console.log(`%c[${new Date().toLocaleTimeString()}] 节点数量变化: ${lastCount} → ${currentCount}`, 'color: #00aaff;');
+        
+        if (currentCount > 0) {
+            console.log('%c  ✅ 所有节点都有 data-node-id 属性', 'color: #00ff00;');
+        } else {
+            console.log('%c  ❌ 没有找到带 data-node-id 的节点', 'color: #ff0000;');
+        }
+        
+        lastCount = currentCount;
+    }
+}, 1000);
+
+// 保存监控器引用，方便停止
+window.nodeMonitor = monitor;
+console.log('%c💡 提示：运行 clearInterval(window.nodeMonitor) 可以停止监控', 'color: #ffaa00;');</pre>
+    </div>
+
+    <div class="test-section">
+        <h2>📝 预期结果</h2>
+        <div class="success">
+            <h3>✅ 成功的标志：</h3>
+            <ul>
+                <li>脚本 1: 找到的节点数量 > 0</li>
+                <li>脚本 2: 所有查询方法都返回 ✅ 成功</li>
+                <li>脚本 3: 成功率 = 100%</li>
+                <li>脚本 4: 显示"所有节点都有 data-node-id 属性"</li>
+            </ul>
+        </div>
+        <div class="error">
+            <h3>❌ 失败的标志：</h3>
+            <ul>
+                <li>脚本 1: 找到的节点数量 = 0</li>
+                <li>脚本 2: 查询方法返回 ❌ 失败</li>
+                <li>脚本 3: 成功率 < 100%</li>
+                <li>脚本 4: 显示"没有找到带 data-node-id 的节点"</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>🔧 故障排除</h2>
+        <div class="warning">
+            <h3>如果测试失败，请按顺序尝试：</h3>
+            <ol>
+                <li><strong>清除浏览器缓存</strong>
+                    <ul>
+                        <li>Windows/Linux: Ctrl + Shift + R</li>
+                        <li>macOS: Cmd + Shift + R</li>
+                    </ul>
+                </li>
+                <li><strong>重启 Vite 开发服务器</strong>
+                    <ul>
+                        <li>在终端按 Ctrl + C 停止</li>
+                        <li>运行 npm run dev 重新启动</li>
+                    </ul>
+                </li>
+                <li><strong>检查 React 渲染</strong>
+                    <ul>
+                        <li>打开 React DevTools</li>
+                        <li>查看 Node 组件的 props</li>
+                        <li>确认 data-node-id 被传递</li>
+                    </ul>
+                </li>
+                <li><strong>检查代码</strong>
+                    <ul>
+                        <li>确认 Node.tsx 有 {...props}</li>
+                        <li>确认 App.tsx 传递了 data-node-id</li>
+                        <li>确认没有其他代码覆盖属性</li>
+                    </ul>
+                </li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        function copyScript1() {
+            const script = document.getElementById('script1').textContent;
+            navigator.clipboard.writeText(script).then(() => {
+                alert('✅ 脚本 1 已复制到剪贴板！\n请在浏览器控制台中粘贴并运行。');
+            });
+        }
+
+        function copyScript2() {
+            const script = document.getElementById('script2').textContent;
+            navigator.clipboard.writeText(script).then(() => {
+                alert('✅ 脚本 2 已复制到剪贴板！\n请在浏览器控制台中粘贴并运行。');
+            });
+        }
+
+        function copyScript3() {
+            const script = document.getElementById('script3').textContent;
+            navigator.clipboard.writeText(script).then(() => {
+                alert('✅ 脚本 3 已复制到剪贴板！\n请在浏览器控制台中粘贴并运行。');
+            });
+        }
+
+        function copyScript4() {
+            const script = document.getElementById('script4').textContent;
+            navigator.clipboard.writeText(script).then(() => {
+                alert('✅ 脚本 4 已复制到剪贴板！\n请在浏览器控制台中粘贴并运行。');
+            });
+        }
+    </script>
+</body>
+</html>

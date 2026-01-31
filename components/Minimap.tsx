@@ -22,7 +22,7 @@ export const Minimap: React.FC<MinimapProps> = ({
     onPanChange
 }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
-    const [isExpanded, setIsExpanded] = useState(true);
+    const [isExpanded, setIsExpanded] = useState(false); // 🔥 修改：默认折叠
     const [isDragging, setIsDragging] = useState(false);
     
     // 小地图尺寸

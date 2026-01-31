@@ -1,4 +1,130 @@
-
+/**
+ * ⚠️⚠️⚠️ 超级警告：App.tsx 是高优先级保护区！⚠️⚠️⚠️
+ * 
+ * 🚫🚫🚫 禁止在此文件添加任何业务逻辑！🚫🚫🚫
+ * 
+ * 📋 App.tsx 的唯一职责：
+ * 1. 初始化（useEffect 初始化 Registry）
+ * 2. 获取数据（从 Stores 获取）
+ * 3. 使用 Hooks（调用 hooks/）
+ * 4. 渲染组件（组合 components/）
+ * 
+ * ❌ 禁止的操作：
+ * - 添加新的 useCallback（业务逻辑应该在 hooks/）
+ * - 添加新的 useState（UI 状态应该在 stores/uiStore.ts）
+ * - 添加新的 switch-case（节点逻辑应该在 NodeRegistry）
+ * - 添加新的事件处理（应该在对应的 Hook）
+ * - 修改 handleNodeAction（这是遗留代码，应该重构到 hooks/useNodeActions.ts）
+ * 
+ * ✅ 正确的做法：
+ * - 新节点类型 → core/registry/NodeRegistry.ts
+ * - 新交互逻辑 → hooks/useXxx.ts
+ * - 新 UI 状态 → core/stores/uiStore.ts
+ * - 新业务逻辑 → hooks/useNodeActions.ts（待创建）
+ * - 新右键菜单 → hooks/useContextMenu.ts（待创建）
+ * - 新图片处理 → hooks/useMediaOverlay.ts（待创建）
+ * 
+ * 📖 详细规则：
+ * - ARCHITECTURE.md（架构文档，必读）
+ * - .kiro/steering/project-onboarding.md（入职规则，必读）
+ * - .kiro/specs/canvas-architecture-refactor/requirements.md（重构需求，必读）
+ * 
+ * 🤖 如果你是 AI，看到这个警告后：
+ * 1. 立即停止修改 App.tsx
+ * 2. 重新思考：这个改动应该放在哪里？
+ * 3. 查看 ARCHITECTURE.md，找到正确的位置
+ * 4. 如果确实需要改 App.tsx，先向用户说明原因，等待确认
+ * 
+ * 🔥 当前状态：
+ * - 文件行数：2354 行（目标：200 行以内）
+ * - 问题：包含大量业务逻辑（handleNodeAction 400+ 行）
+ * - 重构进度：70%（Hooks 已抽离，但业务逻辑未抽离）
+ * 
+ * 🎯 下一步重构计划：
+ * 1. 创建 hooks/useNodeActions.ts，抽离 handleNodeAction
+ * 2. 创建 hooks/useContextMenu.ts，抽离右键菜单逻辑
+ * 3. 创建 hooks/useMediaOverlay.ts，抽离图片预览/裁剪逻辑
+ * 4. 创建 hooks/useGlobalEvents.ts，抽离全局事件处理
+ * 5. 最终目标：App.tsx 只做组合和配置，不包含业务逻辑
+ * 
+ * ⚠️ 如果你要修改 App.tsx，必须回答：
+ * 1. 为什么必须改 App.tsx？
+ * 2. 不改 App.tsx 有其他方案吗？
+ * 3. 这属于允许的情况吗？（架构调整/重构/紧急修复/用户明确要求）
+ * 4. 改了会有什么影响？
+ * 5. 用户同意了吗？
+ * 
+ * 💡 为什么 AI 总是想改 App.tsx？
+ * 1. App.tsx 仍然包含大量业务逻辑（handleNodeAction 400+ 行）
+ * 2. 代码模式"诱导" AI（集中式的 Handler、State、Event）
+ * 3. 重构未完成（70% 完成度，业务逻辑未抽离）
+ * 4. AI 的惯性思维（看到逻辑在 App.tsx，就觉得新逻辑也应该在这里）
+ * 
+ * 🛑 记住：App.tsx 是高优先级保护区，轻易不能动！
+ *//**
+ * ⚠️⚠️⚠️ 超级警告：App.tsx 是高优先级保护区！⚠️⚠️⚠️
+ * 
+ * 🚫🚫🚫 禁止在此文件添加任何业务逻辑！🚫🚫🚫
+ * 
+ * 📋 App.tsx 的唯一职责：
+ * 1. 初始化（useEffect 初始化 Registry）
+ * 2. 获取数据（从 Stores 获取）
+ * 3. 使用 Hooks（调用 hooks/）
+ * 4. 渲染组件（组合 components/）
+ * 
+ * ❌ 禁止的操作：
+ * - 添加新的 useCallback（业务逻辑应该在 hooks/）
+ * - 添加新的 useState（UI 状态应该在 stores/uiStore.ts）
+ * - 添加新的 switch-case（节点逻辑应该在 NodeRegistry）
+ * - 添加新的事件处理（应该在对应的 Hook）
+ * - 修改 handleNodeAction（这是遗留代码，应该重构到 hooks/useNodeActions.ts）
+ * 
+ * ✅ 正确的做法：
+ * - 新节点类型 → core/registry/NodeRegistry.ts
+ * - 新交互逻辑 → hooks/useXxx.ts
+ * - 新 UI 状态 → core/stores/uiStore.ts
+ * - 新业务逻辑 → hooks/useNodeActions.ts（待创建）
+ * - 新右键菜单 → hooks/useContextMenu.ts（待创建）
+ * - 新图片处理 → hooks/useMediaOverlay.ts（待创建）
+ * 
+ * 📖 详细规则：
+ * - ARCHITECTURE.md（架构文档，必读）
+ * - .kiro/steering/project-onboarding.md（入职规则，必读）
+ * - .kiro/specs/canvas-architecture-refactor/requirements.md（重构需求，必读）
+ * 
+ * 🤖 如果你是 AI，看到这个警告后：
+ * 1. 立即停止修改 App.tsx
+ * 2. 重新思考：这个改动应该放在哪里？
+ * 3. 查看 ARCHITECTURE.md，找到正确的位置
+ * 4. 如果确实需要改 App.tsx，先向用户说明原因，等待确认
+ * 
+ * 🔥 当前状态：
+ * - 文件行数：2354 行（目标：200 行以内）
+ * - 问题：包含大量业务逻辑（handleNodeAction 400+ 行）
+ * - 重构进度：70%（Hooks 已抽离，但业务逻辑未抽离）
+ * 
+ * 🎯 下一步重构计划：
+ * 1. 创建 hooks/useNodeActions.ts，抽离 handleNodeAction
+ * 2. 创建 hooks/useContextMenu.ts，抽离右键菜单逻辑
+ * 3. 创建 hooks/useMediaOverlay.ts，抽离图片预览/裁剪逻辑
+ * 4. 创建 hooks/useGlobalEvents.ts，抽离全局事件处理
+ * 5. 最终目标：App.tsx 只做组合和配置，不包含业务逻辑
+ * 
+ * ⚠️ 如果你要修改 App.tsx，必须回答：
+ * 1. 为什么必须改 App.tsx？
+ * 2. 不改 App.tsx 有其他方案吗？
+ * 3. 这属于允许的情况吗？（架构调整/重构/紧急修复/用户明确要求）
+ * 4. 改了会有什么影响？
+ * 5. 用户同意了吗？
+ * 
+ * 💡 为什么 AI 总是想改 App.tsx？
+ * 1. App.tsx 仍然包含大量业务逻辑（handleNodeAction 400+ 行）
+ * 2. 代码模式"诱导" AI（集中式的 Handler、State、Event）
+ * 3. 重构未完成（70% 完成度，业务逻辑未抽离）
+ * 4. AI 的惯性思维（看到逻辑在 App.tsx，就觉得新逻辑也应该在这里）
+ * 
+ * 🛑 记住：App.tsx 是高优先级保护区，轻易不能动！
+ */
 
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { Node } from './components/Node';
@@ -9,6 +135,8 @@ import { SketchEditor } from './components/SketchEditor';
 import { SmartSequenceDock } from './components/SmartSequenceDock';
 import { SonicStudio } from './components/SonicStudio'; 
 import { SettingsModal } from './components/SettingsModal';
+import { GroupToolbar } from './components/GroupToolbar';
+import { Minimap } from './components/Minimap'; // 🔥 新增：小地图组件
 import { AppNode, NodeType, NodeStatus, Connection, ContextMenuState, Group, Workflow, SmartSequenceItem } from './types';
 import { generateImageFromText, generateVideo, analyzeVideo, editImageWithText, planStoryboard, orchestrateVideoPrompt, compileMultiFramePrompt, urlToBase64, extractLastFrame, generateAudio } from './services/geminiService';
 import { generateImage as generateNanoBananaImage } from './services/nanoBananaService';
@@ -17,8 +145,36 @@ import { saveToStorage, loadFromStorage } from './services/storage';
 import { 
     Plus, Copy, Trash2, Type, Image as ImageIcon, Video as VideoIcon, 
     ScanFace, Brush, MousePointerClick, LayoutTemplate, X, Film, Link, RefreshCw, Upload,
-    Minus, FolderHeart, Unplug, Sparkles, ChevronLeft, ChevronRight, Scan, Music, Mic2, Grid3X3
+    Minus, FolderHeart, Unplug, Sparkles, ChevronLeft, ChevronRight, Scan, Music, Mic2, Grid3X3, Maximize2, Network
 } from 'lucide-react';
+
+// 引入 Hooks（架构重构 - 阶段 A - 第 3 步）
+import { useDrag } from './hooks/useDrag';
+import { useSelection } from './hooks/useSelection';
+import { useViewport } from './hooks/useViewport';
+import { useConnection } from './hooks/useConnection';
+import { useGroup } from './hooks/useGroup';
+import { useHistory } from './hooks/useHistory';
+
+// 引入新的业务逻辑 Hooks（架构重构 - 业务逻辑抽离）
+import { useNodeHelpers } from './hooks/useNodeHelpers';
+import { useAssetHistory } from './hooks/useAssetHistory';
+import { useUIState } from './hooks/useUIState';
+import { useNodeActions } from './hooks/useNodeActions'; // 🔥 新增：节点操作 Hook
+
+// 引入 Stores（架构重构 - 阶段 A - 第 2 步）
+import { useNodeStore } from './core/stores/nodeStore';
+import { useConnectionStore } from './core/stores/connectionStore';
+import { useGroupStore } from './core/stores/groupStore';
+
+// 引入 Stores（架构重构 - 阶段 B - Store 迁移）
+import { useSelectionStore } from './core/stores/selectionStore';
+import { useUIStore } from './core/stores/uiStore';
+import { useWorkflowStore } from './core/stores/workflowStore';
+import { useAssetHistoryStore } from './core/stores/assetHistoryStore';
+
+// 引入 NodeRegistry（架构重构 - 阶段 A - 第 2 步）
+import { nodeRegistry, initializeNodeRegistry, getNodeName, getNodeIconName } from './core/registry/NodeRegistry';
 
 // Apple Physics Curve
 const SPRING = "cubic-bezier(0.32, 0.72, 0, 1)";
@@ -151,83 +307,326 @@ const ExpandedView = ({ media, onClose }: { media: any, onClose: () => void }) =
 };
 
 export const App = () => {
-  // --- Global App State ---
-  const [workflows, setWorkflows] = useState<Workflow[]>([]); 
-  const [assetHistory, setAssetHistory] = useState<any[]>([]);
-  const [isChatOpen, setIsChatOpen] = useState(false);
-  const [selectedWorkflowId, setSelectedWorkflowId] = useState<string | null>(null);
-  const [isLoaded, setIsLoaded] = useState(false); 
+  // === 初始化 NodeRegistry（架构重构 - 阶段 A - 第 2 步）===
+  useEffect(() => {
+    initializeNodeRegistry();
+  }, []);
   
-  // Sketch Editor State
-  const [isSketchEditorOpen, setIsSketchEditorOpen] = useState(false);
-
-  // Multi-Frame Dock State
-  const [isMultiFrameOpen, setIsMultiFrameOpen] = useState(false);
-
-  // Sonic Studio (Music) State
-  const [isSonicStudioOpen, setIsSonicStudioOpen] = useState(false);
+  // === 架构重构 - 阶段 B：使用 Store 管理所有状态 ===
   
-  // Settings State
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  // --- UI 面板状态（从 uiStore 获取）---
+  const isChatOpen = useUIStore(state => state.isChatOpen);
+  const isSketchEditorOpen = useUIStore(state => state.isSketchEditorOpen);
+  const isMultiFrameOpen = useUIStore(state => state.isMultiFrameOpen);
+  const isSonicStudioOpen = useUIStore(state => state.isSonicStudioOpen);
+  const isSettingsOpen = useUIStore(state => state.isSettingsOpen);
+  const isLoaded = useUIStore(state => state.isLoaded);
+  const { 
+    setChatOpen, 
+    setSketchEditorOpen, 
+    setMultiFrameOpen, 
+    setSonicStudioOpen, 
+    setSettingsOpen, 
+    setLoaded 
+  } = useUIStore();
+  
+  // --- 工作流状态（从 workflowStore 获取）---
+  const workflows = useWorkflowStore(state => state.workflows);
+  const selectedWorkflowId = useWorkflowStore(state => state.selectedWorkflowId);
+  const { 
+    addWorkflow, 
+    updateWorkflow, 
+    deleteWorkflow, 
+    selectWorkflow, 
+    setWorkflows 
+  } = useWorkflowStore();
+  
+  // --- 资源历史状态（从 assetHistoryStore 获取）---
+  const assetHistory = useAssetHistoryStore(state => state.assetHistory);
+  const { 
+    addHistory, 
+    clearHistory, 
+    setHistory: setAssetHistory 
+  } = useAssetHistoryStore();
+  
+  // --- 选择状态（从 selectionStore 获取）---
+  const selectedGroupId = useSelectionStore(state => state.selectedGroupId);
+  const { 
+    selectGroup, 
+    clearGroupSelection 
+  } = useSelectionStore();
 
   // --- Canvas State ---
-  // 性能优化：使用 Map 代替 Array（查找速度 O(n) → O(1)，快 100 倍）
-  const [nodes, setNodes] = useState<Map<string, AppNode>>(new Map());
-  const [connections, setConnections] = useState<Connection[]>([]);
-  const [groups, setGroups] = useState<Group[]>([]);
+  // === 架构重构：使用 Zustand Store 管理数据（阶段 B - 第 2 步）===
+  // 从 Store 获取数据和操作方法
+  const nodes = useNodeStore(state => state.nodes);
+  const connections = useConnectionStore(state => state.connections);
+  const groups = useGroupStore(state => state.groups);
+  
+  // 从 Store 获取操作方法
+  const { addNode: addNodeToStore, updateNode, deleteNode, setNodes } = useNodeStore();
+  const { addConnection, deleteConnection, setConnections } = useConnectionStore();
+  const { addGroup, updateGroup, deleteGroup: deleteGroupFromStore, setGroups } = useGroupStore();
+  
+  // 剪贴板状态（临时 UI 状态，保留在 App.tsx）
   const [clipboard, setClipboard] = useState<AppNode | null>(null); 
   
-  // History
-  const [history, setHistory] = useState<any[]>([]);
-  const [historyIndex, setHistoryIndex] = useState(-1);
+  // === 架构重构：使用 useHistory Hook（阶段 A - 第 4 步）===
+  const {
+    saveHistory: saveHistoryToHook,
+    undo,
+    canUndo,
+    canRedo,
+  } = useHistory({ 
+    maxHistorySize: 50,
+    onRestore: (state) => {
+      // 恢复历史状态到 Store
+      setNodes(state.nodes); // setNodes 会自动处理 Array → Map 转换
+      setConnections(state.connections);
+      setGroups(state.groups);
+    }
+  });
 
-  // Viewport
-  const [scale, setScale] = useState<number>(1);
-  const [pan, setPan] = useState<{ x: number, y: number }>({ x: 0, y: 0 });
-  const [isDraggingCanvas, setIsDraggingCanvas] = useState(false);
-  const [lastMousePos, setLastMousePos] = useState({ x: 0, y: 0 });
-  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+  // 创建 saveHistory 包装函数
+  const saveHistory = useCallback(() => {
+    // 传递三个独立参数给 Hook（修复类型错误）
+    saveHistoryToHook(nodes, connections, groups);
+  }, [nodes, connections, groups, saveHistoryToHook]);
 
-  // Interaction / Selection
-  const [selectedNodeIds, setSelectedNodeIds] = useState<string[]>([]); // Changed to Array for multi-select
-  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
-  const [draggingNodeId, setDraggingNodeId] = useState<string | null>(null);
-  const [draggingNodeParentGroupId, setDraggingNodeParentGroupId] = useState<string | null>(null);
-  const [draggingGroup, setDraggingGroup] = useState<any>(null); 
-  const [resizingGroupId, setResizingGroupId] = useState<string | null>(null);
-  const [activeGroupNodeIds, setActiveGroupNodeIds] = useState<string[]>([]);
-  const [connectionStart, setConnectionStart] = useState<{ id: string, x: number, y: number, portType?: 'input' | 'output' } | null>(null);
-  const [selectionRect, setSelectionRect] = useState<any>(null);
-  
+  // === 定义 deleteNodes 函数（必须在 useSelection 之前）===
+  const deleteNodesCallback = useCallback((ids: string[]) => { 
+      if (ids.length === 0) return;
+      saveHistory();
+      
+      // 性能优化：清理 Blob URL（避免内存泄漏）
+      ids.forEach(id => {
+          const node = nodes.get(id);
+          if (node) {
+              // 清理 gridImages
+              if (node.data.gridImages && Array.isArray(node.data.gridImages)) {
+                  node.data.gridImages.forEach((url: string) => {
+                      if (url && url.startsWith('blob:')) {
+                          URL.revokeObjectURL(url);
+                      }
+                  });
+              }
+              // 清理 images
+              if (node.data.images && Array.isArray(node.data.images)) {
+                  node.data.images.forEach((url: string) => {
+                      if (url && url.startsWith('blob:')) {
+                          URL.revokeObjectURL(url);
+                      }
+                  });
+              }
+              // 清理 image
+              if (node.data.image && node.data.image.startsWith('blob:')) {
+                  URL.revokeObjectURL(node.data.image);
+              }
+          }
+      });
+      
+      // === 使用 Store 删除节点 ===
+      useNodeStore.getState().deleteNodes(ids);
+      
+      // 清理被删除节点的输入连接
+      const allNodes = useNodeStore.getState().getAllNodes();
+      allNodes.forEach(node => {
+          const filteredInputs = node.inputs.filter(i => !ids.includes(i));
+          if (filteredInputs.length !== node.inputs.length) {
+              useNodeStore.getState().updateNodeInputs(node.id, filteredInputs);
+          }
+      });
+      
+      // === 使用 Store 删除连接 ===
+      useConnectionStore.getState().deleteNodesConnections(ids);
+  }, [saveHistory, nodes]);
+
+  // === 使用新的业务逻辑 Hooks（架构重构 - 业务逻辑抽离）===
+  // ⚠️ 必须最先调用 useNodeHelpers，因为其他 Hook 依赖 getApproxNodeHeight
+  const { 
+    getApproxNodeHeight, 
+    getNodeBounds, 
+    getNodeNameCN, 
+    getNodeIcon 
+  } = useNodeHelpers();
+
+  const { 
+    handleAssetGenerated, 
+    handleDeleteAsset,
+    handleDeleteMultipleAssets,
+    downloadSelectedImagesAndClear 
+  } = useAssetHistory();
+
+  const { 
+    contextMenu, 
+    contextMenuTarget, 
+    openContextMenu, 
+    closeContextMenu,
+    expandedMedia, 
+    openMedia, 
+    closeMedia,
+    croppingNodeId, 
+    imageToCrop, 
+    startCrop, 
+    endCrop 
+  } = useUIState();
+
+  // === 架构重构：使用 useViewport Hook（阶段 A - 第 4 步）===
+  const {
+    scale,
+    pan,
+    isDraggingCanvas,
+    handleWheel,
+    startCanvasDrag,
+    updateCanvasDrag,
+    endCanvasDrag,
+    fitView,
+    resetView,
+    zoomIn,
+    zoomOut,
+    setScale,
+    setPan, // 🔥 新增：用于小地图跳转
+  } = useViewport({
+    nodes,
+    getNodeHeight: getApproxNodeHeight, // ✅ 直接使用 getApproxNodeHeight
+  });
+
+  // === 架构重构：使用 useConnection Hook（阶段 A - 第 4 步）===
+  const {
+    connectionStart,
+    startConnection,
+    endConnection,
+    cancelConnection,
+    deleteConnection: deleteConnectionFromHook,
+    deleteNodeConnections,
+    getOutputConnections,
+    getInputConnections,
+    isValidConnection,
+    getCompatibleOutputNodes,
+    getCompatibleInputNodes,
+  } = useConnection({
+    nodes,
+    connections,
+    onAddConnection: (connection) => {
+      // === 使用 Store 添加连接 ===
+      useConnectionStore.getState().addConnection(connection);
+    },
+    onDeleteConnection: (from, to) => {
+      // === 使用 Store 删除连接 ===
+      useConnectionStore.getState().deleteConnection(from, to);
+    },
+    onUpdateNodeInputs: (nodeId, inputs) => {
+      // === 使用 Store 更新节点输入 ===
+      useNodeStore.getState().updateNodeInputs(nodeId, inputs);
+    },
+  });
+
+  // === 架构重构：使用 useGroup Hook（阶段 A - 第 4 步）===
+  const {
+    resizingGroupId,
+    isDraggingGroup,
+    getNodeGroup,
+    getGroupNodes,
+    startGroupDrag,
+    updateGroupDrag,
+    endGroupDrag,
+    cancelGroupDrag,
+    alignLeft,
+    alignCenterH,
+    alignRight,
+    alignTop,
+    alignCenterV,
+    alignBottom,
+    distributeH,
+    distributeV,
+    arrangeTopology,
+    scaleNodes,
+    createGroup,
+    deleteGroup: deleteGroupFromHook,
+    deleteGroupWithNodes, // 新增：删除分组及其节点
+    updateGroupTitle,
+    toggleCollapse,
+    isCollapsed,
+    startGroupResize,
+    endGroupResize,
+    expandOrCreateGroup, // 新增：动态扩展组或创建新组
+  } = useGroup({
+    groups,
+    nodes,
+    connections,
+    scale,
+    onAddGroup: (group) => {
+      useGroupStore.getState().addGroup(group);
+    },
+    onUpdateGroup: (id, updates) => {
+      useGroupStore.getState().updateGroup(id, updates);
+    },
+    onDeleteGroup: (id) => {
+      useGroupStore.getState().deleteGroup(id);
+    },
+    onUpdateNode: (id, updates) => {
+      useNodeStore.getState().updateNode(id, updates);
+    },
+    onSaveHistory: saveHistory,
+    getApproxNodeHeight,
+  });
+
+  // === 架构重构：使用 useSelection Hook（必须在 useGroup 之后）===
+  const {
+    selectedNodeIds,
+    selectionRect,
+    selectNode,
+    selectNodes,
+    clearSelection,
+    selectAll,
+    startBoxSelection,
+    updateBoxSelection,
+    endBoxSelection,
+    cancelBoxSelection,
+    deleteSelected,
+  } = useSelection({
+    nodes,
+    onDeleteNodes: deleteNodesCallback,
+    onExpandOrCreateGroup: expandOrCreateGroup, // 传递 expandOrCreateGroup 方法
+  });
+
+  // === 架构重构：使用 useDrag Hook（阶段 A - 第 4 步）===
+  // 注意：碰撞检测和磁吸逻辑暂时保留在 App.tsx 中
+  const {
+    handleMouseDown: handleNodeDragStart,
+    cancelDrag,
+    isDragging: isDraggingNode,
+  } = useDrag({
+    scale,
+    onUpdateNode: (id, updates) => {
+      // === 使用 Store 更新节点 ===
+      useNodeStore.getState().updateNode(id, updates);
+    },
+    onSaveHistory: saveHistory,
+  });
+
+  // === 架构重构：使用 useNodeActions Hook（业务逻辑抽离）===
+  // 🔥 新增：处理所有节点类型的业务逻辑
+  const { handleNodeAction, handleImageFile, handleVideoFile } = useNodeActions();
+
   // Node Resizing
   const [resizingNodeId, setResizingNodeId] = useState<string | null>(null);
   const [initialSize, setInitialSize] = useState<{width: number, height: number} | null>(null);
   const [resizeStartPos, setResizeStartPos] = useState<{x: number, y: number} | null>(null);
 
-  // Context Menu
-  const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
-  const [contextMenuTarget, setContextMenuTarget] = useState<any>(null);
-
-  // Media Overlays
-  const [expandedMedia, setExpandedMedia] = useState<any>(null);
-  const [croppingNodeId, setCroppingNodeId] = useState<string | null>(null);
-  const [imageToCrop, setImageToCrop] = useState<string | null>(null);
+  // 鼠标位置 state（用于绘制连接线）
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
 
   // Refs for closures
   const nodesRef = useRef(nodes);
   const connectionsRef = useRef(connections);
   const groupsRef = useRef(groups);
-  const historyRef = useRef(history);
-  const historyIndexRef = useRef(historyIndex);
   const connectionStartRef = useRef(connectionStart);
   const rafRef = useRef<number | null>(null); // For RAF Throttling
+  const mousePosRafRef = useRef<number | null>(null); // For mousePos RAF Throttling
   
-  // 性能优化：使用 ref 存储鼠标位置，避免每次 mousemove 触发 React 重渲染
+  // 鼠标位置 ref（用于性能优化，避免频繁触发重渲染）
   const mousePosRef = useRef({ x: 0, y: 0 });
-  
-  // 性能优化：使用 ref 存储 scale 和 pan，减少 useCallback 依赖项
-  const scaleRef = useRef(scale);
-  const panRef = useRef(pan);
   
   // Replacement Input Refs
   const replaceVideoInputRef = useRef<HTMLInputElement>(null);
@@ -259,43 +658,110 @@ export const App = () => {
       element: HTMLElement | null  // 保留：Resize 需要 DOM 操作
   } | null>(null);
 
-  const dragGroupRef = useRef<{
-      id: string, 
-      startX: number, 
-      startY: number, 
-      mouseStartX: number, 
-      mouseStartY: number,
-      childNodes: {id: string, startX: number, startY: number}[],
-      groupElement: HTMLElement | null,
-      childElements: Map<string, HTMLElement>
-  } | null>(null);
+  // dragGroupRef 已移至 useGroup Hook，不再需要在这里定义
 
   useEffect(() => {
       nodesRef.current = nodes; connectionsRef.current = connections; groupsRef.current = groups;
-      historyRef.current = history; historyIndexRef.current = historyIndex; connectionStartRef.current = connectionStart;
-      // 性能优化：同步 scale 和 pan 到 ref
-      scaleRef.current = scale; panRef.current = pan;
-  }, [nodes, connections, groups, history, historyIndex, connectionStart, scale, pan]);
+      connectionStartRef.current = connectionStart;
+  }, [nodes, connections, groups, connectionStart]);
 
   // --- Persistence ---
   useEffect(() => {
       if (window.aistudio) window.aistudio.hasSelectedApiKey().then(hasKey => { if (!hasKey) window.aistudio.openSelectKey(); });
       const loadData = async () => {
           try {
-            const sAssets = await loadFromStorage<any[]>('assets'); if (sAssets) setAssetHistory(sAssets);
+            // 加载历史记录并恢复 Blob URL
+            const sAssets = await loadFromStorage<any[]>('assets'); 
+            if (sAssets) {
+                // 恢复历史记录中的 Blob URL
+                const restoredAssets = await Promise.all(
+                    sAssets.map(async (asset) => {
+                        // 如果 src 是 Blob URL（已失效），从 IndexedDB 恢复
+                        if (asset.src && asset.src.startsWith('blob:')) {
+                            try {
+                                const blob = await loadFromStorage<Blob>(`asset-${asset.id}`);
+                                if (blob) {
+                                    const newUrl = URL.createObjectURL(blob);
+                                    return { ...asset, src: newUrl };
+                                }
+                            } catch (error) {
+                                console.error(`[AssetHistory] 恢复 ${asset.id} 失败:`, error);
+                            }
+                        }
+                        return asset;
+                    })
+                );
+                setAssetHistory(restoredAssets);
+            }
+            
             const sWfs = await loadFromStorage<Workflow[]>('workflows'); if (sWfs) setWorkflows(sWfs);
+            
             // 性能优化：将数组转换为 Map
             const sNodes = await loadFromStorage<AppNode[]>('nodes'); 
             if (sNodes) {
-                const nodesMap = new Map(sNodes.map(n => [n.id, n]));
-                setNodes(nodesMap);
+                // 恢复 Blob URL（页面刷新后 Blob URL 会失效）
+                const { loadImageFromBlob, isBlobUrl } = await import('./services/blobStorage');
+                
+                const restoredNodes = await Promise.all(
+                    sNodes.map(async (node) => {
+                        const restoredData = { ...node.data };
+                        
+                        // 恢复 image
+                        if (restoredData.image && isBlobUrl(restoredData.image)) {
+                            const newUrl = await loadImageFromBlob(node.id, 'image-0');
+                            if (newUrl) restoredData.image = newUrl;
+                        }
+                        
+                        // 恢复 images 数组
+                        if (restoredData.images && Array.isArray(restoredData.images)) {
+                            const newImages = await Promise.all(
+                                restoredData.images.map(async (url: string, index: number) => {
+                                    if (isBlobUrl(url)) {
+                                        const newUrl = await loadImageFromBlob(node.id, `image-${index}`);
+                                        return newUrl || url;
+                                    }
+                                    return url;
+                                })
+                            );
+                            restoredData.images = newImages;
+                        }
+                        
+                        // 恢复 gridImages 数组
+                        if (restoredData.gridImages && Array.isArray(restoredData.gridImages)) {
+                            const newGridImages = await Promise.all(
+                                restoredData.gridImages.map(async (url: string, index: number) => {
+                                    if (isBlobUrl(url)) {
+                                        const newUrl = await loadImageFromBlob(node.id, `grid-${index}`);
+                                        return newUrl || url;
+                                    }
+                                    return url;
+                                })
+                            );
+                            restoredData.gridImages = newGridImages;
+                        }
+                        
+                        return { ...node, data: restoredData };
+                    })
+                );
+                
+                const nodesMap = new Map(restoredNodes.map(n => [n.id, n]));
+                // === 使用 Store 设置节点 ===
+                useNodeStore.getState().setNodes(nodesMap);
             }
-            const sConns = await loadFromStorage<Connection[]>('connections'); if (sConns) setConnections(sConns);
-            const sGroups = await loadFromStorage<Group[]>('groups'); if (sGroups) setGroups(sGroups);
+            const sConns = await loadFromStorage<Connection[]>('connections');
+            if (sConns) {
+                // === 使用 Store 设置连接 ===
+                useConnectionStore.getState().setConnections(sConns);
+            }
+            const sGroups = await loadFromStorage<Group[]>('groups');
+            if (sGroups) {
+                // === 使用 Store 设置分组 ===
+                useGroupStore.getState().setGroups(sGroups);
+            }
           } catch (e) {
             console.error("Failed to load storage", e);
           } finally {
-            setIsLoaded(true); 
+            setLoaded(true); 
           }
       };
       loadData();
@@ -312,346 +778,35 @@ export const App = () => {
       saveToStorage('groups', groups);
   }, [assetHistory, workflows, nodes, connections, groups, isLoaded]);
 
-  
-  const getApproxNodeHeight = (node: AppNode) => {
-      if (node.height) return node.height;
-      const width = node.width || 420;
-      if (['PROMPT_INPUT', 'VIDEO_ANALYZER', 'IMAGE_EDITOR'].includes(node.type)) return 360;
-      if (node.type === NodeType.AUDIO_GENERATOR) return 200;
-      
-      // 新增：故事创作节点的高度
-      if (node.type === NodeType.STORY_STUDIO) {
-          // 创意工作室：选中时展开，未选中时收起
-          const isSelected = selectedNodeIds.includes(node.id);
-          return isSelected ? 500 : 120;
-      }
-      if (node.type === NodeType.CHARACTER_REFERENCE || node.type === NodeType.SCENE_REFERENCE) {
-          return 400;
-      }
-      if (node.type === NodeType.STORYBOARD_SHOT) {
-          return 450;
-      }
-      if (node.type === NodeType.MULTI_ANGLE_CAMERA) {
-          // 多角度相机：始终展开，大尺寸显示
-          return 800;
-      }
-      if (node.type === NodeType.GRID_SPLITTER) {
-          // 九宫格处理节点
-          return 480;
-      }
-      
-      const [w, h] = (node.data.aspectRatio || '16:9').split(':').map(Number);
-      const extra = (node.type === NodeType.VIDEO_GENERATOR && node.data.generationMode === 'CUT') ? 36 : 0;
-      return ((width * h / w) + extra);
-  };
-  
-  const getNodeBounds = (node: AppNode) => {
-      const h = node.height || getApproxNodeHeight(node);
-      const w = node.width || 420;
-      return { x: node.x, y: node.y, width: w, height: h, r: node.x + w, b: node.y + h };
-  };
-
-  const getNodeNameCN = (t: string) => {
-      switch(t) {
-          case NodeType.PROMPT_INPUT: return '创意描述';
-          case NodeType.IMAGE_GENERATOR: return '文字生图';
-          case NodeType.VIDEO_GENERATOR: return '文生视频';
-          case NodeType.AUDIO_GENERATOR: return '灵感音乐';
-          case NodeType.VIDEO_ANALYZER: return '视频分析';
-          case NodeType.IMAGE_EDITOR: return '图像编辑';
-          case NodeType.STORY_STUDIO: return '创意工作室';
-          case NodeType.CHARACTER_REFERENCE: return '角色参考';
-          case NodeType.SCENE_REFERENCE: return '场景参考';
-          case NodeType.STORYBOARD_SHOT: return '分镜生成';
-          case NodeType.MULTI_ANGLE_CAMERA: return '多角度相机';
-          case NodeType.GRID_SPLITTER: return '九宫格处理';
-          default: return t;
-      }
-  };
-  const getNodeIcon = (t: string) => {
-      switch(t) {
-          case NodeType.PROMPT_INPUT: return Type;
-          case NodeType.IMAGE_GENERATOR: return ImageIcon;
-          case NodeType.VIDEO_GENERATOR: return Film;
-          case NodeType.AUDIO_GENERATOR: return Mic2;
-          case NodeType.VIDEO_ANALYZER: return ScanFace;
-          case NodeType.IMAGE_EDITOR: return Brush;
-          case NodeType.STORY_STUDIO: return Sparkles;
-          case NodeType.CHARACTER_REFERENCE: return ScanFace;
-          case NodeType.SCENE_REFERENCE: return LayoutTemplate;
-          case NodeType.STORYBOARD_SHOT: return Film;
-          case NodeType.MULTI_ANGLE_CAMERA: return LayoutTemplate;
-          case NodeType.GRID_SPLITTER: return Grid3X3;
-          default: return Plus;
-      }
-  };
-
-  const handleFitView = useCallback(() => {
-      if (nodes.size === 0) {
-          setPan({ x: 0, y: 0 });
-          setScale(1);
-          return;
-      }
-
-      const padding = 100;
-      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-
-      // 性能优化：使用 Array.from(nodes.values()) 遍历 Map
-      Array.from(nodes.values()).forEach(n => {
-          const h = n.height || getApproxNodeHeight(n);
-          const w = n.width || 420;
-          if (n.x < minX) minX = n.x;
-          if (n.y < minY) minY = n.y;
-          if (n.x + w > maxX) maxX = n.x + w;
-          if (n.y + h > maxY) maxY = n.y + h;
-      });
-
-      const contentW = maxX - minX;
-      const contentH = maxY - minY;
-      
-      const scaleX = (window.innerWidth - padding * 2) / contentW;
-      const scaleY = (window.innerHeight - padding * 2) / contentH;
-      let newScale = Math.min(scaleX, scaleY, 1); 
-      newScale = Math.max(0.2, newScale); 
-
-      const contentCenterX = minX + contentW / 2;
-      const contentCenterY = minY + contentH / 2;
-
-      const newPanX = (window.innerWidth / 2) - (contentCenterX * newScale);
-      const newPanY = (window.innerHeight / 2) - (contentCenterY * newScale);
-
-      setPan({ x: newPanX, y: newPanY });
-      setScale(newScale);
-  }, [nodes]);
-
-  const saveHistory = useCallback(() => {
-      try {
-          // 性能优化：将 Map 转换为数组后再序列化
-          const nodesArray = Array.from(nodesRef.current.values());
-          const currentStep = { nodes: JSON.parse(JSON.stringify(nodesArray)), connections: JSON.parse(JSON.stringify(connectionsRef.current)), groups: JSON.parse(JSON.stringify(groupsRef.current)) };
-          const newHistory = historyRef.current.slice(0, historyIndexRef.current + 1);
-          newHistory.push(currentStep); if (newHistory.length > 50) newHistory.shift(); 
-          setHistory(newHistory); setHistoryIndex(newHistory.length - 1);
-      } catch (e) {
-          console.warn("History save failed:", e);
-      }
-  }, []);
-
-  const undo = useCallback(() => {
-      const idx = historyIndexRef.current; if (idx > 0) { const prev = historyRef.current[idx - 1]; setNodes(prev.nodes); setConnections(prev.connections); setGroups(prev.groups); setHistoryIndex(idx - 1); }
-  }, []);
-
-  const deleteNodes = useCallback((ids: string[]) => { 
-      if (ids.length === 0) return;
-      saveHistory();
-      
-      // 性能优化：清理 Blob URL（避免内存泄漏）
-      ids.forEach(id => {
-          const node = nodes.get(id); // 使用 Map.get() 代替 Array.find()
-          if (node) {
-              // 清理 gridImages
-              if (node.data.gridImages && Array.isArray(node.data.gridImages)) {
-                  node.data.gridImages.forEach((url: string) => {
-                      if (url && url.startsWith('blob:')) {
-                          URL.revokeObjectURL(url);
-                      }
-                  });
-              }
-              // 清理 images
-              if (node.data.images && Array.isArray(node.data.images)) {
-                  node.data.images.forEach((url: string) => {
-                      if (url && url.startsWith('blob:')) {
-                          URL.revokeObjectURL(url);
-                      }
-                  });
-              }
-              // 清理 image
-              if (node.data.image && node.data.image.startsWith('blob:')) {
-                  URL.revokeObjectURL(node.data.image);
-              }
-          }
-      });
-      
-      // 性能优化：使用 Map.delete() 代替 Array.filter()（O(n) → O(1)，快 100 倍）
-      setNodes(p => {
-          const newMap = new Map(p);
-          ids.forEach(id => newMap.delete(id));
-          // 清理被删除节点的输入连接
-          newMap.forEach((node, nodeId) => {
-              const filteredInputs = node.inputs.filter(i => !ids.includes(i));
-              if (filteredInputs.length !== node.inputs.length) {
-                  newMap.set(nodeId, { ...node, inputs: filteredInputs });
-              }
-          });
-          return newMap;
-      });
-      setConnections(p => p.filter(c => !ids.includes(c.from) && !ids.includes(c.to))); 
-      setSelectedNodeIds([]); 
-  }, [saveHistory, nodes]);
-
+  // === 使用 NodeRegistry 创建节点（架构重构 - 阶段 A - 第 2 步）===
   const addNode = useCallback((type: NodeType, x?: number, y?: number, initialData?: any) => {
       if (type === NodeType.IMAGE_EDITOR) {
-          setIsSketchEditorOpen(true);
+          setSketchEditorOpen(true);
           return;
       }
 
       try { saveHistory(); } catch (e) { }
 
-      const defaults: any = { 
-          model: type === NodeType.VIDEO_GENERATOR ? 'veo-3.1-fast-generate-preview' :
-                 type === NodeType.VIDEO_ANALYZER ? 'gemini-3-pro-preview' :
-                 type === NodeType.AUDIO_GENERATOR ? 'gemini-2.5-flash-preview-tts' :
-                 type.includes('IMAGE') ? 'gemini-2.5-flash-image' :
-                 'gemini-3-pro-preview',
-          generationMode: type === NodeType.VIDEO_GENERATOR ? 'DEFAULT' : undefined,
-          // 创意工作室默认值
-          storyStyle: type === NodeType.STORY_STUDIO ? '科幻' : undefined,
-          targetDuration: type === NodeType.STORY_STUDIO ? 30 : undefined,
-          shotCount: type === NodeType.STORY_STUDIO ? 6 : undefined,
-          // 多角度相机默认值
-          horizontalAngle: type === NodeType.MULTI_ANGLE_CAMERA ? 0 : undefined,
-          verticalAngle: type === NodeType.MULTI_ANGLE_CAMERA ? 0 : undefined,
-          cameraZoom: type === NodeType.MULTI_ANGLE_CAMERA ? 5 : undefined,
-          ...initialData
-      };
-      
-      const typeMap: Record<string, string> = {
-          [NodeType.PROMPT_INPUT]: '创意描述',
-          [NodeType.IMAGE_GENERATOR]: '文字生图',
-          [NodeType.VIDEO_GENERATOR]: '文生视频',
-          [NodeType.AUDIO_GENERATOR]: '灵感音乐',
-          [NodeType.VIDEO_ANALYZER]: '视频分析',
-          [NodeType.IMAGE_EDITOR]: '图像编辑',
-          [NodeType.STORY_STUDIO]: '创意工作室',
-          [NodeType.CHARACTER_REFERENCE]: '角色参考',
-          [NodeType.SCENE_REFERENCE]: '场景参考',
-          [NodeType.STORYBOARD_SHOT]: '分镜生成',
-          [NodeType.MULTI_ANGLE_CAMERA]: '多角度相机',
-          [NodeType.GRID_SPLITTER]: '九宫格处理',
-      };
-
+      // 计算节点位置
       const safeX = x !== undefined ? x : (-pan.x + window.innerWidth/2)/scale - 210;
       const safeY = y !== undefined ? y : (-pan.y + window.innerHeight/2)/scale - 180;
 
-      const newNode: AppNode = {
-        id: `n-${Date.now()}-${Math.floor(Math.random()*1000)}`,
-        type,
-        x: isNaN(safeX) ? 100 : safeX,
-        y: isNaN(safeY) ? 100 : safeY,
-        width: 420, 
-        title: typeMap[type] || '未命名节点', 
-        status: NodeStatus.IDLE, 
-        data: defaults, 
-        inputs: []
-      };
+      // 使用 NodeRegistry 创建节点
+      const newNode = nodeRegistry.createNode(type, {
+          x: isNaN(safeX) ? 100 : safeX,
+          y: isNaN(safeY) ? 100 : safeY,
+          data: initialData,
+      });
       
-      // 性能优化：使用 Map.set() 代替 Array.push()（O(1) 操作）
-      setNodes(prev => new Map(prev).set(newNode.id, newNode));
+      if (!newNode) {
+          console.error(`无法创建节点: ${type}`);
+          return;
+      }
+      
+      // === 使用 Store 添加节点 ===
+      useNodeStore.getState().addNode(newNode);
   }, [pan, scale, saveHistory]);
 
-  // 获取节点输出可以连接的目标节点类型（智能连接菜单）
-  const getCompatibleOutputNodes = useCallback((sourceNode: AppNode): NodeType[] => {
-      const compatible: NodeType[] = [];
-
-      // 根据节点类型判断可以连接的目标
-      switch (sourceNode.type) {
-          case NodeType.STORY_STUDIO:
-              // 创意工作室 → 角色参考、场景参考、分镜生成
-              compatible.push(NodeType.CHARACTER_REFERENCE, NodeType.SCENE_REFERENCE, NodeType.STORYBOARD_SHOT);
-              break;
-          case NodeType.CHARACTER_REFERENCE:
-              // 角色参考 → 分镜生成
-              compatible.push(NodeType.STORYBOARD_SHOT);
-              break;
-          case NodeType.SCENE_REFERENCE:
-              // 场景参考 → 分镜生成
-              compatible.push(NodeType.STORYBOARD_SHOT);
-              break;
-          case NodeType.STORYBOARD_SHOT:
-              // 分镜 → 序列编排（暂未实现）
-              break;
-          case NodeType.MULTI_ANGLE_CAMERA:
-              // 多角度相机 → 图片生成、视频生成
-              compatible.push(NodeType.IMAGE_GENERATOR, NodeType.VIDEO_GENERATOR);
-              break;
-          case NodeType.IMAGE_GENERATOR:
-          case NodeType.IMAGE_EDITOR:
-              // 图片 → 视频生成、图像编辑、视频分析、多角度相机
-              compatible.push(NodeType.VIDEO_GENERATOR, NodeType.IMAGE_EDITOR, NodeType.VIDEO_ANALYZER, NodeType.MULTI_ANGLE_CAMERA);
-              break;
-          case NodeType.VIDEO_GENERATOR:
-              // 视频 → 视频分析
-              compatible.push(NodeType.VIDEO_ANALYZER);
-              break;
-          case NodeType.PROMPT_INPUT:
-              // 文本 → 图片生成、视频生成、音频生成
-              compatible.push(NodeType.IMAGE_GENERATOR, NodeType.VIDEO_GENERATOR, NodeType.AUDIO_GENERATOR);
-              break;
-          case NodeType.AUDIO_GENERATOR:
-              // 音频暂无下游节点
-              break;
-          case NodeType.VIDEO_ANALYZER:
-              // 分析结果暂无下游节点
-              break;
-      }
-
-      return Array.from(new Set(compatible));
-  }, []);
-
-  // 获取节点输入可以接收的源节点类型（智能连接菜单）
-  const getCompatibleInputNodes = useCallback((targetNode: AppNode): NodeType[] => {
-      const compatible: NodeType[] = [];
-
-      switch (targetNode.type) {
-          case NodeType.VIDEO_GENERATOR:
-              // 视频生成可以接收：文本、图片
-              compatible.push(NodeType.PROMPT_INPUT, NodeType.IMAGE_GENERATOR, NodeType.IMAGE_EDITOR);
-              break;
-          case NodeType.IMAGE_GENERATOR:
-              // 图片生成可以接收：文本
-              compatible.push(NodeType.PROMPT_INPUT);
-              break;
-          case NodeType.VIDEO_ANALYZER:
-              // 视频分析可以接收：视频、图片
-              compatible.push(NodeType.VIDEO_GENERATOR, NodeType.IMAGE_GENERATOR, NodeType.IMAGE_EDITOR);
-              break;
-          case NodeType.IMAGE_EDITOR:
-              // 图像编辑可以接收：图片
-              compatible.push(NodeType.IMAGE_GENERATOR, NodeType.IMAGE_EDITOR);
-              break;
-          case NodeType.AUDIO_GENERATOR:
-              // 音频生成可以接收：文本
-              compatible.push(NodeType.PROMPT_INPUT);
-              break;
-          case NodeType.CHARACTER_REFERENCE:
-              // 角色参考可以接收：剧本数据
-              compatible.push(NodeType.STORY_STUDIO);
-              break;
-          case NodeType.SCENE_REFERENCE:
-              // 场景参考可以接收：剧本数据
-              compatible.push(NodeType.STORY_STUDIO);
-              break;
-          case NodeType.STORYBOARD_SHOT:
-              // 分镜生成可以接收：剧本数据、角色参考、场景参考
-              compatible.push(NodeType.STORY_STUDIO, NodeType.CHARACTER_REFERENCE, NodeType.SCENE_REFERENCE);
-              break;
-          case NodeType.MULTI_ANGLE_CAMERA:
-              // 多角度相机可以接收：图片
-              compatible.push(NodeType.IMAGE_GENERATOR, NodeType.IMAGE_EDITOR);
-              break;
-      }
-
-      return compatible;
-  }, []);
-
-  const handleAssetGenerated = useCallback((type: 'image' | 'video' | 'audio', src: string, title: string) => {
-      setAssetHistory(h => {
-          const exists = h.find(a => a.src === src);
-          if (exists) return h;
-          return [{ id: `a-${Date.now()}`, type, src, title, timestamp: Date.now() }, ...h];
-      });
-  }, []);
-  
   const handleSketchResult = (type: 'image' | 'video', result: string, prompt: string) => {
       const centerX = (-pan.x + window.innerWidth/2)/scale - 210;
       const centerY = (-pan.y + window.innerHeight/2)/scale - 180;
@@ -689,137 +844,68 @@ export const App = () => {
       }
   };
 
-  // 一键整理组内节点
-  const handleArrangeGroup = useCallback(() => {
-      if (!selectedGroupId) return;
-      
-      const group = groupsRef.current.find(g => g.id === selectedGroupId);
-      if (!group) return;
-      
-      // 获取组内所有节点
-      // 性能优化：使用 Array.from(nodesRef.current.values()) 代替 nodesRef.current.filter()
-      const groupNodes = Array.from(nodesRef.current.values()).filter(n => group.nodeIds.includes(n.id));
-      if (groupNodes.length === 0) return;
-      
-      saveHistory();
-      
-      // 保持节点原有位置顺序，只对齐排列
-      // 按照从左到右、从上到下的顺序排序
-      const sortedNodes = [...groupNodes].sort((a, b) => {
-          // 先按 Y 坐标排序（从上到下）
-          const yDiff = a.y - b.y;
-          if (Math.abs(yDiff) > 50) return yDiff; // Y 差距大于 50px 认为是不同行
-          // Y 坐标相近时，按 X 坐标排序（从左到右）
-          return a.x - b.x;
-      });
-      
-      // 网格布局参数
-      const NODE_WIDTH = 420;
-      const SPACING_X = 60; // 节点间水平间距
-      const SPACING_Y = 40; // 节点间垂直间距
-      const PADDING = 40; // 组边距
-      
-      // 计算每行的节点
-      const rows: AppNode[][] = [];
-      let currentRow: AppNode[] = [];
-      let lastY = sortedNodes[0]?.y || 0;
-      
-      sortedNodes.forEach(node => {
-          // 如果 Y 坐标差距大于 50px，认为是新的一行
-          if (Math.abs(node.y - lastY) > 50 && currentRow.length > 0) {
-              rows.push(currentRow);
-              currentRow = [node];
-              lastY = node.y;
-          } else {
-              currentRow.push(node);
-              lastY = node.y;
+  // === 节点更新函数 ===
+  const handleNodeUpdate = useCallback((id: string, data: any, size?: any, title?: string) => {
+      // === 使用 Store 更新节点 ===
+      const node = useNodeStore.getState().getNode(id);
+      if (node) {
+          const updates: Partial<AppNode> = {
+              data: { ...node.data, ...data },
+              title: title || node.title,
+          };
+          
+          if (size) {
+              if (size.width) updates.width = size.width;
+              if (size.height) updates.height = size.height;
           }
-      });
-      if (currentRow.length > 0) rows.push(currentRow);
-      
-      // 计算新位置
-      const newPositions: { [key: string]: { x: number, y: number } } = {};
-      let currentY = group.y + PADDING;
-      let maxWidth = 0;
-      
-      rows.forEach((row, rowIndex) => {
-          let currentX = group.x + PADDING;
-          let maxRowHeight = 0;
           
-          row.forEach((node, colIndex) => {
-              const nodeHeight = node.height || getApproxNodeHeight(node);
-              maxRowHeight = Math.max(maxRowHeight, nodeHeight);
-              
-              newPositions[node.id] = {
-                  x: currentX,
-                  y: currentY
-              };
-              
-              currentX += NODE_WIDTH + SPACING_X;
-          });
+          // 生成资产历史记录
+          if (data.image) handleAssetGenerated('image', data.image, updates.title || node.title);
+          if (data.videoUri) handleAssetGenerated('video', data.videoUri, updates.title || node.title);
+          if (data.audioUri) handleAssetGenerated('audio', data.audioUri, updates.title || node.title);
           
-          // 更新最大宽度
-          const rowWidth = row.length * NODE_WIDTH + (row.length - 1) * SPACING_X;
-          maxWidth = Math.max(maxWidth, rowWidth);
-          
-          // 移动到下一行
-          currentY += maxRowHeight + SPACING_Y;
-      });
-      
-      // 计算组的新尺寸
-      const totalWidth = maxWidth + PADDING * 2;
-      const totalHeight = currentY - group.y - SPACING_Y + PADDING;
-      
-      // 更新节点位置（性能优化：使用 Map）
-      setNodes(prev => {
-          const newMap = new Map(prev);
-          Object.keys(newPositions).forEach(nodeId => {
-              const node = newMap.get(nodeId);
-              if (node) {
-                  newMap.set(nodeId, { ...node, x: newPositions[nodeId].x, y: newPositions[nodeId].y });
-              }
-          });
-          return newMap;
-      });
-      
-      // 更新组尺寸
-      setGroups(prev => prev.map(g => {
-          if (g.id === selectedGroupId) {
-              return { ...g, width: totalWidth, height: totalHeight };
-          }
-          return g;
-      }));
-  }, [selectedGroupId, saveHistory]);
-
-
-  const handleWheel = (e: React.WheelEvent) => {
-      if (e.shiftKey) {
-        // Shift + 滚轮 = 平移画布
-        setPan(p => ({ x: p.x - e.deltaX, y: p.y - e.deltaY }));
-      } else {
-        // 默认滚轮 = 缩放画布
-        e.preventDefault(); 
-        const newScale = Math.min(Math.max(0.2, scale - e.deltaY * 0.001), 3);
-        const rect = e.currentTarget.getBoundingClientRect(); 
-        const x = e.clientX - rect.left; 
-        const y = e.clientY - rect.top;
-        const scaleDiff = newScale - scale;
-        setPan(p => ({ x: p.x - (x - p.x) * (scaleDiff / scale), y: p.y - (y - p.y) * (scaleDiff / scale) }));
-        setScale(newScale);
+          useNodeStore.getState().updateNode(id, updates);
       }
+  }, [handleAssetGenerated]);
+
+  // === 替换文件函数 ===
+  const handleReplaceFile = (e: React.ChangeEvent<HTMLInputElement>, type: 'image' | 'video') => {
+      const file = e.target.files?.[0];
+      const targetId = replacementTargetRef.current;
+      if (file && targetId) {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+              const result = e.target?.result as string;
+              if (type === 'image') handleNodeUpdate(targetId, { image: result });
+              else handleNodeUpdate(targetId, { videoUri: result });
+          };
+          reader.readAsDataURL(file);
+      }
+      e.target.value = ''; closeContextMenu(); replacementTargetRef.current = null; 
   };
 
-  const handleCanvasMouseDown = (e: React.MouseEvent) => {
-      if (contextMenu) setContextMenu(null); setSelectedGroupId(null);
+  // === 节点操作函数已迁移到 hooks/useNodeActions.ts ===
+  // 🔥 架构重构：handleNodeAction 函数（570 行）已完全迁移到 useNodeActions Hook
+  // 现在通过 const { handleNodeAction } = useNodeActions(); 调用
+
+  // === 画布点击事件处理（集成 useViewport + useSelection）===
+  const handleCanvasMouseDown = useCallback((e: React.MouseEvent) => {
+      if (contextMenu) closeContextMenu(); 
+      selectGroup(null); // 使用 Store 的方法
+      
       if (e.button === 0 && !e.shiftKey) { 
-          // 不阻止双击事件，让 onDoubleClick 处理
+          // 左键点击：清空选择 + 开始框选
           if (e.detail === 1) {
-              setSelectedNodeIds([]); 
-              setSelectionRect({ startX: e.clientX, startY: e.clientY, currentX: e.clientX, currentY: e.clientY }); 
+              clearSelection();
+              startBoxSelection(e.clientX, e.clientY);
           }
       }
-      if (e.button === 1 || (e.button === 0 && e.shiftKey)) { setIsDraggingCanvas(true); setLastMousePos({ x: e.clientX, y: e.clientY }); }
-  };
+      
+      if (e.button === 1 || (e.button === 0 && e.shiftKey)) { 
+          // 中键 或 Shift+左键：开始拖拽画布
+          startCanvasDrag(e);
+      }
+  }, [contextMenu, closeContextMenu, selectGroup, clearSelection, startBoxSelection, startCanvasDrag]);
 
   const handleGlobalMouseMove = useCallback((e: MouseEvent) => {
       const { clientX, clientY } = e;
@@ -828,267 +914,190 @@ export const App = () => {
       mousePosRef.current = { x: clientX, y: clientY };
       
       // 只在绘制连接线时更新 state（触发重渲染）
+      // 🔥 性能优化：使用 RAF 节流，避免每次 mousemove 触发重渲染
       if (connectionStartRef.current) {
-          setMousePos({ x: clientX, y: clientY });
-      }
-      
-      if (selectionRect) { setSelectionRect((prev:any) => prev ? ({ ...prev, currentX: clientX, currentY: clientY }) : null); return; }
-      
-      // 🔥 Group 拖动：使用 transform 直接操作 DOM，不触发 React 重渲染
-      if (dragGroupRef.current) {
-          const { startX, startY, mouseStartX, mouseStartY, groupElement, childElements } = dragGroupRef.current;
-          const currentScale = scaleRef.current;
-          const dx = (clientX - mouseStartX) / currentScale;
-          const dy = (clientY - mouseStartY) / currentScale;
-          
-          // 使用 transform 直接操作 DOM
-          if (groupElement) {
-              groupElement.style.transform = `translate(${dx}px, ${dy}px)`;
+          if (mousePosRafRef.current) {
+              cancelAnimationFrame(mousePosRafRef.current);
           }
           
-          childElements.forEach((el) => {
-              el.style.transform = `translate(${dx}px, ${dy}px)`;
+          mousePosRafRef.current = requestAnimationFrame(() => {
+              setMousePos({ x: clientX, y: clientY });
           });
-          
-          return;
-      }
-
-      if (isDraggingCanvas) { 
-          const dx = clientX - lastMousePos.x; 
-          const dy = clientY - lastMousePos.y; 
-          setPan(p => ({ x: p.x + dx, y: p.y + dy })); 
-          setLastMousePos({ x: clientX, y: clientY }); 
       }
       
-      if (draggingNodeId && dragNodeRef.current) {
-         const { startX, startY, mouseStartX, mouseStartY, nodeWidth, nodeHeight, element } = dragNodeRef.current;
-         const currentScale = scaleRef.current;
-         let dx = (clientX - mouseStartX) / currentScale;
-         let dy = (clientY - mouseStartY) / currentScale;
-         let proposedX = startX + dx;
-         let proposedY = startY + dy;
-         
-         // Snap Logic
-         const SNAP = SNAP_THRESHOLD / currentScale; 
-         const myL = proposedX; const myC = proposedX + nodeWidth / 2; const myR = proposedX + nodeWidth;
-         const myT = proposedY; const myM = proposedY + nodeHeight / 2; const myB = proposedY + nodeHeight;
-         let snappedX = false; let snappedY = false;
-         
-         Array.from(nodesRef.current.values()).forEach(other => {
-             if (other.id === draggingNodeId) return;
-             const otherBounds = getNodeBounds(other);
-             if (!snappedX) {
-                 if (Math.abs(myL - otherBounds.x) < SNAP) { proposedX = otherBounds.x; snappedX = true; }
-                 else if (Math.abs(myL - otherBounds.r) < SNAP) { proposedX = otherBounds.r; snappedX = true; }
-                 else if (Math.abs(myR - otherBounds.x) < SNAP) { proposedX = otherBounds.x - nodeWidth; snappedX = true; }
-                 else if (Math.abs(myR - otherBounds.r) < SNAP) { proposedX = otherBounds.r - nodeWidth; snappedX = true; }
-                 else if (Math.abs(myC - (otherBounds.x+otherBounds.width/2)) < SNAP) { proposedX = (otherBounds.x+otherBounds.width/2) - nodeWidth/2; snappedX = true; }
-             }
-             if (!snappedY) {
-                 if (Math.abs(myT - otherBounds.y) < SNAP) { proposedY = otherBounds.y; snappedY = true; }
-                 else if (Math.abs(myT - otherBounds.b) < SNAP) { proposedY = otherBounds.b; snappedY = true; }
-                 else if (Math.abs(myB - otherBounds.y) < SNAP) { proposedY = otherBounds.y - nodeHeight; snappedY = true; }
-                 else if (Math.abs(myB - otherBounds.b) < SNAP) { proposedY = otherBounds.b - nodeHeight; snappedY = true; }
-                 else if (Math.abs(myM - (otherBounds.y+otherBounds.height/2)) < SNAP) { proposedY = (otherBounds.y+otherBounds.height/2) - nodeHeight/2; snappedY = true; }
-             }
-         });
-
-         // 使用 transform 直接操作 DOM，不触发 React 重渲染
-         if (element) {
-             element.style.transform = `translate(${proposedX - startX}px, ${proposedY - startY}px)`;
-         }
+      if (selectionRect) { 
+          updateBoxSelection(clientX, clientY);
+          return; 
       }
       
-      if (resizingNodeId && initialSize && resizeStartPos && resizeContextRef.current) {
-          const currentScale = scaleRef.current;
-          const dx = (clientX - resizeStartPos.x) / currentScale; 
-          const dy = (clientY - resizeStartPos.y) / currentScale;
+      // === 节点/组调整大小：实时更新 ===
+      if (resizingNodeId && resizeContextRef.current) {
+          const { startX, startY, initialWidth, initialHeight, element, nodeId } = resizeContextRef.current;
           
-          // 性能优化：直接操作 DOM，不触发 React 重渲染
-          const { element } = resizeContextRef.current;
           if (element) {
-              const newWidth = Math.max(360, initialSize.width + dx);
-              const newHeight = Math.max(240, initialSize.height + dy);
-              element.style.width = `${newWidth}px`;
-              element.style.height = `${newHeight}px`;
-          }
-      }
-  }, [selectionRect, isDraggingCanvas, draggingNodeId, resizingNodeId, initialSize, resizeStartPos, lastMousePos]);
-
-  const handleGlobalMouseUp = useCallback(() => {
-      if (rafRef.current) { cancelAnimationFrame(rafRef.current); rafRef.current = null; }
-      
-      // 处理节点拖动结束 - 从 transform 读取最终位置并更新 state
-      if (draggingNodeId && dragNodeRef.current) {
-          const { element, startX, startY } = dragNodeRef.current;
-          const node = nodesRef.current.get(draggingNodeId);
-          
-          if (element && node) {
-              // 从 transform 中读取最终位置
-              const transform = element.style.transform;
-              const match = transform.match(/translate\(([^,]+)px,\s*([^)]+)px\)/);
+              // 计算新的尺寸（考虑 scale）
+              const dx = (clientX - startX) / scale;
+              const dy = (clientY - startY) / scale;
+              const newWidth = Math.max(200, initialWidth + dx); // 最小宽度 200px
+              const newHeight = Math.max(100, initialHeight + dy); // 最小高度 100px
               
-              if (match) {
-                  const dx = parseFloat(match[1]);
-                  const dy = parseFloat(match[2]);
-                  const finalX = startX + dx;
-                  const finalY = startY + dy;
+              // 🔥 判断是否是组的调整大小
+              if (resizingNodeId.startsWith('group-')) {
+                  // 组的调整大小：按比例缩放组内所有节点
+                  const scaleX = newWidth / initialWidth;
+                  const scaleY = newHeight / initialHeight;
                   
-                  // 碰撞检测
-                  let collisionX = finalX;
-                  let collisionY = finalY;
-                  const nodeWidth = node.width || 420;
-                  const nodeHeight = node.height || getApproxNodeHeight(node);
-                  const myBounds = { x: collisionX, y: collisionY, width: nodeWidth, height: nodeHeight, r: collisionX + nodeWidth, b: collisionY + nodeHeight };
-                  const otherNodes = Array.from(nodesRef.current.values()).filter(n => n.id !== draggingNodeId);
-                  
-                  for (const other of otherNodes) {
-                      const otherBounds = getNodeBounds(other);
-                      const isOverlapping = (
-                          myBounds.x < otherBounds.r && 
-                          myBounds.r > otherBounds.x &&
-                          myBounds.y < otherBounds.b && 
-                          myBounds.b > otherBounds.y
-                      );
-
-                      if (isOverlapping) {
-                           const overlapLeft = myBounds.r - otherBounds.x;
-                           const overlapRight = otherBounds.r - myBounds.x;
-                           const overlapTop = myBounds.b - otherBounds.y;
-                           const overlapBottom = otherBounds.b - myBounds.y;
-                           const minOverlap = Math.min(overlapLeft, overlapRight, overlapTop, overlapBottom);
-
-                           if (minOverlap === overlapLeft) {
-                               collisionX = otherBounds.x - myBounds.width - COLLISION_PADDING;
-                           } else if (minOverlap === overlapRight) {
-                               collisionX = otherBounds.r + COLLISION_PADDING;
-                           } else if (minOverlap === overlapTop) {
-                               collisionY = otherBounds.y - myBounds.height - COLLISION_PADDING;
-                           } else if (minOverlap === overlapBottom) {
-                               collisionY = otherBounds.b + COLLISION_PADDING;
-                           }
-
-                           myBounds.x = collisionX;
-                           myBounds.y = collisionY;
-                           myBounds.r = collisionX + myBounds.width;
-                           myBounds.b = collisionY + myBounds.height;
-                      }
-                  }
-                  
-                  // 🔥 关键修复：禁用 transition，避免闪动
-                  const originalTransition = element.style.transition;
+                  // 更新组的尺寸
+                  element.style.width = `${newWidth}px`;
+                  element.style.height = `${newHeight}px`;
                   element.style.transition = 'none';
                   
-                  // 先直接设置 left/top 到最终位置，然后清除 transform
-                  element.style.left = `${collisionX}px`;
-                  element.style.top = `${collisionY}px`;
-                  element.style.transform = '';
+                  // 🔥 实时缩放组内的节点
+                  const groupId = nodeId; // nodeId 实际存储的是 groupId
+                  const groupNodes = getGroupNodes(groupId);
+                  const group = groups.find(g => g.id === groupId);
                   
-                  // 强制浏览器重绘，确保 transition: none 生效
-                  element.offsetHeight;
-                  
-                  // 恢复 transition（在下一帧）
-                  requestAnimationFrame(() => {
-                      element.style.transition = originalTransition;
-                  });
-                  
-                  // 更新 state 到最终位置
-                  setNodes(prev => {
-                      const newMap = new Map(prev);
-                      const node = newMap.get(draggingNodeId);
-                      if (node) {
-                          newMap.set(draggingNodeId, { ...node, x: collisionX, y: collisionY });
-                      }
-                      return newMap;
-                  });
+                  if (group) {
+                      groupNodes.forEach(node => {
+                          const nodeElement = document.querySelector(`[data-node-id="${node.id}"]`) as HTMLElement;
+                          if (nodeElement) {
+                              // 计算节点相对于组的位置
+                              const relativeX = node.x - group.x;
+                              const relativeY = node.y - group.y;
+                              
+                              // 计算缩放后的新位置
+                              const newX = group.x + relativeX * scaleX;
+                              const newY = group.y + relativeY * scaleY;
+                              
+                              // 计算节点的新尺寸
+                              const nodeWidth = node.width || 420;
+                              const nodeHeight = getApproxNodeHeight(node);
+                              const newNodeWidth = nodeWidth * scaleX;
+                              const newNodeHeight = nodeHeight * scaleY;
+                              
+                              // 使用 CSS 直接更新（性能优化）
+                              nodeElement.style.left = `${newX}px`;
+                              nodeElement.style.top = `${newY}px`;
+                              nodeElement.style.width = `${newNodeWidth}px`;
+                              nodeElement.style.height = `${newNodeHeight}px`;
+                              nodeElement.style.transition = 'none';
+                          }
+                      });
+                  }
+              } else {
+                  // 节点的调整大小：直接修改尺寸
+                  element.style.width = `${newWidth}px`;
+                  element.style.height = `${newHeight}px`;
+                  element.style.transition = 'none';
               }
           }
+          return;
       }
       
-      // 处理 Group 拖动结束 - 从 transform 读取最终位置，更新 state
-      if (dragGroupRef.current) {
-          const { id, startX, startY, mouseStartX, mouseStartY, childNodes, groupElement, childElements } = dragGroupRef.current;
-          const currentScale = scaleRef.current;
-          const currentMousePos = mousePosRef.current;
-          const dx = (currentMousePos.x - mouseStartX) / currentScale;
-          const dy = (currentMousePos.y - mouseStartY) / currentScale;
-          
-          // 禁用 transition，避免闪动
-          if (groupElement) {
-              const originalTransition = groupElement.style.transition;
-              groupElement.style.transition = 'none';
-              groupElement.style.left = `${startX + dx}px`;
-              groupElement.style.top = `${startY + dy}px`;
-              groupElement.style.transform = '';
-              groupElement.offsetHeight; // 强制重绘
-              requestAnimationFrame(() => {
-                  groupElement.style.transition = originalTransition;
-              });
-          }
-          
-          childElements.forEach((el, childId) => {
-              const child = childNodes.find(c => c.id === childId);
-              if (child) {
-                  const originalTransition = el.style.transition;
-                  el.style.transition = 'none';
-                  el.style.left = `${child.startX + dx}px`;
-                  el.style.top = `${child.startY + dy}px`;
-                  el.style.transform = '';
-                  el.offsetHeight; // 强制重绘
-                  requestAnimationFrame(() => {
-                      el.style.transition = originalTransition;
-                  });
-              }
-          });
-          
-          // 更新 Group 位置
-          setGroups(prev => prev.map(g => g.id === id ? { ...g, x: startX + dx, y: startY + dy } : g));
-          
-          // 更新子节点位置
-          if (childNodes.length > 0) {
-              setNodes(prev => {
-                  const newMap = new Map(prev);
-                  childNodes.forEach(child => {
-                      const node = newMap.get(child.id);
-                      if (node) {
-                          newMap.set(child.id, { ...node, x: child.startX + dx, y: child.startY + dy });
-                      }
-                  });
-                  return newMap;
-              });
-          }
+      // === 节点拖拽：useDrag Hook 内部自动处理 ===
+      // 注意：不需要手动调用，Hook 内部已注册全局事件监听器
+      
+      // === Group 拖动：useGroup Hook 内部自动处理 ===
+      // 注意：不需要手动调用，Hook 内部已注册全局事件监听器
+  }, [selectionRect, resizingNodeId, scale, groups, getGroupNodes, getApproxNodeHeight, updateBoxSelection]);
+
+  const handleGlobalMouseUp = useCallback((e: MouseEvent) => {
+      if (rafRef.current) { cancelAnimationFrame(rafRef.current); rafRef.current = null; }
+      
+      // === 节点拖拽结束：useDrag Hook 内部自动处理 ===
+      // 注意：不需要手动调用，Hook 内部已注册全局事件监听器
+      
+      // === Group 拖拽结束：使用 useGroup Hook ===
+      if (isDraggingGroup) {
+          endGroupDrag(e, scale);
       }
       
       // 性能优化：处理 Resize 结束 - 更新 state 并恢复 transition
       if (resizingNodeId && resizeContextRef.current) {
-          const { element } = resizeContextRef.current;
+          const { element, nodeId } = resizeContextRef.current;
           
           if (element) {
               const finalWidth = parseInt(element.style.width) || (initialSize?.width || 420);
               const finalHeight = parseInt(element.style.height) || (initialSize?.height || 360);
               
-              // 更新 state
-              setNodes(prev => {
-                  const newMap = new Map(prev);
-                  const node = newMap.get(resizingNodeId);
-                  if (node) {
-                      newMap.set(resizingNodeId, { ...node, width: finalWidth, height: finalHeight });
+              // 🔥 判断是否是组的调整大小
+              if (resizingNodeId.startsWith('group-')) {
+                  // 组的调整大小：保存组和所有节点的新尺寸
+                  const groupId = nodeId; // nodeId 实际存储的是 groupId
+                  const group = groups.find(g => g.id === groupId);
+                  
+                  if (group && initialSize) {
+                      saveHistory();
+                      
+                      // 计算缩放比例
+                      const scaleX = finalWidth / initialSize.width;
+                      const scaleY = finalHeight / initialSize.height;
+                      
+                      // 更新组的尺寸
+                      useGroupStore.getState().updateGroup(groupId, {
+                          width: finalWidth,
+                          height: finalHeight
+                      });
+                      
+                      // 更新所有节点的位置和尺寸
+                      const groupNodes = getGroupNodes(groupId);
+                      groupNodes.forEach(node => {
+                          const nodeElement = document.querySelector(`[data-node-id="${node.id}"]`) as HTMLElement;
+                          
+                          // 计算节点相对于组的位置
+                          const relativeX = node.x - group.x;
+                          const relativeY = node.y - group.y;
+                          
+                          // 计算缩放后的新位置
+                          const newX = group.x + relativeX * scaleX;
+                          const newY = group.y + relativeY * scaleY;
+                          
+                          // 计算节点的新尺寸
+                          const nodeWidth = node.width || 420;
+                          const nodeHeight = getApproxNodeHeight(node);
+                          const newNodeWidth = nodeWidth * scaleX;
+                          const newNodeHeight = nodeHeight * scaleY;
+                          
+                          // 更新 Store
+                          useNodeStore.getState().updateNode(node.id, {
+                              x: newX,
+                              y: newY,
+                              width: newNodeWidth,
+                              height: newNodeHeight
+                          });
+                          
+                          // 清除内联样式，恢复 transition
+                          if (nodeElement) {
+                              nodeElement.style.transition = 'none';
+                              requestAnimationFrame(() => {
+                                  nodeElement.style.transition = '';
+                              });
+                          }
+                      });
                   }
-                  return newMap;
-              });
-              
-              // 清除内联样式，恢复 transition
-              element.style.transition = 'none';
-              requestAnimationFrame(() => {
-                  element.style.transition = '';
-              });
+                  
+                  // 清除组元素的内联样式
+                  element.style.transition = 'none';
+                  requestAnimationFrame(() => {
+                      element.style.transition = '';
+                  });
+              } else {
+                  // 节点的调整大小：只更新节点尺寸
+                  useNodeStore.getState().updateNodeSize(resizingNodeId, finalWidth, finalHeight);
+                  
+                  // 清除内联样式，恢复 transition
+                  element.style.transition = 'none';
+                  requestAnimationFrame(() => {
+                      element.style.transition = '';
+                  });
+              }
           }
       }
       
-      // 处理连接线拖拽结束 - 如果没有连接到目标，弹出智能菜单
+      // === 处理连接线拖拽结束：使用 useConnection Hook ===
       if (connectionStartRef.current) {
           const startConnection = connectionStartRef.current;
-          const startNode = nodesRef.current.get(startConnection.id);
+          const startNode = nodesRef.current.get(startConnection.id) as AppNode | undefined;
           
           if (startNode) {
               let compatibleTypes: NodeType[] = [];
@@ -1105,13 +1114,12 @@ export const App = () => {
               // 如果有兼容的节点类型，弹出菜单
               if (compatibleTypes.length > 0) {
                   const currentMousePos = mousePosRef.current;
-                  setContextMenu({ 
+                  openContextMenu({ 
                       visible: true, 
                       x: currentMousePos.x, 
                       y: currentMousePos.y, 
                       id: startConnection.id 
-                  });
-                  setContextMenuTarget({ 
+                  }, { 
                       type: 'smart-connect', 
                       sourceNodeId: startConnection.id,
                       portType: startConnection.portType || 'output',
@@ -1120,546 +1128,56 @@ export const App = () => {
               }
           }
           
-          setConnectionStart(null);
+          // 使用 Hook 的 cancelConnection 方法
+          cancelConnection();
       }
       
+      // === 框选结束：使用 useSelection Hook ===
       if (selectionRect) {
-          const currentPan = panRef.current;
-          const currentScale = scaleRef.current;
-          const x = Math.min(selectionRect.startX, selectionRect.currentX); 
-          const y = Math.min(selectionRect.startY, selectionRect.currentY);
-          const w = Math.abs(selectionRect.currentX - selectionRect.startX); 
-          const h = Math.abs(selectionRect.currentY - selectionRect.startY);
-          if (w > 10) {
-              const rect = { x: (x - currentPan.x) / currentScale, y: (y - currentPan.y) / currentScale, w: w / currentScale, h: h / currentScale };
-              const enclosed = Array.from(nodesRef.current.values()).filter(n => { const cx = n.x + (n.width||420)/2; const cy = n.y + 160; return cx>rect.x && cx<rect.x+rect.w && cy>rect.y && cy<rect.y+rect.h; });
-              if (enclosed.length > 0) { saveHistory(); 
-                  const freeNodes = enclosed.filter(n => {
-                      const cx = n.x + (n.width || 420) / 2; const cy = n.y + 160;
-                      return !groupsRef.current.some(g => cx > g.x && cx < g.x + g.width && cy > g.y && cy < g.y + g.height);
-                  });
-                  if (freeNodes.length > 0) {
-                      const fMinX=Math.min(...freeNodes.map(n=>n.x)), fMinY=Math.min(...freeNodes.map(n=>n.y)), fMaxX=Math.max(...freeNodes.map(n=>n.x+(n.width||420))), fMaxY=Math.max(...freeNodes.map(n=>n.y+320));
-                      setGroups(prev => [...prev, { id: `g-${Date.now()}`, title: '新建分组', x: fMinX-32, y: fMinY-32, width: (fMaxX-fMinX)+64, height: (fMaxY-fMinY)+64 }]);
-                  }
-              }
-          }
-          setSelectionRect(null);
+          // 调用 useSelection 的 endBoxSelection 来选择节点
+          // endBoxSelection 内部会调用 expandOrCreateGroup（动态扩展组或创建新组）
+          endBoxSelection(scale, pan);
       }
 
-      if (draggingNodeId || resizingNodeId || dragGroupRef.current) saveHistory();
       
-      // 🔥 关键修复：延迟清除 draggingGroup 和 activeGroupNodeIds
-      // 确保 React 重新渲染时 isGroupDragging 还是 true，transition 不会生效
-      requestAnimationFrame(() => {
-          setDraggingGroup(null);
-          setActiveGroupNodeIds([]);
-      });
+      // 清理状态
+      setResizingNodeId(null); 
+      setInitialSize(null); 
+      setResizeStartPos(null);
       
-      setIsDraggingCanvas(false); setDraggingNodeId(null); setDraggingNodeParentGroupId(null); setResizingGroupId(null); setResizingNodeId(null); setInitialSize(null); setResizeStartPos(null);
-      dragNodeRef.current = null; resizeContextRef.current = null; dragGroupRef.current = null;
-  }, [selectionRect, saveHistory, draggingNodeId, resizingNodeId, initialSize, getCompatibleOutputNodes, getCompatibleInputNodes, getApproxNodeHeight]);
+      // 清理 refs
+      resizeContextRef.current = null;
+  }, [scale, selectionRect, saveHistory, resizingNodeId, initialSize, groups, getGroupNodes, getCompatibleOutputNodes, getCompatibleInputNodes, getApproxNodeHeight, endBoxSelection, pan, cancelConnection]);
 
   useEffect(() => { window.addEventListener('mousemove', handleGlobalMouseMove); window.addEventListener('mouseup', handleGlobalMouseUp); return () => { window.removeEventListener('mousemove', handleGlobalMouseMove); window.removeEventListener('mouseup', handleGlobalMouseUp); }; }, [handleGlobalMouseMove, handleGlobalMouseUp]);
 
-  const handleNodeUpdate = useCallback((id: string, data: any, size?: any, title?: string) => {
-      // 性能优化：使用 Map.get() 代替 Array.find()（O(n) → O(1)，快 100 倍）
-      setNodes(prev => {
-          const newMap = new Map(prev);
-          const node = newMap.get(id);
-          if (node) {
-              const updated = { ...node, data: { ...node.data, ...data }, title: title || node.title };
-              if (size) { if (size.width) updated.width = size.width; if (size.height) updated.height = size.height; }
-              
-              if (data.image) handleAssetGenerated('image', data.image, updated.title);
-              if (data.videoUri) handleAssetGenerated('video', data.videoUri, updated.title);
-              if (data.audioUri) handleAssetGenerated('audio', data.audioUri, updated.title);
+  // === 架构重构：注册 useViewport 的事件监听器 ===
+  useEffect(() => {
+    if (isDraggingCanvas) {
+      window.addEventListener('mousemove', updateCanvasDrag);
+      window.addEventListener('mouseup', endCanvasDrag);
+      // 🔥 修复：添加 mouseleave 事件，防止鼠标移出窗口时状态未清除
+      window.addEventListener('mouseleave', endCanvasDrag);
+      return () => {
+        window.removeEventListener('mousemove', updateCanvasDrag);
+        window.removeEventListener('mouseup', endCanvasDrag);
+        window.removeEventListener('mouseleave', endCanvasDrag);
+      };
+    }
+  }, [isDraggingCanvas, updateCanvasDrag, endCanvasDrag]);
 
-              newMap.set(id, updated);
-          }
-          return newMap;
-      });
-  }, [handleAssetGenerated]);
+  // 注册 wheel 事件监听器（非 passive 模式，允许 preventDefault）
+  useEffect(() => {
+    const canvas = document.getElementById('canvas-container');
+    if (canvas) {
+      canvas.addEventListener('wheel', handleWheel, { passive: false });
+      return () => {
+        canvas.removeEventListener('wheel', handleWheel);
+      };
+    }
+  }, [handleWheel]);
 
-  const handleReplaceFile = (e: React.ChangeEvent<HTMLInputElement>, type: 'image' | 'video') => {
-      const file = e.target.files?.[0];
-      const targetId = replacementTargetRef.current;
-      if (file && targetId) {
-          const reader = new FileReader();
-          reader.onload = (e) => {
-              const result = e.target?.result as string;
-              if (type === 'image') handleNodeUpdate(targetId, { image: result });
-              else handleNodeUpdate(targetId, { videoUri: result });
-          };
-          reader.readAsDataURL(file);
-      }
-      e.target.value = ''; setContextMenu(null); replacementTargetRef.current = null; 
-  };
 
-  const handleNodeAction = useCallback(async (id: string, promptOverride?: string) => {
-      const node = nodesRef.current.get(id); if (!node) return;
-      handleNodeUpdate(id, { error: undefined });
-      setNodes(p => {
-          const newMap = new Map(p);
-          const node = newMap.get(id);
-          if (node) {
-              newMap.set(id, { ...node, status: NodeStatus.WORKING });
-          }
-          return newMap;
-      });
-
-      try {
-          const inputs = node.inputs.map(i => nodesRef.current.get(i)).filter(Boolean) as AppNode[];
-          
-          const upstreamTexts = inputs.map(n => {
-              if (n?.type === NodeType.PROMPT_INPUT) return n.data.prompt;
-              if (n?.type === NodeType.VIDEO_ANALYZER) return n.data.analysis;
-              return null;
-          }).filter(t => t && t.trim().length > 0) as string[];
-
-          let prompt = promptOverride || node.data.prompt || '';
-          if (upstreamTexts.length > 0) {
-              const combinedUpstream = upstreamTexts.join('\n');
-              prompt = prompt ? `${combinedUpstream}\n${prompt}` : combinedUpstream;
-          }
-
-          if (node.type === NodeType.IMAGE_GENERATOR) {
-               const inputImages: string[] = [];
-               inputs.forEach(n => { if (n?.data.image) inputImages.push(n.data.image); });
-
-               const isStoryboard = /分镜|storyboard|sequence|shots|frames|json/i.test(prompt);
-
-               if (isStoryboard) {
-                  try {
-                      const storyboard = await planStoryboard(prompt, upstreamTexts.join('\n'));
-                      if (storyboard.length > 1) {
-                          // ... (storyboard expansion logic preserved) ...
-                          const newNodes: AppNode[] = [];
-                          const newConnections: Connection[] = [];
-                          const COLUMNS = 3;
-                          const gapX = 40; const gapY = 40;
-                          const childWidth = node.width || 420;
-                          const ratio = node.data.aspectRatio || '16:9';
-                          const [rw, rh] = ratio.split(':').map(Number);
-                          const childHeight = (childWidth * rh / rw); 
-                          const startX = node.x + (node.width || 420) + 150;
-                          const startY = node.y; 
-                          const totalRows = Math.ceil(storyboard.length / COLUMNS);
-                          
-                          storyboard.forEach((shotPrompt, index) => {
-                              const col = index % COLUMNS;
-                              const row = Math.floor(index / COLUMNS);
-                              const posX = startX + col * (childWidth + gapX);
-                              const posY = startY + row * (childHeight + gapY);
-                              const newNodeId = `n-${Date.now()}-${index}`;
-                              newNodes.push({
-                                  id: newNodeId, type: NodeType.IMAGE_GENERATOR, x: posX, y: posY, width: childWidth, height: childHeight,
-                                  title: `分镜 ${index + 1}`, status: NodeStatus.WORKING,
-                                  data: { ...node.data, aspectRatio: ratio, prompt: shotPrompt, image: undefined, images: undefined, imageCount: 1 },
-                                  inputs: [node.id] 
-                              });
-                              newConnections.push({ from: node.id, to: newNodeId });
-                          });
-                          
-                          const groupPadding = 30;
-                          const groupWidth = (Math.min(storyboard.length, COLUMNS) * childWidth) + ((Math.min(storyboard.length, COLUMNS) - 1) * gapX) + (groupPadding * 2);
-                          const groupHeight = (totalRows * childHeight) + ((totalRows - 1) * gapY) + (groupPadding * 2);
-
-                          setGroups(prev => [...prev, { id: `g-${Date.now()}`, title: '分镜生成组', x: startX - groupPadding, y: startY - groupPadding, width: groupWidth, height: groupHeight }]);
-                          setNodes(prev => [...prev, ...newNodes]);
-                          setConnections(prev => [...prev, ...newConnections]);
-                          handleNodeUpdate(id, { status: NodeStatus.SUCCESS });
-
-                          newNodes.forEach(async (n) => {
-                               try {
-                                   const res = await generateImageFromText(n.data.prompt!, n.data.model!, inputImages, { aspectRatio: n.data.aspectRatio, resolution: n.data.resolution, count: 1 });
-                                   
-                                   // 性能优化：将 base64 转换为 Blob URL
-                                   const { saveImagesToBlob } = await import('./services/blobStorage');
-                                   const blobUrls = await saveImagesToBlob(res, n.id, 'image');
-                                   
-                                   handleNodeUpdate(n.id, { image: blobUrls[0], images: blobUrls, status: NodeStatus.SUCCESS });
-                               } catch (e: any) {
-                                   handleNodeUpdate(n.id, { error: e.message, status: NodeStatus.ERROR });
-                               }
-                          });
-                          return; 
-                      }
-                  } catch (e) {
-                      console.warn("Storyboard planning failed", e);
-                  }
-               }
-              const res = await generateImageFromText(prompt, node.data.model, inputImages, { aspectRatio: node.data.aspectRatio || '16:9', resolution: node.data.resolution, count: node.data.imageCount });
-              
-              // 性能优化：将 base64 转换为 Blob URL（内存减少 99%）
-              const { saveImagesToBlob } = await import('./services/blobStorage');
-              const blobUrls = await saveImagesToBlob(res, id, 'image');
-              
-              handleNodeUpdate(id, { image: blobUrls[0], images: blobUrls });
-
-          } else if (node.type === NodeType.VIDEO_GENERATOR) {
-              
-              const strategy = await getGenerationStrategy(node, inputs, prompt);
-              
-              const res = await generateVideo(
-                  strategy.finalPrompt,
-                  node.data.model, 
-                  { 
-                      aspectRatio: node.data.aspectRatio || '16:9', 
-                      count: node.data.videoCount || 1, 
-                      generationMode: strategy.generationMode,
-                      resolution: node.data.resolution 
-                  }, 
-                  strategy.inputImageForGeneration, 
-                  strategy.videoInput, 
-                  strategy.referenceImages
-              );
-              
-              if (res.isFallbackImage) {
-                   handleNodeUpdate(id, { 
-                       image: res.uri, 
-                       videoUri: undefined, 
-                       videoMetadata: undefined,
-                       error: "Region restricted: Generated preview image instead.", 
-                       status: NodeStatus.SUCCESS 
-                   });
-              } else {
-                   handleNodeUpdate(id, { videoUri: res.uri, videoMetadata: res.videoMetadata, videoUris: res.uris });
-              }
-
-          } else if (node.type === NodeType.AUDIO_GENERATOR) {
-              const audioUri = await generateAudio(prompt);
-              handleNodeUpdate(id, { audioUri: audioUri });
-
-          } else if (node.type === NodeType.VIDEO_ANALYZER) {
-             const vid = node.data.videoUri || inputs.find(n => n?.data.videoUri)?.data.videoUri;
-             if (!vid) throw new Error("未找到视频输入");
-             let vidData = vid;
-             if (vid.startsWith('http')) vidData = await urlToBase64(vid);
-             const txt = await analyzeVideo(vidData, prompt, node.data.model);
-             handleNodeUpdate(id, { analysis: txt });
-          } else if (node.type === NodeType.IMAGE_EDITOR) {
-             const inputImages: string[] = [];
-             inputs.forEach(n => { if (n?.data.image) inputImages.push(n.data.image); });
-             const img = node.data.image || inputImages[0];
-             const res = await editImageWithText(img, prompt, node.data.model);
-             
-             // 性能优化：将 base64 转换为 Blob URL
-             const { saveImageToBlob } = await import('./services/blobStorage');
-             const blobUrl = await saveImageToBlob(res, id, 'edited');
-             
-             handleNodeUpdate(id, { image: blobUrl });
-          } else if (node.type === NodeType.SCRIPT_NODE) {
-             // 剧本节点：使用 Coze AI 生成剧本
-             const userIdea = promptOverride || prompt;
-             if (!userIdea || userIdea.trim().length === 0) {
-                 throw new Error('请输入您的创意');
-             }
-             
-             console.log('[剧本节点] 开始生成剧本:', { userIdea });
-             
-             // 调用 Coze AI 生成剧本
-             const { generateScript } = await import('./services/cozeService');
-             const scriptData = await generateScript(userIdea, node.data.targetDuration || 60);
-             
-             console.log('[剧本节点] 剧本生成成功:', {
-                 title: scriptData.title,
-                 characterCount: scriptData.characters?.length || 0,
-                 sceneCount: scriptData.scenes?.length || 0,
-                 shotCount: scriptData.shots?.length || 0
-             });
-             
-             // 更新节点数据
-             handleNodeUpdate(id, { scriptData });
-          } else if (node.type === NodeType.MULTI_ANGLE_CAMERA) {
-             // 多角度相机：使用 Gemini API 生成图片
-             const inputImages: string[] = [];
-             inputs.forEach(n => { if (n?.data.image) inputImages.push(n.data.image); });
-             const inputImage = inputImages[0];
-             
-             if (!inputImage) throw new Error("请先连接一张图片作为输入");
-             
-             // 获取相机参数
-             const hAngle = node.data.horizontalAngle || 0;
-             const vAngle = node.data.verticalAngle || 0;
-             const zoom = node.data.cameraZoom || 5;
-             const userPrompt = node.data.userPrompt || '';
-             
-             // 根据角度生成方位描述（中文）
-             const getAzimuthDescCN = (angle: number): string => {
-                 const normalized = ((angle % 360) + 360) % 360;
-                 if (normalized < 22.5 || normalized >= 337.5) return '正面';
-                 if (normalized < 67.5) return '右前方45度';
-                 if (normalized < 112.5) return '右侧面';
-                 if (normalized < 157.5) return '右后方';
-                 if (normalized < 202.5) return '背面';
-                 if (normalized < 247.5) return '左后方';
-                 if (normalized < 292.5) return '左侧面';
-                 return '左前方45度';
-             };
-             
-             // 根据仰角生成描述
-             const getElevationDescCN = (angle: number): string => {
-                 if (angle <= -20) return '仰拍';
-                 if (angle <= 10) return '平视';
-                 if (angle <= 40) return '俯拍';
-                 return '高角度俯拍';
-             };
-             
-             // 根据距离生成描述
-             const getDistanceDescCN = (z: number): string => {
-                 if (z <= 0.5) return '极近特写';
-                 if (z <= 1.5) return '特写';
-                 if (z <= 3) return '近景';
-                 if (z <= 4.5) return '半身';
-                 if (z <= 6) return '中景';
-                 if (z <= 7.5) return '全身';
-                 if (z <= 9) return '远景';
-                 return '全景';
-             };
-             
-             const azimuthDesc = getAzimuthDescCN(hAngle);
-             const elevationDesc = getElevationDescCN(vAngle);
-             const distanceDesc = getDistanceDescCN(zoom);
-             
-             // 英文参数化描述（给 AI 用）- 重新规划距离层次
-             const getDistanceDescEN = (z: number): string => {
-                 if (z <= 0.5) return 'extreme close-up (face only, very tight framing)';
-                 if (z <= 1.5) return 'close-up (head and shoulders)';
-                 if (z <= 3) return 'medium close-up (chest up)';
-                 if (z <= 4.5) return 'medium shot (waist up)';
-                 if (z <= 6) return 'medium full shot (knees up)';
-                 if (z <= 7.5) return 'full shot (entire body visible)';
-                 if (z <= 9) return 'wide shot (body with environment)';
-                 return 'extreme wide shot (small figure in large environment)';
-             };
-             
-             const getElevationDescEN = (angle: number): string => {
-                 if (angle >= 80) return 'directly overhead top-down';
-                 if (angle >= 40) return 'high-angle bird\'s-eye view';
-                 if (angle >= 10) return 'slightly elevated angle';
-                 if (angle >= -10) return 'eye-level';
-                 if (angle >= -30) return 'slightly low angle';
-                 if (angle >= -60) return 'low-angle worm\'s-eye view';
-                 return 'directly underneath looking straight up';
-             };
-             
-             const getAzimuthDescEN = (angle: number): string => {
-                 const normalized = ((angle % 360) + 360) % 360;
-                 if (normalized < 22.5 || normalized >= 337.5) return 'direct front view';
-                 if (normalized < 67.5) return 'front three-quarter view';
-                 if (normalized < 112.5) return 'side profile view';
-                 if (normalized < 157.5) return 'rear three-quarter view';
-                 if (normalized < 202.5) return 'direct back view';
-                 if (normalized < 247.5) return 'rear three-quarter view';
-                 if (normalized < 292.5) return 'side profile view';
-                 return 'front three-quarter view';
-             };
-             
-             // 构建提示词 - 生成九宫格布局
-             const cameraAngleDesc = `${distanceDesc}，${azimuthDesc}，${elevationDesc}`;
-             const baseDistanceEN = getDistanceDescEN(zoom);
-             const baseElevationEN = getElevationDescEN(vAngle);
-             const baseAzimuthEN = getAzimuthDescEN(hAngle);
-             
-             // 生成 3x3 网格的相机位置（在用户选择的角度周围做小范围变化）
-             const generateCameraGrid = (centerH: number, centerV: number, centerZ: number) => {
-                 const positions = [];
-                 // 水平偏移：-20°, 0°, +20°（左、中、右）
-                 const hOffsets = [-20, 0, 20];
-                 // 垂直偏移：+15°, 0°, -15°（上、中、下）
-                 const vOffsets = [15, 0, -15];
-                 // 距离偏移：-1, 0, +1（近、中、远）- 调小偏移，因为层次更细了
-                 const zOffsets = [-1, 0, 1];
-                 
-                 for (let row = 0; row < 3; row++) {
-                     for (let col = 0; col < 3; col++) {
-                         const h = ((centerH + hOffsets[col]) % 360 + 360) % 360;
-                         const v = Math.max(-90, Math.min(90, centerV + vOffsets[row]));
-                         const z = Math.max(0, Math.min(10, centerZ + zOffsets[col]));
-                         
-                         const hDescEN = getAzimuthDescEN(h);
-                         const vDescEN = getElevationDescEN(v);
-                         const zDescEN = getDistanceDescEN(z);
-                         
-                         positions.push(`Panel ${row * 3 + col + 1}: ${zDescEN}, ${hDescEN}, ${vDescEN}`);
-                     }
-                 }
-                 return positions;
-             };
-             
-             const cameraPositions = generateCameraGrid(hAngle, vAngle, zoom);
-             
-             // Gemini 提示词 - 强调单张九宫格图片 + 明确主视角
-             let geminiPrompt = `Create ONE SINGLE IMAGE in 21:9 aspect ratio containing a 3×3 grid layout (9 panels arranged in 3 rows and 3 columns).
-
-**CRITICAL - OUTPUT FORMAT:**
-Generate ONE image that looks like this:
-┌─────┬─────┬─────┐
-│  1  │  2  │  3  │  (top row)
-├─────┼─────┼─────┤
-│  4  │  5  │  6  │  (middle row)
-├─────┼─────┼─────┤
-│  7  │  8  │  9  │  (bottom row)
-└─────┴─────┴─────┘
-
-NOT 9 separate images. ONE image with 9 panels inside.
-
-**REFERENCE IMAGE USAGE:**
-The reference image shows a character. Extract and preserve:
-- Character appearance: face, hair, clothing, body type
-- Art style: illustration style, rendering technique, line work, shading
-- Color palette: exact colors, saturation, tone
-- Lighting style: light direction, contrast, mood
-- Background style: environment design, detail level
-- Overall aesthetic: DO NOT change the visual style
-
-DO NOT copy the viewing angle from the reference image.
-
-**CRITICAL - STYLE CONSISTENCY:**
-All 9 panels MUST match the reference image's visual style EXACTLY:
-✅ Same art style (realistic/anime/cartoon/painting etc.)
-✅ Same rendering technique (cel-shaded/painterly/photorealistic etc.)
-✅ Same color grading and palette
-✅ Same lighting mood and atmosphere
-✅ Same level of detail and texture quality
-✅ Same background aesthetic
-
-❌ Do NOT change art style between panels
-❌ Do NOT add different filters or effects
-❌ Do NOT alter color grading or saturation
-❌ Do NOT change rendering quality or technique
-
-**TARGET VIEWING ANGLE (This is what you MUST render):**
-Primary angle: **${baseAzimuthEN}**
-Distance: **${baseDistanceEN}**
-Height: **${baseElevationEN}**
-
-ALL 9 panels must be rendered from angles CLOSE TO "${baseAzimuthEN}".
-
-**SPECIFIC INSTRUCTION FOR "${baseAzimuthEN}":**
-${baseAzimuthEN === 'side profile view' ? `
-- Show the character from the SIDE (90° from front)
-- You should see the character's profile (side of face)
-- NOT from the front, NOT from three-quarter view
-- Pure side view as the base angle
-` : baseAzimuthEN === 'direct back view' ? `
-- Show the character from BEHIND (180° from front)
-- You should see the back of the head and back of body
-- NOT from the front, NOT from three-quarter view
-` : baseAzimuthEN === 'front three-quarter view' ? `
-- Show the character from 45° angle (between front and side)
-- You should see most of the face but also some side
-` : baseAzimuthEN === 'rear three-quarter view' ? `
-- Show the character from 135° angle (between side and back)
-- You should see mostly the back but also some side of face
-` : `
-- Show the character from: ${baseAzimuthEN}
-`}
-
-**9 PANEL CONFIGURATIONS (small variations around ${baseAzimuthEN}):**
-${cameraPositions.join('\n')}
-
-**RULES:**
-✅ Output ONE single 21:9 image with 9 panels inside
-✅ Panel 5 (center) = exact target: ${baseDistanceEN}, ${baseAzimuthEN}, ${baseElevationEN}
-✅ All panels show angles NEAR ${baseAzimuthEN} (±20° variation)
-✅ Character appearance identical in all panels
-✅ Art style and visual aesthetic IDENTICAL in all panels (same as reference)
-✅ Color palette and grading IDENTICAL in all panels
-✅ Rendering technique IDENTICAL in all panels
-✅ Thin dividing lines between panels
-
-❌ Do NOT generate 9 separate images
-❌ Do NOT use the reference image's viewing angle
-❌ Do NOT show front view if target is side view
-❌ Do NOT change art style, colors, or rendering between panels
-❌ Do NOT apply different filters or effects to different panels`;
-             
-             if (userPrompt) {
-                 geminiPrompt += `\n\n**【额外风格要求】：**\n${userPrompt}`;
-             }
-             
-             console.log('[MultiAngleCamera] 使用 Gemini API 生成九宫格:', {
-                 angle: cameraAngleDesc,
-                 hasInputImage: !!inputImage,
-                 cameraPositions,
-                 prompt: geminiPrompt
-             });
-             
-             // 保存生成的提示词
-             handleNodeUpdate(id, { cameraPrompt: geminiPrompt });
-             
-             try {
-                 // 使用 Gemini 生成九宫格图片
-                 // 尝试使用 Imagen 3，如果失败则使用 Gemini Flash Image
-                 let res: string[];
-                 try {
-                     res = await generateImageFromText(
-                         geminiPrompt,
-                         'imagen-3.0-generate-002',  // 先尝试 Imagen 3
-                         [inputImage],
-                         { aspectRatio: '21:9', count: 1 }
-                     );
-                     console.log('[MultiAngleCamera] Imagen 3 生成成功');
-                 } catch (imagenError) {
-                     console.warn('[MultiAngleCamera] Imagen 3 失败，尝试 Gemini Flash Image:', imagenError);
-                     res = await generateImageFromText(
-                         geminiPrompt,
-                         'gemini-2.5-flash-image',
-                         [inputImage],
-                         { aspectRatio: '21:9', count: 1 }
-                     );
-                     console.log('[MultiAngleCamera] Gemini Flash Image 生成成功');
-                 }
-                 
-                 console.log('[MultiAngleCamera] 生成成功:', res.length, '张图片');
-                 
-                 // 性能优化：将 base64 转换为 Blob URL（内存减少 99%）
-                 const { saveImagesToBlob } = await import('./services/blobStorage');
-                 const blobUrls = await saveImagesToBlob(res, id, 'grid');
-                 
-                 console.log('[MultiAngleCamera] 已转换为 Blob URL:', blobUrls.length, '个');
-                 
-                 // 更新节点数据 - 只存储 Blob URL（每个只有几十字节）
-                 handleNodeUpdate(id, { 
-                     gridImages: blobUrls,  // Blob URL 数组（内存占用减少 99%）
-                     image: blobUrls[0]  // 输出九宫格图片给下游节点
-                 });
-                 
-                 console.log('[MultiAngleCamera] 节点数据已更新（Blob URL）');
-             } catch (geminiError: any) {
-                 console.error('[MultiAngleCamera] Gemini API 失败:', geminiError);
-                 
-                 // 提供更友好的错误信息
-                 let errorMessage = geminiError.message || '图片生成失败';
-                 if (errorMessage.includes('quota') || errorMessage.includes('429')) {
-                     errorMessage = 'API 配额已用完，请稍后再试或升级到付费计划';
-                 }
-                 
-                 throw new Error(errorMessage);
-             }
-          }
-          setNodes(p => {
-              const newMap = new Map(p);
-              const node = newMap.get(id);
-              if (node) {
-                  newMap.set(id, { ...node, status: NodeStatus.SUCCESS });
-              }
-              return newMap;
-          });
-      } catch (e: any) {
-          handleNodeUpdate(id, { error: e.message });
-          setNodes(p => {
-              const newMap = new Map(p);
-              const node = newMap.get(id);
-              if (node) {
-                  newMap.set(id, { ...node, status: NodeStatus.ERROR });
-              }
-              return newMap;
-          });
-      }
-  }, [handleNodeUpdate]);
 
   
   const saveCurrentAsWorkflow = () => {
@@ -1668,7 +1186,7 @@ ${cameraPositions.join('\n')}
       const thumbnailNode = nodesArray.find(n => n.data.image);
       const thumbnail = thumbnailNode?.data.image || '';
       const newWf: Workflow = { id: `wf-${Date.now()}`, title: `工作流 ${new Date().toLocaleDateString()}`, thumbnail, nodes: JSON.parse(JSON.stringify(nodesArray)), connections: JSON.parse(JSON.stringify(connections)), groups: JSON.parse(JSON.stringify(groups)) };
-      setWorkflows(prev => [newWf, ...prev]);
+      addWorkflow(newWf);
   };
   
   const saveGroupAsWorkflow = (groupId: string) => {
@@ -1680,26 +1198,20 @@ ${cameraPositions.join('\n')}
       const thumbNode = nodesInGroup.find(n => n.data.image);
       const thumbnail = thumbNode ? thumbNode.data.image : '';
       const newWf: Workflow = { id: `wf-${Date.now()}`, title: group.title || '未命名工作流', thumbnail: thumbnail || '', nodes: JSON.parse(JSON.stringify(nodesInGroup)), connections: JSON.parse(JSON.stringify(connectionsInGroup)), groups: [JSON.parse(JSON.stringify(group))] };
-      setWorkflows(prev => [newWf, ...prev]);
+      addWorkflow(newWf);
   };
 
   /**
    * 从剧本节点生成完整工作流
    */
   const createWorkflowFromScript = useCallback((scriptNodeId: string) => {
-      const scriptNode = nodesRef.current.get(scriptNodeId);
+      const scriptNode = nodesRef.current.get(scriptNodeId) as AppNode | undefined;
       if (!scriptNode || !scriptNode.data.scriptData) {
           console.error('[生成工作流] 剧本节点不存在或没有剧本数据');
           return;
       }
       
       const scriptData = scriptNode.data.scriptData;
-      console.log('[生成工作流] 开始生成...', {
-          characters: scriptData.characters.length,
-          scenes: scriptData.scenes.length,
-          shots: scriptData.shots.length
-      });
-      
       saveHistory(); // 保存历史记录
       
       const newNodes: AppNode[] = [];
@@ -1910,19 +1422,13 @@ ${cameraPositions.join('\n')}
           });
       }
       
-      // === 5. 更新状态 ===
-      setNodes(prev => {
-          const newMap = new Map(prev);
-          newNodes.forEach(node => newMap.set(node.id, node));
-          return newMap;
+      // === 5. 使用 Store 更新状态 ===
+      useNodeStore.getState().addNodes(newNodes);
+      newConnections.forEach(conn => {
+          useConnectionStore.getState().addConnection(conn);
       });
-      setConnections(prev => [...prev, ...newConnections]);
-      setGroups(prev => [...prev, ...newGroups]);
-      
-      console.log('[生成工作流] 完成！', {
-          newNodesCount: newNodes.length,
-          newConnectionsCount: newConnections.length,
-          groupsCount: newGroups.length
+      newGroups.forEach(group => {
+          useGroupStore.getState().addGroup(group);
       });
       
       // 提示用户
@@ -1933,70 +1439,68 @@ ${cameraPositions.join('\n')}
       const wf = workflows.find(w => w.id === id);
       if (wf) { 
           saveHistory(); 
-          // 性能优化：将数组转换为 Map
+          // === 使用 Store 加载工作流 ===
           const nodesMap = new Map(wf.nodes.map(n => [n.id, n]));
-          setNodes(nodesMap);
-          setConnections(JSON.parse(JSON.stringify(wf.connections))); 
-          setGroups(JSON.parse(JSON.stringify(wf.groups))); 
-          setSelectedWorkflowId(id); 
+          useNodeStore.getState().setNodes(nodesMap);
+          useConnectionStore.getState().setConnections(JSON.parse(JSON.stringify(wf.connections)));
+          useGroupStore.getState().setGroups(JSON.parse(JSON.stringify(wf.groups)));
+          selectWorkflow(id); // 使用 Store 的方法
       }
   };
 
-  const deleteWorkflow = (id: string) => { setWorkflows(prev => prev.filter(w => w.id !== id)); if (selectedWorkflowId === id) setSelectedWorkflowId(null); };
-  const renameWorkflow = (id: string, newTitle: string) => { setWorkflows(prev => prev.map(w => w.id === id ? { ...w, title: newTitle } : w)); };
+  const deleteWorkflowFunc = (id: string) => { 
+    deleteWorkflow(id); // 使用 Store 的方法（会自动清空选择）
+  };
+  const renameWorkflow = (id: string, newTitle: string) => { 
+    updateWorkflow(id, { title: newTitle }); // 使用 Store 的方法
+  };
 
   // Keyboard Shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
         const target = e.target as HTMLElement;
         if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) return;
-        // 性能优化：使用 Array.from(nodesRef.current.values()) 代替数组方法
-        if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'a') { e.preventDefault(); setSelectedNodeIds(Array.from(nodesRef.current.values()).map(n => n.id)); return; }
+        
+        // === 使用 useSelection Hook 的 selectAll ===
+        if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'a') { e.preventDefault(); selectAll(); return; }
+        
         if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); undo(); return; }
-        if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'c') { const lastSelected = selectedNodeIds[selectedNodeIds.length - 1]; if (lastSelected) { const nodeToCopy = nodesRef.current.get(lastSelected); if (nodeToCopy) { e.preventDefault(); setClipboard(JSON.parse(JSON.stringify(nodeToCopy))); } } return; }
-        if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'v') { if (clipboard) { e.preventDefault(); saveHistory(); const newNode: AppNode = { ...clipboard, id: `n-${Date.now()}-${Math.floor(Math.random()*1000)}`, x: clipboard.x + 50, y: clipboard.y + 50, status: NodeStatus.IDLE, inputs: [] }; setNodes(prev => new Map(prev).set(newNode.id, newNode)); setSelectedNodeIds([newNode.id]); } return; }
+        if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'c') { const lastSelected = selectedNodeIds[selectedNodeIds.length - 1]; if (lastSelected) { const nodeToCopy = nodesRef.current.get(lastSelected) as AppNode | undefined; if (nodeToCopy) { e.preventDefault(); setClipboard(JSON.parse(JSON.stringify(nodeToCopy))); } } return; }
+        if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'v') { 
+            if (clipboard) { 
+                e.preventDefault(); 
+                saveHistory(); 
+                const newNode: AppNode = { 
+                    ...clipboard, 
+                    id: `n-${Date.now()}-${Math.floor(Math.random()*1000)}`, 
+                    x: clipboard.x + 50, 
+                    y: clipboard.y + 50, 
+                    status: NodeStatus.IDLE, 
+                    inputs: [] 
+                }; 
+                // === 使用 Store 添加节点 ===
+                useNodeStore.getState().addNode(newNode); 
+                selectNode(newNode.id, false); 
+            } 
+            return; 
+        }
+        // === 使用 useSelection Hook 的 deleteSelected ===
         if (e.key === 'Delete' || e.key === 'Backspace') { 
             if (selectedGroupId) { 
                 e.preventDefault();
-                saveHistory(); 
                 
-                // 找到组
-                const group = groupsRef.current.find(g => g.id === selectedGroupId);
-                if (group) {
-                    // 找到组内的所有节点
-                    // 性能优化：使用 Array.from(nodesRef.current.values()) 代替 nodesRef.current.filter()
-                    const nodesInGroup = Array.from(nodesRef.current.values()).filter(n => { 
-                        const w = n.width || 420; 
-                        const h = getApproxNodeHeight(n); 
-                        const cx = n.x + w/2; 
-                        const cy = n.y + h/2; 
-                        return cx > group.x && cx < group.x + group.width && cy > group.y && cy < group.y + group.height; 
-                    });
-                    
-                    const nodeIdsToDelete = nodesInGroup.map(n => n.id);
-                    
-                    console.log('[批量删除] 删除组及其内部节点:', {
-                        groupId: selectedGroupId,
-                        groupTitle: group.title,
-                        nodeCount: nodeIdsToDelete.length,
-                        nodeIds: nodeIdsToDelete
-                    });
-                    
-                    // 删除节点和相关连接
-                    if (nodeIdsToDelete.length > 0) {
-                        deleteNodes(nodeIdsToDelete);
-                    }
-                    
-                    // 删除组
-                    setGroups(prev => prev.filter(g => g.id !== selectedGroupId)); 
-                    setSelectedGroupId(null); 
-                }
+                // === 使用 Hook 的 deleteGroupWithNodes 方法 ===
+                deleteGroupWithNodes(selectedGroupId, deleteNodesCallback);
+                clearSelection();
+                selectGroup(null);
                 
                 return; 
             } 
             
+            // 使用 useSelection 的 deleteSelected（内部会调用 deleteNodes 并清空选择）
             if (selectedNodeIds.length > 0) { 
-                deleteNodes(selectedNodeIds); 
+                e.preventDefault();
+                deleteSelected(); 
             } 
         }
     };
@@ -2004,7 +1508,7 @@ ${cameraPositions.join('\n')}
     const handleKeyUpSpace = (e: KeyboardEvent) => { if (e.code === 'Space') { document.body.classList.remove('cursor-grab-override'); } };
     window.addEventListener('keydown', handleKeyDown); window.addEventListener('keydown', handleKeyDownSpace); window.addEventListener('keyup', handleKeyUpSpace);
     return () => { window.removeEventListener('keydown', handleKeyDown); window.removeEventListener('keydown', handleKeyDownSpace); window.removeEventListener('keyup', handleKeyUpSpace); };
-  }, [selectedWorkflowId, selectedNodeIds, selectedGroupId, deleteNodes, undo, saveHistory, clipboard]);
+  }, [selectedWorkflowId, selectedNodeIds, selectedGroupId, deleteNodesCallback, deleteSelected, clearSelection, undo, saveHistory, clipboard, selectNode, selectAll]);
 
   const handleCanvasDragOver = (e: React.DragEvent) => { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; };
   const handleCanvasDrop = (e: React.DragEvent) => {
@@ -2029,7 +1533,14 @@ ${cameraPositions.join('\n')}
               newNodes.forEach((n, i) => { const original = wf.nodes[i]; n.inputs = original.inputs.map(oldId => idMap.get(oldId)).filter(Boolean) as string[]; });
               const newConnections = wf.connections.map(c => ({ from: idMap.get(c.from)!, to: idMap.get(c.to)! })).filter(c => c.from && c.to);
               const newGroups = (wf.groups || []).map(g => ({ ...g, id: `g-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`, x: g.x + offsetX, y: g.y + offsetY }));
-              setNodes(prev => [...prev, ...newNodes]); setConnections(prev => [...prev, ...newConnections]); setGroups(prev => [...prev, ...newGroups]);
+              // === 使用 Store 批量添加节点、连接和分组 ===
+              useNodeStore.getState().addNodes(newNodes);
+              newConnections.forEach(conn => {
+                  useConnectionStore.getState().addConnection(conn);
+              });
+              newGroups.forEach(group => {
+                  useGroupStore.getState().addGroup(group);
+              });
           }
           return;
       }
@@ -2037,6 +1548,69 @@ ${cameraPositions.join('\n')}
           try {
               const asset = JSON.parse(assetData);
               if (asset && asset.type) {
+                  // 🔥 处理九宫格图片拖放
+                  if (asset.type === 'grid-splitter-image') {
+                      console.log('[App] 处理九宫格图片拖放:', asset);
+                      
+                      // 从原始图片重新切割高质量版本
+                      const img = new Image();
+                      img.crossOrigin = 'anonymous';
+                      img.onload = () => {
+                          const canvas = document.createElement('canvas');
+                          const ctx = canvas.getContext('2d');
+                          if (!ctx) return;
+
+                          // 高质量切割设置
+                          ctx.imageSmoothingEnabled = true;
+                          ctx.imageSmoothingQuality = 'high';
+
+                          const cellWidth = img.width / 3;
+                          const cellHeight = img.height / 3;
+                          canvas.width = Math.round(cellWidth);
+                          canvas.height = Math.round(cellHeight);
+
+                          // 计算选中格子的位置
+                          const col = asset.selectedIndex % 3;
+                          const row = Math.floor(asset.selectedIndex / 3);
+
+                          // 切割选中的格子
+                          ctx.drawImage(
+                              img,
+                              col * cellWidth,
+                              row * cellHeight,
+                              cellWidth,
+                              cellHeight,
+                              0,
+                              0,
+                              canvas.width,
+                              canvas.height
+                          );
+
+                          // 🔥 使用 PNG 格式保证最高质量
+                          const highQualityImage = canvas.toDataURL('image/png');
+
+                          // 创建图片节点
+                          addNode(NodeType.IMAGE_GENERATOR, dropX - 210, dropY - 180, { 
+                              image: highQualityImage, 
+                              prompt: `九宫格-${asset.selectedIndex + 1}`,
+                              status: NodeStatus.SUCCESS
+                          });
+
+                          console.log('[App] 创建高质量图片节点');
+                      };
+                      img.onerror = () => {
+                          console.error('[App] 图片加载失败，使用切割后的图片');
+                          // 降级方案：使用切割后的图片
+                          addNode(NodeType.IMAGE_GENERATOR, dropX - 210, dropY - 180, { 
+                              image: asset.croppedImage, 
+                              prompt: `九宫格-${asset.selectedIndex + 1}`,
+                              status: NodeStatus.SUCCESS
+                          });
+                      };
+                      img.src = asset.originalImage;
+                      return;
+                  }
+                  // 原有的资产拖放逻辑
                   if (asset.type === 'image') addNode(NodeType.IMAGE_GENERATOR, dropX - 210, dropY - 180, { image: asset.src, prompt: asset.title });
                   else if (asset.type === 'video') addNode(NodeType.VIDEO_GENERATOR, dropX - 210, dropY - 180, { videoUri: asset.src });
               }
@@ -2044,7 +1618,7 @@ ${cameraPositions.join('\n')}
           } catch (err) { console.error("Drop failed", err); }
       }
       
-      // Updated Multi-File Logic (9-Grid Support)
+      // Updated Multi-File Logic (9-Grid Support + 零拷贝优化)
       if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
           const files = Array.from(e.dataTransfer.files) as File[];
           const validFiles = files.filter(f => f.type.startsWith('image/') || f.type.startsWith('video/'));
@@ -2065,16 +1639,12 @@ ${cameraPositions.join('\n')}
                   const xPos = startX + (col * (BASE_WIDTH + GAP));
                   const yPos = startY + (row * BASE_HEIGHT);
 
-                  const reader = new FileReader();
-                  reader.onload = (event) => {
-                      const res = event.target?.result as string;
-                      if (file.type.startsWith('image/')) {
-                          addNode(NodeType.IMAGE_GENERATOR, xPos, yPos, { image: res, prompt: file.name, status: NodeStatus.SUCCESS });
-                      } else if (file.type.startsWith('video/')) {
-                          addNode(NodeType.VIDEO_GENERATOR, xPos, yPos, { videoUri: res, prompt: file.name, status: NodeStatus.SUCCESS });
-                      }
-                  };
-                  reader.readAsDataURL(file);
+                  // 🔥 零拷贝优化：使用 Hook 的新方法（不读取文件内容）
+                  if (file.type.startsWith('image/')) {
+                      handleImageFile(file, { x: xPos, y: yPos });
+                  } else if (file.type.startsWith('video/')) {
+                      handleVideoFile(file, { x: xPos, y: yPos });
+                  }
               });
           }
       }
@@ -2090,16 +1660,16 @@ ${cameraPositions.join('\n')}
   return (
     <div className="w-screen h-screen overflow-hidden bg-[#0a0a0c]">
       <div 
+          id="canvas-container"
           className={`w-full h-full overflow-hidden text-slate-200 selection:bg-cyan-500/30 ${isDraggingCanvas ? 'cursor-grabbing' : 'cursor-default'}`}
-          onMouseDown={handleCanvasMouseDown} onWheel={handleWheel} 
+          onMouseDown={handleCanvasMouseDown}
           onDoubleClick={(e) => { 
               // 在画布空白处双击时弹出菜单
               e.preventDefault(); 
               e.stopPropagation();
-              setContextMenu({ visible: true, x: e.clientX, y: e.clientY, id: '' }); 
-              setContextMenuTarget({ type: 'create' }); 
+              openContextMenu({ visible: true, x: e.clientX, y: e.clientY, id: '' }, { type: 'create' }); 
           }}
-          onContextMenu={(e) => { e.preventDefault(); if(e.target === e.currentTarget) setContextMenu(null); }}
+          onContextMenu={(e) => { e.preventDefault(); if(e.target === e.currentTarget) closeContextMenu(); }}
           onDragOver={handleCanvasDragOver} onDrop={handleCanvasDrop}
       >
           <div className="absolute inset-0 noise-bg" />
@@ -2108,83 +1678,125 @@ ${cameraPositions.join('\n')}
           <input type="file" ref={replaceVideoInputRef} className="hidden" accept="video/*" onChange={(e) => handleReplaceFile(e, 'video')} />
           <input type="file" ref={replaceImageInputRef} className="hidden" accept="image/*" onChange={(e) => handleReplaceFile(e, 'image')} />
 
+          {/* Group Toolbars - 使用 fixed 定位，不受画布变换影响 */}
+          {selectedGroupId && groups.find(g => g.id === selectedGroupId) && (
+              <GroupToolbar
+                  groupId={selectedGroupId}
+                  groupX={groups.find(g => g.id === selectedGroupId)!.x}
+                  groupY={groups.find(g => g.id === selectedGroupId)!.y}
+                  groupWidth={groups.find(g => g.id === selectedGroupId)!.width}
+                  scale={scale}
+                  panX={pan.x}
+                  panY={pan.y}
+                  onAlignLeft={alignLeft}
+                  onAlignCenterH={alignCenterH}
+                  onAlignRight={alignRight}
+                  onAlignTop={alignTop}
+                  onAlignCenterV={alignCenterV}
+                  onAlignBottom={alignBottom}
+                  onDistributeH={distributeH}
+                  onDistributeV={distributeV}
+                  onArrangeTopology={arrangeTopology}
+              />
+          )}
+
           <div style={{ transform: `translate(${pan.x}px, ${pan.y}px) scale(${scale})`, width: '100%', height: '100%', transformOrigin: '0 0' }} className="w-full h-full">
               {/* Groups Layer */}
-              {groups.map(g => (
+              {groups.map(g => {
+                  // 🔥 判断当前组是否正在被拖动
+                  const isThisGroupDragging = isDraggingGroup && selectedGroupId === g.id;
+                  
+                  return (
                   <div 
                       key={g.id} 
+                      id={`group-${g.id}`}
                       data-group-id={g.id}
-                      className={`absolute rounded-[32px] border ${selectedGroupId === g.id ? 'border-cyan-500/30 bg-cyan-500/5' : 'border-white/10 bg-white/5'}`} 
+                      className={`absolute rounded-[32px] border group/group ${
+                          selectedGroupId === g.id 
+                              ? 'border-cyan-500/30 bg-cyan-500/5 shadow-[0_0_40px_rgba(34,211,238,0.3)]' 
+                              : 'border-white/10 bg-white/5'
+                      }`} 
                       style={{ 
                           left: g.x, 
                           top: g.y, 
                           width: g.width, 
                           height: g.height,
-                          // 🔥 关键修复：拖动时禁用 transition，否则启用
-                          transition: (draggingGroup?.id === g.id || draggingNodeParentGroupId === g.id) ? 'none' : 'all 0.3s cubic-bezier(0.32, 0.72, 0, 1)'
+                          // 🔥 修复跳跃和回弹：完全移除 transition
+                          // transition: isThisGroupDragging ? 'none' : 'all 0.3s cubic-bezier(0.32, 0.72, 0, 1)'
                       }} 
                       onMouseDown={(e) => { 
-                          e.stopPropagation(); 
-                          setSelectedGroupId(g.id); 
-                          
-                          const childNodes = Array.from(nodes.values()).filter(n => { 
-                              const b = getNodeBounds(n); 
-                              const cx = b.x + b.width/2; 
-                              const cy = b.y + b.height/2; 
-                              return cx>g.x && cx<g.x+g.width && cy>g.y && cy<g.y+g.height; 
-                          }).map(n=>({id:n.id, startX:n.x, startY:n.y}));
-                          
-                          console.log('🔥 Group onMouseDown:', g.id);
-                          console.log('   - childNodes:', childNodes);
-                          
-                          // 缓存 Group 和子节点的 DOM 元素
-                          const groupElement = document.querySelector(`[data-group-id="${g.id}"]`) as HTMLElement;
-                          const childElements = new Map<string, HTMLElement>();
-                          childNodes.forEach(child => {
-                              const el = document.querySelector(`[data-node-id="${child.id}"]`) as HTMLElement;
-                              if (el) childElements.set(child.id, el);
-                          });
-                          
-                          dragGroupRef.current = { 
-                              id: g.id, 
-                              startX: g.x, 
-                              startY: g.y, 
-                              mouseStartX: e.clientX, 
-                              mouseStartY: e.clientY, 
-                              childNodes,
-                              groupElement,
-                              childElements
-                          };
-                          
-                          setActiveGroupNodeIds(childNodes.map(c => c.id)); 
-                          setDraggingGroup({ id: g.id }); 
+                          e.stopPropagation();
+                          selectGroup(g.id);  // ✅ 选中 Group
+                          startGroupDrag(e, g.id, g);
                       }} 
                       onDoubleClick={(e) => e.stopPropagation()}
-                      onContextMenu={e => { e.stopPropagation(); setContextMenu({visible:true, x:e.clientX, y:e.clientY, id:g.id}); setContextMenuTarget({type:'group', id:g.id}); }}
+                      onContextMenu={e => { 
+                          e.stopPropagation(); 
+                          openContextMenu({visible:true, x:e.clientX, y:e.clientY, id:g.id}, {type:'group', id:g.id}); 
+                      }}
                   >
                       <div className="absolute -top-8 left-4 text-xs font-bold text-white/40 uppercase tracking-widest">{g.title}</div>
+                      
+                      {/* 🔥 新增：组的调整大小交互点（右下角） */}
+                      <div 
+                          className="absolute -bottom-3 -right-3 w-6 h-6 flex items-center justify-center cursor-nwse-resize text-slate-500 hover:text-white transition-colors opacity-0 group-hover/group:opacity-100 z-50" 
+                          onMouseDown={(e) => {
+                              e.stopPropagation();
+                              
+                              // 保存初始状态
+                              const groupElement = document.querySelector(`[data-group-id="${g.id}"]`) as HTMLElement;
+                              if (groupElement) {
+                                  resizeContextRef.current = {
+                                      nodeId: g.id, // 复用 nodeId 字段存储 groupId
+                                      initialWidth: g.width,
+                                      initialHeight: g.height,
+                                      startX: e.clientX,
+                                      startY: e.clientY,
+                                      parentGroupId: null,
+                                      siblingNodeIds: [],
+                                      element: groupElement
+                                  };
+                              }
+                              
+                              setResizingNodeId(`group-${g.id}`); // 使用特殊前缀标识这是组
+                              setInitialSize({ width: g.width, height: g.height });
+                              setResizeStartPos({ x: e.clientX, y: e.clientY });
+                          }}
+                      >
+                          <div className="w-1.5 h-1.5 rounded-full bg-current" />
+                      </div>
                   </div>
-              ))}
+                  );
+              })}
 
               {/* Connections Layer */}
               <svg className="absolute top-0 left-0 w-full h-full overflow-visible pointer-events-none z-0" xmlns="http://www.w3.org/2000/svg" style={{ overflow: 'visible', pointerEvents: 'none', zIndex: 0 }}>
                   {connections.map((conn) => {
                       // 性能优化：使用 Map.get() 代替 Array.find()（O(n) → O(1)，快 100 倍）
-                      const f = nodes.get(conn.from), t = nodes.get(conn.to);
+                      const f = nodes.get(conn.from) as AppNode | undefined;
+                      const t = nodes.get(conn.to) as AppNode | undefined;
                       if (!f || !t) return null;
                       const fHeight = f.height || getApproxNodeHeight(f); const tHeight = t.height || getApproxNodeHeight(t);
                       const fWidth = f.width || 420; const tWidth = t.width || 420;
                       
-                      // 端口精确位置计算：
+                      // 🔥 方案 C：读取 CSS 变量获取拖拽偏移量（连线实时跟随）
+                      const fElement = document.querySelector(`[data-node-id="${conn.from}"]`) as HTMLElement;
+                      const tElement = document.querySelector(`[data-node-id="${conn.to}"]`) as HTMLElement;
+                      const fOffsetX = fElement ? parseFloat(fElement.style.getPropertyValue('--drag-offset-x') || '0') : 0;
+                      const fOffsetY = fElement ? parseFloat(fElement.style.getPropertyValue('--drag-offset-y') || '0') : 0;
+                      const tOffsetX = tElement ? parseFloat(tElement.style.getPropertyValue('--drag-offset-x') || '0') : 0;
+                      const tOffsetY = tElement ? parseFloat(tElement.style.getPropertyValue('--drag-offset-y') || '0') : 0;
+                      
+                      // 端口精确位置计算（加上拖拽偏移）：
                       // 输出端口：-right-3 = right: -0.75rem = -12px，端口 w-4 h-4 = 16px
                       // 端口左边缘在：节点右边缘 + 12px，端口中心在：节点右边缘 + 12px - 8px = +4px
-                      const fx = f.x + fWidth + 4;
-                      const fy = f.y + fHeight/2;
+                      const fx = f.x + fOffsetX + fWidth + 4;
+                      const fy = f.y + fOffsetY + fHeight/2;
                       
                       // 输入端口：-left-3 = left: -0.75rem = -12px，端口 w-4 h-4 = 16px
                       // 端口左边缘在：节点左边缘 - 12px，端口中心在：节点左边缘 - 12px + 8px = -4px
-                      const tx = t.x - 4;
-                      let ty = t.y + tHeight/2;
+                      const tx = t.x + tOffsetX - 4;
+                      let ty = t.y + tOffsetY + tHeight/2;
                       
                       if (Math.abs(fy - ty) < 0.5) ty += 0.5;
                       if (isNaN(fx) || isNaN(fy) || isNaN(tx) || isNaN(ty)) return null;
@@ -2217,8 +1829,7 @@ ${cameraPositions.join('\n')}
                                   onContextMenu={(e) => { 
                                       e.preventDefault(); 
                                       e.stopPropagation(); 
-                                      setContextMenu({ visible: true, x: e.clientX, y: e.clientY, id: `${conn.from}-${conn.to}` }); 
-                                      setContextMenuTarget({ type: 'connection', from: conn.from, to: conn.to }); 
+                                      openContextMenu({ visible: true, x: e.clientX, y: e.clientY, id: `${conn.from}-${conn.to}` }, { type: 'connection', from: conn.from, to: conn.to }); 
                                   }} 
                               />
                           </g>
@@ -2231,7 +1842,7 @@ ${cameraPositions.join('\n')}
                           startY = (connectionStart.y - pan.y) / scale;
                       } else {
                           // 性能优化：使用 Map.get() 代替 Array.find()
-                          const startNode = nodes.get(connectionStart.id);
+                          const startNode = nodes.get(connectionStart.id) as AppNode | undefined;
                           if (!startNode) return null;
                           const startHeight = startNode.height || getApproxNodeHeight(startNode);
                           const startWidth = startNode.width || 420;
@@ -2275,14 +1886,11 @@ ${cameraPositions.join('\n')}
               {useMemo(() => {
                   const nodeArray = Array.from(nodes.values());
                   
-                  console.log('🔥 useMemo 重新计算，nodes 数量:', nodeArray.length);
-                  console.log('🔥 nodes IDs:', nodeArray.map(n => n.id));
-                  
                   // 为每个节点预计算 inputAssets（缓存引用）
                   const nodeInputAssetsCache = new Map<string, any[]>();
                   nodeArray.forEach(node => {
                       const inputAssets = node.inputs
-                          .map(i => nodes.get(i))
+                          .map(i => nodes.get(i) as AppNode | undefined)
                           .filter(n => n && (n.data.image || n.data.videoUri || n.data.croppedFrame))
                           .slice(0, 6)
                           .map(n => ({ 
@@ -2294,42 +1902,67 @@ ${cameraPositions.join('\n')}
                   });
                   
                   return nodeArray.map(node => {
-                      console.log('🔥 渲染 Node:', node.id);
                       return (
               <Node
-                  key={node.id} 
+                  key={node.id}
+                  // 👍 必须有这行，配合 Node.tsx 的修改
+                  data-node-id={node.id}
+                  // 👍 最好也有这行，作为双重保险
+                  id={`node-${node.id}`}
                   node={node} 
                   onUpdate={handleNodeUpdate} 
                   onAction={handleNodeAction} 
                   onCreateWorkflow={createWorkflowFromScript}
-                  onDelete={(id) => deleteNodes([id])} 
-                  onExpand={setExpandedMedia} 
-                  onCrop={(id, img) => { setCroppingNodeId(id); setImageToCrop(img); }}
+                  onDelete={(id) => deleteNodesCallback([id])} 
+                  onExpand={openMedia} 
+                  onCrop={(id, img) => { startCrop(id, img); }}
                   onNodeMouseDown={(e, id) => { 
                       e.stopPropagation(); 
-                      if (e.shiftKey || e.metaKey || e.ctrlKey) { setSelectedNodeIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]); } else { setSelectedNodeIds([id]); }
-                      const n = nodes.get(id);
-                      if (n) {
-                          const w = n.width || 420; const h = n.height || getApproxNodeHeight(n); const cx = n.x + w/2; const cy = n.y + 160; 
-                          const pGroup = groups.find(g => { return cx > g.x && cx < g.x + g.width && cy > g.y && cy < g.y + g.height; });
+                      // === 使用 useSelection Hook 的 selectNode ===
+                      selectNode(id, e.shiftKey || e.metaKey || e.ctrlKey);
+                      
+                      // === 使用 useDrag Hook 的 handleMouseDown ===
+                      const node = nodes.get(id);
+                      if (node) {
+                          // 计算父 Group 和兄弟节点
+                          const w = node.width || 420;
+                          const h = node.height || getApproxNodeHeight(node);
+                          const cx = node.x + w / 2;
+                          const cy = node.y + 160;
+                          const parentGroup = groups.find(g => {
+                              return cx > g.x && cx < g.x + g.width && cy > g.y && cy < g.y + g.height;
+                          });
+                          
                           let siblingNodeIds: string[] = [];
-                          if (pGroup) { siblingNodeIds = Array.from(nodes.values()).filter(other => { if (other.id === id) return false; const b = getNodeBounds(other); const ocx = b.x + b.width/2; const ocy = b.y + b.height/2; return ocx > pGroup.x && ocx < pGroup.x + pGroup.width && ocy > pGroup.y && ocy < pGroup.y + pGroup.height; }).map(s => s.id); }
+                          if (parentGroup) {
+                              siblingNodeIds = Array.from(nodes.values())
+                                  .filter(other => {
+                                      if (other.id === id) return false;
+                                      const ow = other.width || 420;
+                                      const oh = getApproxNodeHeight(other);
+                                      const ocx = other.x + ow / 2;
+                                      const ocy = other.y + oh / 2;
+                                      return ocx > parentGroup.x && ocx < parentGroup.x + parentGroup.width &&
+                                             ocy > parentGroup.y && ocy < parentGroup.y + parentGroup.height;
+                                  })
+                                  .map(s => s.id);
+                          }
                           
-                          // 缓存 DOM 元素 - 使用 e.currentTarget 而不是 querySelector
-                          const element = e.currentTarget as HTMLElement;
-                          dragNodeRef.current = { id, startX: n.x, startY: n.y, mouseStartX: e.clientX, mouseStartY: e.clientY, parentGroupId: pGroup?.id, siblingNodeIds, nodeWidth: w, nodeHeight: h, element };
-                          
-                          setDraggingNodeParentGroupId(pGroup?.id || null); setDraggingNodeId(id); 
+                          handleNodeDragStart(e, id, node, parentGroup?.id, siblingNodeIds);
                       }
                   }}
-                  onPortMouseDown={(e, id, type) => { e.stopPropagation(); setConnectionStart({ id, x: e.clientX, y: e.clientY, portType: type }); }}
+                  onPortMouseDown={(e, id, type) => { 
+                      e.stopPropagation(); 
+                      // 使用 Hook 的 startConnection 方法
+                      startConnection(id, e.clientX, e.clientY, type); 
+                  }}
                   onPortMouseUp={(e, id, type) => { 
                       e.stopPropagation(); 
                       const start = connectionStartRef.current; 
                       if (start && start.id !== id) {
                           if (start.id === 'smart-sequence-dock') { 
                               // Smart sequence dock 连接逻辑
-                              setConnectionStart(null);
+                              cancelConnection();
                           } else { 
                               // 建立连接：根据拖拽方向确定 from 和 to
                               let fromId = start.id;
@@ -2349,30 +1982,28 @@ ${cameraPositions.join('\n')}
                                   (start.portType === 'input' && type === 'output');
                               
                               if (isValidConnection) {
-                                  setConnections(p => [...p, { from: fromId, to: toId }]); 
-                                  // 使用 Map 更新节点输入
-                                  setNodes(p => {
-                                      const newMap = new Map(p);
-                                      const targetNode = newMap.get(toId);
-                                      if (targetNode) {
-                                          newMap.set(toId, { ...targetNode, inputs: [...targetNode.inputs, fromId] });
-                                      }
-                                      return newMap;
-                                  });
+                                  // === 使用 Store 添加连接 ===
+                                  useConnectionStore.getState().addConnection({ from: fromId, to: toId });
+                                  
+                                  // === 使用 Store 更新节点输入 ===
+                                  const targetNode = useNodeStore.getState().getNode(toId);
+                                  if (targetNode) {
+                                      useNodeStore.getState().updateNodeInputs(toId, [...targetNode.inputs, fromId]);
+                                  }
+                                  
                                   // 成功连接后清除状态
-                                  setConnectionStart(null);
+                                  cancelConnection();
                               }
                           }
                       } 
                       // 注意：不要在这里清除 connectionStart，让 handleGlobalMouseUp 处理未连接的情况
                   }}
-                  onNodeContextMenu={(e, id) => { e.stopPropagation(); e.preventDefault(); setContextMenu({ visible: true, x: e.clientX, y: e.clientY, id }); setContextMenuTarget({ type: 'node', id }); }}
+                  onNodeContextMenu={(e, id) => { e.stopPropagation(); e.preventDefault(); openContextMenu({ visible: true, x: e.clientX, y: e.clientY, id }, { type: 'node', id }); }}
                   onResizeMouseDown={(e, id, w, h) => { 
-                      e.stopPropagation(); const n = nodes.get(id); // 使用 Map.get() 代替 Array.find()
+                      e.stopPropagation(); const n = nodes.get(id) as AppNode | undefined; // 使用 Map.get() 代替 Array.find()
                       if (n) {
                           const cx = n.x + w/2; const cy = n.y + 160; 
                           const pGroup = groups.find(g => { return cx > g.x && cx < g.x + g.width && cy > g.y && cy < g.y + g.height; });
-                          setDraggingNodeParentGroupId(pGroup?.id || null);
                           let siblingNodeIds: string[] = [];
                           if (pGroup) { siblingNodeIds = Array.from(nodes.values()).filter(other => { if (other.id === id) return false; const b = getNodeBounds(other); const ocx = b.x + b.width/2; const ocy = b.y + b.height/2; return ocx > pGroup.x && ocx < pGroup.x + pGroup.width && ocy > pGroup.y && ocy < pGroup.y + pGroup.height; }).map(s => s.id); }
                           
@@ -2385,20 +2016,14 @@ ${cameraPositions.join('\n')}
                   isSelected={selectedNodeIds.includes(node.id)} 
                   inputAssets={nodeInputAssetsCache.get(node.id) || []}
                   onInputReorder={(nodeId, newOrder) => { 
-                      const node = nodes.get(nodeId); // 使用 Map.get() 代替 Array.find()
-                      if (node) { 
-                          setNodes(prev => {
-                              const newMap = new Map(prev);
-                              newMap.set(nodeId, { ...node, inputs: newOrder });
-                              return newMap;
-                          });
-                      }
+                      // === 使用 Store 更新节点输入顺序 ===
+                      useNodeStore.getState().updateNodeInputs(nodeId, newOrder);
                   }}
-                  isDragging={draggingNodeId === node.id} isResizing={resizingNodeId === node.id} isConnecting={!!connectionStart} isGroupDragging={activeGroupNodeIds.includes(node.id)}
+                  isDragging={isDraggingNode} isResizing={resizingNodeId === node.id} isConnecting={!!connectionStart} isGroupDragging={isDraggingGroup}
               />
               );
                   });
-              }, [nodes, selectedNodeIds, draggingNodeId, resizingNodeId, connectionStart, activeGroupNodeIds, handleNodeUpdate, handleNodeAction, createWorkflowFromScript, deleteNodes, setExpandedMedia, setCroppingNodeId, setImageToCrop, setSelectedNodeIds, setConnectionStart, setConnections, setNodes, setContextMenu, setContextMenuTarget, setDraggingNodeParentGroupId, setDraggingNodeId, setResizingNodeId, setInitialSize, setResizeStartPos, groups])}
+              }, [nodes, selectedNodeIds, resizingNodeId, connectionStart, handleNodeUpdate, handleNodeAction, createWorkflowFromScript, deleteNodesCallback, openMedia, startCrop, startConnection, cancelConnection, setConnections, setNodes, openContextMenu, closeContextMenu, setResizingNodeId, setInitialSize, setResizeStartPos, groups, isDraggingNode, isDraggingGroup])}
 
               {selectionRect && <div className="absolute border border-cyan-500/40 bg-cyan-500/10 rounded-lg pointer-events-none" style={{ left: (Math.min(selectionRect.startX, selectionRect.currentX) - pan.x) / scale, top: (Math.min(selectionRect.startY, selectionRect.currentY) - pan.y) / scale, width: Math.abs(selectionRect.currentX - selectionRect.startX) / scale, height: Math.abs(selectionRect.currentY - selectionRect.startY) / scale }} />}
           </div>
@@ -2407,21 +2032,21 @@ ${cameraPositions.join('\n')}
               <div className="fixed z-[100] bg-[#2c2c2e]/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl p-1 min-w-[140px] animate-in fade-in zoom-in-95 duration-200 origin-top-left" style={{ top: contextMenu.y, left: contextMenu.x }} onMouseDown={(e) => e.stopPropagation()}>
                   {contextMenuTarget?.type === 'node' && (
                       <>
-                          <button className="w-full text-left px-3 py-1.5 text-[11px] font-medium text-white/90 hover:bg-cyan-500/20 hover:text-cyan-300 rounded-lg flex items-center gap-2 transition-colors" onClick={() => { const targetNode = nodes.get(contextMenu.id); if (targetNode) setClipboard(JSON.parse(JSON.stringify(targetNode))); setContextMenu(null); }}>
+                          <button className="w-full text-left px-3 py-1.5 text-[11px] font-medium text-white/90 hover:bg-cyan-500/20 hover:text-cyan-300 rounded-lg flex items-center gap-2 transition-colors" onClick={() => { const targetNode = nodes.get(contextMenu.id) as AppNode | undefined; if (targetNode) setClipboard(JSON.parse(JSON.stringify(targetNode))); closeContextMenu(); }}>
                               <Copy size={12} /> 复制节点
                           </button>
-                          {(() => { const targetNode = nodes.get(contextMenu.id); if (targetNode) { const isVideo = targetNode.type === NodeType.VIDEO_GENERATOR || targetNode.type === NodeType.VIDEO_ANALYZER; const isImage = targetNode.type === NodeType.IMAGE_GENERATOR || targetNode.type === NodeType.IMAGE_EDITOR; if (isVideo || isImage) { return ( <button className="w-full text-left px-3 py-1.5 text-[11px] font-medium text-white/90 hover:bg-purple-500/20 hover:text-purple-300 rounded-lg flex items-center gap-2 transition-colors" onClick={() => { replacementTargetRef.current = contextMenu.id; if (isVideo) replaceVideoInputRef.current?.click(); else replaceImageInputRef.current?.click(); setContextMenu(null); }}> <RefreshCw size={12} /> 替换素材 </button> ); } } return null; })()}
-                          <button className="w-full text-left px-3 py-1.5 text-[11px] font-medium text-red-400 hover:bg-red-500/20 rounded-lg flex items-center gap-2 transition-colors mt-0.5" onClick={() => { deleteNodes([contextMenuTarget.id]); setContextMenu(null); }}><Trash2 size={12} /> 删除节点</button>
+                          {(() => { const targetNode = nodes.get(contextMenu.id) as AppNode | undefined; if (targetNode) { const isVideo = targetNode.type === NodeType.VIDEO_GENERATOR || targetNode.type === NodeType.VIDEO_ANALYZER; const isImage = targetNode.type === NodeType.IMAGE_GENERATOR || targetNode.type === NodeType.IMAGE_EDITOR; if (isVideo || isImage) { return ( <button className="w-full text-left px-3 py-1.5 text-[11px] font-medium text-white/90 hover:bg-purple-500/20 hover:text-purple-300 rounded-lg flex items-center gap-2 transition-colors" onClick={() => { replacementTargetRef.current = contextMenu.id; if (isVideo) replaceVideoInputRef.current?.click(); else replaceImageInputRef.current?.click(); closeContextMenu(); }}> <RefreshCw size={12} /> 替换素材 </button> ); } } return null; })()}
+                          <button className="w-full text-left px-3 py-1.5 text-[11px] font-medium text-red-400 hover:bg-red-500/20 rounded-lg flex items-center gap-2 transition-colors mt-0.5" onClick={() => { deleteNodesCallback([contextMenuTarget.id]); closeContextMenu(); }}><Trash2 size={12} /> 删除节点</button>
                       </>
                   )}
                   {contextMenuTarget?.type === 'create' && (
                       <>
                           <div className="px-3 py-1.5 text-[9px] font-bold uppercase tracking-wider text-white/30">基础节点</div>
-                          {[NodeType.PROMPT_INPUT, NodeType.IMAGE_GENERATOR, NodeType.VIDEO_GENERATOR].map(t => { const ItemIcon = getNodeIcon(t); return ( <button key={t} className="w-full text-left px-3 py-1.5 text-[11px] font-medium text-white/90 hover:bg-white/10 rounded-lg flex items-center gap-2 transition-colors" onClick={() => { addNode(t, (contextMenu.x-pan.x)/scale, (contextMenu.y-pan.y)/scale); setContextMenu(null); }}> <ItemIcon size={13} className="text-cyan-400" /> {getNodeNameCN(t)} </button> ); })}
+                          {[NodeType.PROMPT_INPUT, NodeType.IMAGE_GENERATOR, NodeType.VIDEO_GENERATOR].map(t => { const ItemIcon = getNodeIcon(t); return ( <button key={t} className="w-full text-left px-3 py-1.5 text-[11px] font-medium text-white/90 hover:bg-white/10 rounded-lg flex items-center gap-2 transition-colors" onClick={() => { addNode(t, (contextMenu.x-pan.x)/scale, (contextMenu.y-pan.y)/scale); closeContextMenu(); }}> <ItemIcon size={13} className="text-cyan-400" /> {getNodeNameCN(t)} </button> ); })}
                           <div className="px-3 py-1.5 text-[9px] font-bold uppercase tracking-wider text-white/30 mt-1 border-t border-white/5 pt-1.5">故事创作</div>
-                          {[NodeType.STORY_STUDIO, NodeType.CHARACTER_REFERENCE, NodeType.SCENE_REFERENCE, NodeType.STORYBOARD_SHOT].map(t => { const ItemIcon = getNodeIcon(t); return ( <button key={t} className="w-full text-left px-3 py-1.5 text-[11px] font-medium text-white/90 hover:bg-white/10 rounded-lg flex items-center gap-2 transition-colors" onClick={() => { addNode(t, (contextMenu.x-pan.x)/scale, (contextMenu.y-pan.y)/scale); setContextMenu(null); }}> <ItemIcon size={13} className="text-purple-400" /> {getNodeNameCN(t)} </button> ); })}
+                          {[NodeType.STORY_STUDIO, NodeType.CHARACTER_REFERENCE, NodeType.SCENE_REFERENCE, NodeType.STORYBOARD_SHOT].map(t => { const ItemIcon = getNodeIcon(t); return ( <button key={t} className="w-full text-left px-3 py-1.5 text-[11px] font-medium text-white/90 hover:bg-white/10 rounded-lg flex items-center gap-2 transition-colors" onClick={() => { addNode(t, (contextMenu.x-pan.x)/scale, (contextMenu.y-pan.y)/scale); closeContextMenu(); }}> <ItemIcon size={13} className="text-purple-400" /> {getNodeNameCN(t)} </button> ); })}
                           <div className="px-3 py-1.5 text-[9px] font-bold uppercase tracking-wider text-white/30 mt-1 border-t border-white/5 pt-1.5">高级工具</div>
-                          {[NodeType.MULTI_ANGLE_CAMERA, NodeType.GRID_SPLITTER].map(t => { const ItemIcon = getNodeIcon(t); return ( <button key={t} className="w-full text-left px-3 py-1.5 text-[11px] font-medium text-white/90 hover:bg-white/10 rounded-lg flex items-center gap-2 transition-colors" onClick={() => { addNode(t, (contextMenu.x-pan.x)/scale, (contextMenu.y-pan.y)/scale); setContextMenu(null); }}> <ItemIcon size={13} className="text-pink-400" /> {getNodeNameCN(t)} </button> ); })}
+                          {[NodeType.MULTI_ANGLE_CAMERA, NodeType.GRID_SPLITTER].map(t => { const ItemIcon = getNodeIcon(t); return ( <button key={t} className="w-full text-left px-3 py-1.5 text-[11px] font-medium text-white/90 hover:bg-white/10 rounded-lg flex items-center gap-2 transition-colors" onClick={() => { addNode(t, (contextMenu.x-pan.x)/scale, (contextMenu.y-pan.y)/scale); closeContextMenu(); }}> <ItemIcon size={13} className="text-pink-400" /> {getNodeNameCN(t)} </button> ); })}
                       </>
                   )}
                   {contextMenuTarget?.type === 'smart-connect' && (
@@ -2440,56 +2065,38 @@ ${cameraPositions.join('\n')}
                                           const nodeX = (contextMenu.x - pan.x) / scale;
                                           const nodeY = (contextMenu.y - pan.y) / scale;
                                           
-                                          // 创建新节点
-                                          const newNodeId = `n-${Date.now()}-${Math.floor(Math.random()*1000)}`;
-                                          const defaults: any = { 
-                                              model: t === NodeType.VIDEO_GENERATOR ? 'veo-3.1-fast-generate-preview' :
-                                                     t === NodeType.VIDEO_ANALYZER ? 'gemini-3-pro-preview' :
-                                                     t === NodeType.AUDIO_GENERATOR ? 'gemini-2.5-flash-preview-tts' :
-                                                     t.includes('IMAGE') ? 'gemini-2.5-flash-image' :
-                                                     'gemini-3-pro-preview',
-                                              generationMode: t === NodeType.VIDEO_GENERATOR ? 'DEFAULT' : undefined,
-                                          };
-                                          
-                                          const typeMap: Record<string, string> = {
-                                              [NodeType.PROMPT_INPUT]: '创意描述',
-                                              [NodeType.IMAGE_GENERATOR]: '文字生图',
-                                              [NodeType.VIDEO_GENERATOR]: '文生视频',
-                                              [NodeType.AUDIO_GENERATOR]: '灵感音乐',
-                                              [NodeType.VIDEO_ANALYZER]: '视频分析',
-                                              [NodeType.IMAGE_EDITOR]: '图像编辑'
-                                          };
-                                          
-                                          const newNode: AppNode = {
-                                              id: newNodeId,
-                                              type: t,
+                                          // === 使用 NodeRegistry 创建节点 ===
+                                          const newNode = nodeRegistry.createNode(t, {
                                               x: nodeX,
                                               y: nodeY,
-                                              width: 420,
-                                              title: typeMap[t] || '未命名节点',
-                                              status: NodeStatus.IDLE,
-                                              data: defaults,
-                                              inputs: []
-                                          };
+                                          });
+                                          
+                                          if (!newNode) {
+                                              console.error(`无法创建节点类型: ${t}`);
+                                              closeContextMenu();
+                                              return;
+                                          }
+                                          
+                                          // === 使用 Store 添加节点 ===
+                                          useNodeStore.getState().addNode(newNode);
                                           
                                           // 根据拖拽方向建立连接
                                           if (contextMenuTarget.portType === 'output') {
                                               // 从输出拖拽 → 源节点连接到新节点
-                                              newNode.inputs = [contextMenuTarget.sourceNodeId];
-                                              setConnections(prev => [...prev, { from: contextMenuTarget.sourceNodeId, to: newNodeId }]);
+                                              useConnectionStore.getState().addConnection({ from: contextMenuTarget.sourceNodeId, to: newNode.id });
                                           } else {
                                               // 从输入拖拽 → 新节点连接到源节点
-                                              setConnections(prev => [...prev, { from: newNodeId, to: contextMenuTarget.sourceNodeId }]);
-                                              setNodes(prev => prev.map(n => 
-                                                  n.id === contextMenuTarget.sourceNodeId 
-                                                      ? { ...n, inputs: [...n.inputs, newNodeId] }
-                                                      : n
-                                              ));
+                                              useConnectionStore.getState().addConnection({ from: newNode.id, to: contextMenuTarget.sourceNodeId });
+                                              
+                                              // === 使用 Store 更新源节点的输入 ===
+                                              const sourceNode = useNodeStore.getState().getNode(contextMenuTarget.sourceNodeId);
+                                              if (sourceNode) {
+                                                  useNodeStore.getState().updateNodeInputs(contextMenuTarget.sourceNodeId, [...sourceNode.inputs, newNode.id]);
+                                              }
                                           }
                                           
-                                          setNodes(prev => [...prev, newNode]);
                                           saveHistory();
-                                          setContextMenu(null); 
+                                          closeContextMenu(); 
                                       }}
                                   > 
                                       <ItemIcon size={13} className="text-cyan-400" /> 
@@ -2501,66 +2108,104 @@ ${cameraPositions.join('\n')}
                   )}
                   {contextMenuTarget?.type === 'group' && (
                       <>
-                           <button className="w-full text-left px-3 py-1.5 text-[11px] font-medium text-white/90 hover:bg-white/10 rounded-lg flex items-center gap-2 transition-colors mb-0.5" onClick={() => { saveGroupAsWorkflow(contextMenu.id); setContextMenu(null); }}> <FolderHeart size={12} className="text-cyan-400" /> 保存为工作流 </button>
-                           <button className="w-full text-left px-3 py-1.5 text-[11px] font-medium text-red-400 hover:bg-red-500/20 rounded-lg flex items-center gap-2 transition-colors" onClick={() => { setGroups(p => p.filter(g => g.id !== contextMenu.id)); setContextMenu(null); }}> <Trash2 size={12} /> 删除分组 </button>
+                           <button className="w-full text-left px-3 py-1.5 text-[11px] font-medium text-white/90 hover:bg-white/10 rounded-lg flex items-center gap-2 transition-colors mb-0.5" onClick={() => { saveGroupAsWorkflow(contextMenu.id); closeContextMenu(); }}> <FolderHeart size={12} className="text-cyan-400" /> 保存为工作流 </button>
+                           <button className="w-full text-left px-3 py-1.5 text-[11px] font-medium text-red-400 hover:bg-red-500/20 rounded-lg flex items-center gap-2 transition-colors" onClick={() => { 
+                               // === 使用 Store 删除分组 ===
+                               useGroupStore.getState().deleteGroup(contextMenu.id); 
+                               closeContextMenu(); 
+                           }}> <Trash2 size={12} /> 删除分组 </button>
                       </>
                   )}
                   {contextMenuTarget?.type === 'connection' && (
-                      <button className="w-full text-left px-3 py-1.5 text-[11px] font-medium text-red-400 hover:bg-red-500/20 rounded-lg flex items-center gap-2 transition-colors" onClick={() => { setConnections(prev => prev.filter(c => c.from !== contextMenuTarget.from || c.to !== contextMenuTarget.to)); setNodes(prev => prev.map(n => n.id === contextMenuTarget.to ? { ...n, inputs: n.inputs.filter(i => i !== contextMenuTarget.from) } : n)); setContextMenu(null); }}> <Unplug size={12} /> 删除连接线 </button>
+                      <button className="w-full text-left px-3 py-1.5 text-[11px] font-medium text-red-400 hover:bg-red-500/20 rounded-lg flex items-center gap-2 transition-colors" onClick={() => {
+                          // === 使用 Store 删除连接 ===
+                          useConnectionStore.getState().deleteConnection(contextMenuTarget.from, contextMenuTarget.to);
+                          
+                          // === 使用 Store 更新节点输入 ===
+                          const targetNode = useNodeStore.getState().getNode(contextMenuTarget.to);
+                          if (targetNode) {
+                              useNodeStore.getState().updateNodeInputs(contextMenuTarget.to, targetNode.inputs.filter(i => i !== contextMenuTarget.from));
+                          }
+                          
+                          closeContextMenu();
+                      }}>
+                          <Unplug size={12} /> 删除连接线
+                      </button>
                   )}
               </div>
           )}
           
-          {croppingNodeId && imageToCrop && <ImageCropper imageSrc={imageToCrop} onCancel={() => {setCroppingNodeId(null); setImageToCrop(null);}} onConfirm={(b) => {handleNodeUpdate(croppingNodeId, {croppedFrame: b}); setCroppingNodeId(null); setImageToCrop(null);}} />}
-          <ExpandedView media={expandedMedia} onClose={() => setExpandedMedia(null)} />
-          {isSketchEditorOpen && <SketchEditor onClose={() => setIsSketchEditorOpen(false)} onGenerate={handleSketchResult} />}
+          {croppingNodeId && imageToCrop && <ImageCropper imageSrc={imageToCrop} onCancel={() => {endCrop();}} onConfirm={(b) => {handleNodeUpdate(croppingNodeId, {croppedFrame: b}); endCrop();}} />}
+          <ExpandedView media={expandedMedia} onClose={() => closeMedia()} />
+          {isSketchEditorOpen && <SketchEditor onClose={() => setSketchEditorOpen(false)} onGenerate={handleSketchResult} />}
           <SmartSequenceDock 
              isOpen={isMultiFrameOpen} 
-             onClose={() => setIsMultiFrameOpen(false)} 
+             onClose={() => setMultiFrameOpen(false)} 
              onGenerate={handleMultiFrameGenerate}
-             onConnectStart={(e, type) => { e.preventDefault(); e.stopPropagation(); setConnectionStart({ id: 'smart-sequence-dock', x: e.clientX, y: e.clientY }); }}
+             onConnectStart={(e, type) => { 
+                 e.preventDefault(); 
+                 e.stopPropagation(); 
+                 // 使用 Hook 的 startConnection 方法
+                 startConnection('smart-sequence-dock', e.clientX, e.clientY); 
+             }}
           />
           <SonicStudio 
             isOpen={isSonicStudioOpen}
-            onClose={() => setIsSonicStudioOpen(false)}
+            onClose={() => setSonicStudioOpen(false)}
             history={assetHistory.filter(a => a.type === 'audio')}
             onGenerate={(src, prompt) => handleAssetGenerated('audio', src, prompt)}
           />
-          <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
+          <SettingsModal isOpen={isSettingsOpen} onClose={() => setSettingsOpen(false)} />
 
           <SidebarDock 
               onAddNode={addNode}
               onUndo={undo}
               isChatOpen={isChatOpen}
-              onToggleChat={() => setIsChatOpen(!isChatOpen)}
+              onToggleChat={() => setChatOpen(!isChatOpen)}
               isMultiFrameOpen={isMultiFrameOpen}
-              onToggleMultiFrame={() => setIsMultiFrameOpen(!isMultiFrameOpen)}
+              onToggleMultiFrame={() => setMultiFrameOpen(!isMultiFrameOpen)}
               isSonicStudioOpen={isSonicStudioOpen}
-              onToggleSonicStudio={() => setIsSonicStudioOpen(!isSonicStudioOpen)}
+              onToggleSonicStudio={() => setSonicStudioOpen(!isSonicStudioOpen)}
               assetHistory={assetHistory}
               onHistoryItemClick={(item) => { const type = item.type.includes('image') ? NodeType.IMAGE_GENERATOR : NodeType.VIDEO_GENERATOR; const data = item.type === 'image' ? { image: item.src } : { videoUri: item.src }; addNode(type, undefined, undefined, data); }}
-              onDeleteAsset={(id) => setAssetHistory(prev => prev.filter(a => a.id !== id))}
+              onDeleteAsset={handleDeleteAsset}
+              onDeleteMultipleAssets={handleDeleteMultipleAssets} // 🔥 新增：批量删除方法
+              onDownloadSelectedAndClear={downloadSelectedImagesAndClear}
               workflows={workflows}
               selectedWorkflowId={selectedWorkflowId}
               onSelectWorkflow={loadWorkflow}
               onSaveWorkflow={saveCurrentAsWorkflow}
               onDeleteWorkflow={deleteWorkflow}
               onRenameWorkflow={renameWorkflow}
-              onOpenSettings={() => setIsSettingsOpen(true)}
-              selectedGroupId={selectedGroupId}
-              onArrangeGroup={handleArrangeGroup}
+              onOpenSettings={() => setSettingsOpen(true)}
           />
 
-          <AssistantPanel isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
+          <AssistantPanel isOpen={isChatOpen} onClose={() => setChatOpen(false)} />
 
+          {/* 🔥 控制栏：缩放控制 + 小地图 */}
           <div className="absolute bottom-8 right-8 flex items-center gap-3 px-4 py-2 bg-[#1c1c1e]/80 backdrop-blur-2xl border border-white/10 rounded-full shadow-2xl z-50 animate-in fade-in slide-in-from-bottom-4 duration-700">
-              <button onClick={() => setScale(s => Math.max(0.2, s - 0.1))} className="p-1.5 text-slate-400 hover:text-white transition-colors rounded-full hover:bg-white/10"><Minus size={14} strokeWidth={3} /></button>
+              {/* 小地图按钮 */}
+              <Minimap
+                  nodes={nodes}
+                  connections={connections}
+                  pan={pan}
+                  scale={scale}
+                  viewportWidth={typeof window !== 'undefined' ? window.innerWidth : 1920}
+                  viewportHeight={typeof window !== 'undefined' ? window.innerHeight : 1080}
+                  onPanChange={setPan}
+              />
+              
+              {/* 分隔线 */}
+              <div className="h-5 w-px bg-white/10" />
+              
+              {/* 缩放控制 */}
+              <button onClick={zoomOut} className="p-1.5 text-slate-400 hover:text-white transition-colors rounded-full hover:bg-white/10"><Minus size={14} strokeWidth={3} /></button>
               <div className="flex items-center gap-2 min-w-[100px]">
                    <input type="range" min="0.2" max="3" step="0.1" value={scale} onChange={(e) => setScale(parseFloat(e.target.value))} className="w-24 h-1 bg-white/20 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:shadow-lg hover:[&::-webkit-slider-thumb]:scale-125 transition-all" />
-                   <span className="text-[10px] font-bold text-slate-400 w-8 text-right tabular-nums cursor-pointer hover:text-white" onClick={() => setScale(1)} title="Reset Zoom">{Math.round(scale * 100)}%</span>
+                   <span className="text-[10px] font-bold text-slate-400 w-8 text-right tabular-nums cursor-pointer hover:text-white" onClick={resetView} title="Reset Zoom">{Math.round(scale * 100)}%</span>
               </div>
-              <button onClick={() => setScale(s => Math.min(3, s + 0.1))} className="p-1.5 text-slate-400 hover:text-white transition-colors rounded-full hover:bg-white/10"><Plus size={14} strokeWidth={3} /></button>
-              <button onClick={handleFitView} className="p-1.5 text-slate-400 hover:text-white transition-colors rounded-full hover:bg-white/10 ml-2 border-l border-white/10 pl-3" title="适配视图">
+              <button onClick={zoomIn} className="p-1.5 text-slate-400 hover:text-white transition-colors rounded-full hover:bg-white/10"><Plus size={14} strokeWidth={3} /></button>
+              <button onClick={fitView} className="p-1.5 text-slate-400 hover:text-white transition-colors rounded-full hover:bg-white/10 ml-2 border-l border-white/10 pl-3" title="适配视图">
                   <Scan size={14} strokeWidth={3} />
               </button>
           </div>

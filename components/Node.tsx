@@ -1,4 +1,4 @@
-
+// 🔥 FORCE UPDATE: 2026-01-25 23:52:00 - 底部面板已彻底删除
 // ... existing imports
 import { AppNode, NodeStatus, NodeType } from '../types';
 import { RefreshCw, Play, Image as ImageIcon, Video as VideoIcon, Type, AlertCircle, CheckCircle, Plus, Maximize2, Download, MoreHorizontal, Wand2, Scaling, FileSearch, Edit, Loader2, Layers, Trash2, X, Upload, Scissors, Film, MousePointerClick, Crop as CropIcon, ChevronDown, ChevronUp, GripHorizontal, Link, Copy, Monitor, Music, Pause, Volume2, Mic2 } from 'lucide-react';
@@ -9,6 +9,7 @@ import { SceneReferenceNode } from './SceneReferenceNode';
 import { StoryboardShotNode } from './StoryboardShotNode';
 import { MultiAngleCameraNode } from './MultiAngleCameraNode';
 import { GridSplitterNode } from './GridSplitterNode';
+import { ScriptNode } from './ScriptNode';
 import React, { memo, useRef, useState, useEffect, useCallback } from 'react';
 
 // ... (keep constants and helper functions: arePropsEqual, safePlay, safePause, InputThumbnails, AudioVisualizer) ...
@@ -20,7 +21,8 @@ interface InputAsset {
     src: string;
 }
 
-interface NodeProps {
+// 🔥 关键修复：继承 HTMLAttributes，让 props 可以传递到最外层 div
+interface NodeProps extends React.HTMLAttributes<HTMLDivElement> {
   node: AppNode;
   onUpdate: (id: string, data: Partial<AppNode['data']>, size?: { width?: number, height?: number }, title?: string) => void;
   onAction: (id: string, prompt?: string) => void;
@@ -35,6 +37,7 @@ interface NodeProps {
   onResizeMouseDown: (e: React.MouseEvent, id: string, initialWidth: number, initialHeight: number) => void;
   inputAssets?: InputAsset[];
   onInputReorder?: (nodeId: string, newOrder: string[]) => void;
+  onCreateWorkflow?: (scriptNodeId: string) => void;  // 新增：生成工作流回调
   
   isDragging?: boolean;
   isGroupDragging?: boolean;
@@ -147,6 +150,7 @@ const safePause = (e: React.SyntheticEvent<HTMLVideoElement> | HTMLVideoElement)
 
 // Custom Comparator for React.memo to prevent unnecessary re-renders during drag
 const arePropsEqual = (prev: NodeProps, next: NodeProps) => {
+    // 快速检查：交互状态变化
     if (prev.isDragging !== next.isDragging || 
         prev.isResizing !== next.isResizing || 
         prev.isSelected !== next.isSelected ||
@@ -154,13 +158,52 @@ const arePropsEqual = (prev: NodeProps, next: NodeProps) => {
         prev.isConnecting !== next.isConnecting) {
         return false;
     }
-    if (prev.node !== next.node) return false;
+    
+    // 深度比较节点关键属性（避免引用比较导致的无效渲染）
+    const prevNode = prev.node;
+    const nextNode = next.node;
+    
+    if (prevNode.id !== nextNode.id) return false;
+    if (prevNode.type !== nextNode.type) return false;
+    if (prevNode.status !== nextNode.status) return false;
+    if (prevNode.title !== nextNode.title) return false;
+    if (prevNode.x !== nextNode.x || prevNode.y !== nextNode.y) return false;
+    if (prevNode.width !== nextNode.width || prevNode.height !== nextNode.height) return false;
+    
+    // 比较 data 对象的关键字段（避免深度比较整个 data）
+    const prevData = prevNode.data;
+    const nextData = nextNode.data;
+    
+    // 比较常用字段
+    if (prevData.prompt !== nextData.prompt) return false;
+    if (prevData.image !== nextData.image) return false;
+    if (prevData.videoUri !== nextData.videoUri) return false;
+    if (prevData.audioUri !== nextData.audioUri) return false;
+    if (prevData.error !== nextData.error) return false;
+    if (prevData.model !== nextData.model) return false;
+    if (prevData.aspectRatio !== nextData.aspectRatio) return false;
+    
+    // 比较数组字段（浅比较）
+    if (prevData.images?.length !== nextData.images?.length) return false;
+    if (prevData.gridImages?.length !== nextData.gridImages?.length) return false;
+    if (prevData.croppedImages?.length !== nextData.croppedImages?.length) return false;
+    
+    // 比较 inputs 数组
+    if (prevNode.inputs?.length !== nextNode.inputs?.length) return false;
+    if (prevNode.inputs && nextNode.inputs) {
+        for (let i = 0; i < prevNode.inputs.length; i++) {
+            if (prevNode.inputs[i] !== nextNode.inputs[i]) return false;
+        }
+    }
+    
+    // 比较 inputAssets
     const prevInputs = prev.inputAssets || [];
     const nextInputs = next.inputAssets || [];
     if (prevInputs.length !== nextInputs.length) return false;
     for(let i = 0; i < prevInputs.length; i++) {
         if (prevInputs[i].id !== nextInputs[i].id || prevInputs[i].src !== nextInputs[i].src) return false;
     }
+    
     return true;
 };
 
@@ -280,8 +323,10 @@ const AudioVisualizer = ({ isPlaying }: { isPlaying: boolean }) => (
     </div>
 );
 
+// 🔥 关键修复：接收 ...props 并展开到最外层 div
 const NodeComponent: React.FC<NodeProps> = ({ 
-  node, onUpdate, onAction, onDelete, onExpand, onCrop, onNodeMouseDown, onPortMouseDown, onPortMouseUp, onNodeContextMenu, onMediaContextMenu, onResizeMouseDown, inputAssets, onInputReorder, isDragging, isGroupDragging, isSelected, isResizing, isConnecting 
+  node, onUpdate, onAction, onDelete, onExpand, onCrop, onNodeMouseDown, onPortMouseDown, onPortMouseUp, onNodeContextMenu, onMediaContextMenu, onResizeMouseDown, inputAssets, onInputReorder, onCreateWorkflow, isDragging, isGroupDragging, isSelected, isResizing, isConnecting,
+  className, style, ...props // 🔥 提取 className, style, 和其他 HTML 属性
 }) => {
   const isWorking = node.status === NodeStatus.WORKING;
   const mediaRef = useRef<HTMLImageElement | HTMLVideoElement | HTMLAudioElement | null>(null);
@@ -389,8 +434,44 @@ const NodeComponent: React.FC<NodeProps> = ({
       }
   };
   const handleDownload = (e: React.MouseEvent) => { e.stopPropagation(); const a = document.createElement('a'); a.href = node.data.image || videoBlobUrl || node.data.audioUri || ''; a.download = `sunstudio-${Date.now()}`; document.body.appendChild(a); a.click(); document.body.removeChild(a); };
-  const handleUploadVideo = (e: React.ChangeEvent<HTMLInputElement>) => { const file = e.target.files?.[0]; if (file) { const reader = new FileReader(); reader.onload = (e) => onUpdate(node.id, { videoUri: e.target?.result as string }); reader.readAsDataURL(file); }};
-  const handleUploadImage = (e: React.ChangeEvent<HTMLInputElement>) => { const file = e.target.files?.[0]; if (file) { const reader = new FileReader(); reader.onload = (e) => onUpdate(node.id, { image: e.target?.result as string }); reader.readAsDataURL(file); }};
+  
+  // 🔥 零拷贝优化：上传视频（不读取文件内容，直接创建 Blob URL）
+  const handleUploadVideo = async (e: React.ChangeEvent<HTMLInputElement>) => { 
+      const file = e.target.files?.[0]; 
+      if (file) { 
+          // 1. 零拷贝：直接创建 Blob URL
+          const blobUrl = URL.createObjectURL(file);
+          console.log(`[Node] 上传视频，创建 Blob URL: ${blobUrl.substring(0, 50)}, 大小: ${(file.size / 1024 / 1024).toFixed(2)}MB`);
+          
+          // 2. 立即更新节点（不等待保存）
+          onUpdate(node.id, { videoUri: blobUrl });
+          
+          // 3. 异步保存到 IndexedDB（不阻塞 UI）
+          const { saveFileToIndexedDBAsync } = await import('../services/blobStorage');
+          saveFileToIndexedDBAsync(node.id, file).catch(error => {
+              console.error('[Node] 视频异步保存失败:', error);
+          });
+      }
+  };
+  
+  // 🔥 零拷贝优化：上传图片（不读取文件内容，直接创建 Blob URL）
+  const handleUploadImage = async (e: React.ChangeEvent<HTMLInputElement>) => { 
+      const file = e.target.files?.[0]; 
+      if (file) { 
+          // 1. 零拷贝：直接创建 Blob URL
+          const blobUrl = URL.createObjectURL(file);
+          console.log(`[Node] 上传图片，创建 Blob URL: ${blobUrl.substring(0, 50)}, 大小: ${(file.size / 1024 / 1024).toFixed(2)}MB`);
+          
+          // 2. 立即更新节点（不等待保存）
+          onUpdate(node.id, { image: blobUrl });
+          
+          // 3. 异步保存到 IndexedDB（不阻塞 UI）
+          const { saveFileToIndexedDBAsync } = await import('../services/blobStorage');
+          saveFileToIndexedDBAsync(node.id, file).catch(error => {
+              console.error('[Node] 图片异步保存失败:', error);
+          });
+      }
+  };
   const handleAspectRatioSelect = (newRatio: string) => {
     const [w, h] = newRatio.split(':').map(Number);
     let newSize: { width?: number, height?: number } = { height: undefined };
@@ -420,6 +501,13 @@ const NodeComponent: React.FC<NodeProps> = ({
       if (node.height) return node.height; 
       if (node.type === NodeType.VIDEO_ANALYZER || node.type === NodeType.IMAGE_EDITOR || node.type === NodeType.PROMPT_INPUT) return DEFAULT_FIXED_HEIGHT; 
       if (node.type === NodeType.AUDIO_GENERATOR) return AUDIO_NODE_HEIGHT;
+      // 剧本节点的高度
+      if (node.type === NodeType.SCRIPT_NODE) {
+          if (node.data.scriptData) {
+              return isSelected ? 600 : 200;
+          }
+          return 200;
+      }
       // 新节点类型的高度
       if (node.type === NodeType.STORY_STUDIO) return isSelected ? 500 : 120;
       if (node.type === NodeType.CHARACTER_REFERENCE || node.type === NodeType.SCENE_REFERENCE) return 400;
@@ -464,6 +552,31 @@ const NodeComponent: React.FC<NodeProps> = ({
   };
 
   const renderMediaContent = () => {
+      // 剧本节点（新）
+      if (node.type === NodeType.SCRIPT_NODE) {
+          return (
+              <ScriptNode
+                  scriptData={node.data.scriptData}
+                  isGenerating={isWorking}
+                  error={node.data.error}
+                  onGenerate={(userIdea) => onAction(node.id, userIdea)}
+                  onUpdate={(data) => onUpdate(node.id, { scriptData: data })}
+                  onCreateWorkflow={() => {
+                      // 调用 App.tsx 中的函数
+                      if (onCreateWorkflow) {
+                          onCreateWorkflow(node.id);
+                      } else {
+                          console.warn('[剧本节点] onCreateWorkflow 未定义');
+                      }
+                  }}
+                  onGenerateShot={(shotId) => {
+                      // TODO: 实现单个分镜生成
+                      console.log('[剧本节点] 生成分镜:', shotId);
+                  }}
+              />
+          );
+      }
+      
       // 创意工作室节点
       if (node.type === NodeType.STORY_STUDIO) {
           return (
@@ -578,7 +691,7 @@ const NodeComponent: React.FC<NodeProps> = ({
                   selectedGridIndex={node.data.selectedGridIndex}
                   userPrompt={node.data.userPrompt}
                   isWorking={isWorking}
-                  isExpanded={true}
+                  isExpanded={isSelected || false}
                   inputImage={inputImageSrc}
                   error={node.data.error}
                   onHorizontalAngleChange={(value) => onUpdate(node.id, { horizontalAngle: value })}
@@ -629,58 +742,54 @@ const NodeComponent: React.FC<NodeProps> = ({
       
       // 九宫格处理节点
       if (node.type === NodeType.GRID_SPLITTER) {
-          // 获取输入图片
+          // 🔥 锁定逻辑：第一次接收图片后，就锁定这个图片，后续不再自动更新
           let inputImageSrc: string | undefined;
-          let shouldSaveInput = false;
           
           if (node.data.inputImage === null) {
               // 用户主动清除，不使用任何图片
               inputImageSrc = undefined;
           } else if (node.data.inputImage) {
-              // 有自己保存的图片
+              // ✅ 已经有保存的图片，使用它（锁定）
               inputImageSrc = node.data.inputImage;
           } else if (inputAssets && inputAssets.length > 0 && inputAssets[0].type === 'image') {
-              // 从连接的节点获取，并标记需要保存
+              // ✅ 第一次接收，使用输入图片（GridSplitterNode 会自动保存）
               inputImageSrc = inputAssets[0].src;
-              shouldSaveInput = true;
-              console.log('[GridSplitter] 从连接节点获取图片，将保存到节点数据');
           }
           
-          // 如果需要保存输入图片，立即保存
-          if (shouldSaveInput && inputImageSrc) {
-              // 异步保存，不阻塞渲染
-              setTimeout(() => {
-                  onUpdate(node.id, { inputImage: inputImageSrc });
-                  console.log('[GridSplitter] 已保存输入图片到节点数据');
-              }, 0);
-          }
+          // 🔥 使用 useCallback 包装 onUpdate，防止无限循环
+          const handleGridSplitterUpdate = React.useCallback((data: {
+              inputImage?: string | null;
+              croppedImages?: string[];
+              selectedIndex?: number;
+              outputImage?: string;
+          }) => {
+              const updateData: any = {};
+              // inputImage: 只有明确传入 null 或有值时才更新
+              if (data.inputImage === null) {
+                  // 用户主动清除
+                  updateData.inputImage = null;
+              } else if (data.inputImage !== undefined) {
+                  // 有新的图片
+                  updateData.inputImage = data.inputImage;
+              }
+              // 其他字段正常更新
+              if ('croppedImages' in data) updateData.croppedImages = data.croppedImages;
+              if ('selectedIndex' in data) updateData.selectedIndex = data.selectedIndex;
+              if ('outputImage' in data) updateData.image = data.outputImage;
+              
+              onUpdate(node.id, updateData);
+          }, [node.id, onUpdate]);
           
           return (
               <GridSplitterNode
                   inputImage={inputImageSrc}
                   croppedImages={node.data.croppedImages}
-                  selectedIndex={node.data.selectedGridIndex}
+                  selectedIndex={node.data.selectedIndex}
                   outputImage={node.data.image}
                   isWorking={node.status === NodeStatus.WORKING}
                   isExpanded={isSelected || false}
-                  onUpdate={(data) => {
-                      const updateData: any = {};
-                      // inputImage: 只有明确传入 null 或有值时才更新
-                      if (data.inputImage === null) {
-                          // 用户主动清除
-                          updateData.inputImage = null;
-                      } else if (data.inputImage !== undefined) {
-                          // 有新的图片
-                          updateData.inputImage = data.inputImage;
-                      }
-                      // 其他字段正常更新
-                      if ('croppedImages' in data) updateData.croppedImages = data.croppedImages;
-                      if ('selectedIndex' in data) updateData.selectedGridIndex = data.selectedIndex;
-                      if ('outputImage' in data) updateData.image = data.outputImage;
-                      
-                      console.log('[GridSplitter] 更新数据:', updateData);
-                      onUpdate(node.id, updateData);
-                  }}
+                  isSelected={isSelected || false}
+                  onUpdate={handleGridSplitterUpdate}
               />
           );
       }
@@ -736,7 +845,16 @@ const NodeComponent: React.FC<NodeProps> = ({
             ) : (
                 <>
                     {node.data.image ? 
-                        <img ref={mediaRef as any} src={node.data.image} className="w-full h-full object-cover transition-transform duration-700 group-hover/media:scale-105 bg-zinc-900" draggable={false} style={{ filter: showImageGrid ? 'blur(10px)' : 'none' }} onContextMenu={(e) => onMediaContextMenu?.(e, node.id, 'image', node.data.image!)} /> 
+                        <img 
+                            ref={mediaRef as any} 
+                            src={node.data.image} 
+                            className="w-full h-full object-cover transition-transform duration-700 group-hover/media:scale-105 bg-zinc-900" 
+                            draggable={false} 
+                            loading="lazy"
+                            decoding="async"
+                            style={{ filter: showImageGrid ? 'blur(10px)' : 'none' }} 
+                            onContextMenu={(e) => onMediaContextMenu?.(e, node.id, 'image', node.data.image!)} 
+                        />
                     : 
                         <SecureVideo 
                             videoRef={mediaRef} // Pass Ref to Video
@@ -754,7 +872,7 @@ const NodeComponent: React.FC<NodeProps> = ({
                         <div className="absolute inset-0 bg-black/40 z-10 grid grid-cols-2 gap-2 p-2 animate-in fade-in duration-200">
                             {node.data.images ? node.data.images.map((img, idx) => (
                                 <div key={idx} className={`relative rounded-lg overflow-hidden cursor-pointer border-2 bg-zinc-900 ${img === node.data.image ? 'border-cyan-500' : 'border-transparent hover:border-white/50'}`} onClick={(e) => { e.stopPropagation(); onUpdate(node.id, { image: img }); }}>
-                                    <img src={img} className="w-full h-full object-cover" />
+                                    <img src={img} className="w-full h-full object-cover" loading="lazy" decoding="async" />
                                 </div>
                             )) : node.data.videoUris?.map((uri, idx) => (
                                 <div key={idx} className={`relative rounded-lg overflow-hidden cursor-pointer border-2 bg-zinc-900 ${uri === node.data.videoUri ? 'border-cyan-500' : 'border-transparent hover:border-white/50'}`} onClick={(e) => { e.stopPropagation(); onUpdate(node.id, { videoUri: uri }); }}>
@@ -767,8 +885,8 @@ const NodeComponent: React.FC<NodeProps> = ({
                             ))}
                         </div>
                     )}
-                    {generationMode === 'CUT' && node.data.croppedFrame && <div className="absolute top-4 right-4 w-24 aspect-video bg-black/80 rounded-lg border border-purple-500/50 shadow-xl overflow-hidden z-20 hover:scale-150 transition-transform origin-top-right opacity-0 group-hover:opacity-100 transition-opacity duration-300"><img src={node.data.croppedFrame} className="w-full h-full object-cover" /></div>}
-                    {generationMode === 'CUT' && !node.data.croppedFrame && hasInputs && inputAssets?.some(a => a.src) && (<div className="absolute top-4 right-4 w-24 aspect-video bg-black/80 rounded-lg border border-purple-500/30 border-dashed shadow-xl overflow-hidden z-20 hover:scale-150 transition-transform origin-top-right flex flex-col items-center justify-center group/preview opacity-0 group-hover:opacity-100 transition-opacity duration-300"><div className="absolute inset-0 bg-purple-500/10 z-10"></div>{(() => { const asset = inputAssets!.find(a => a.src); if (asset?.type === 'video') { return <SecureVideo src={asset.src} className="w-full h-full object-cover opacity-60 bg-zinc-900" muted autoPlay />; } else { return <img src={asset?.src} className="w-full h-full object-cover opacity-60 bg-zinc-900" />; } })()}<span className="absolute z-20 text-[8px] font-bold text-purple-200 bg-black/50 px-1 rounded">分镜参考</span></div>)}
+                    {generationMode === 'CUT' && node.data.croppedFrame && <div className="absolute top-4 right-4 w-24 aspect-video bg-black/80 rounded-lg border border-purple-500/50 shadow-xl overflow-hidden z-20 hover:scale-150 transition-transform origin-top-right opacity-0 group-hover:opacity-100 transition-opacity duration-300"><img src={node.data.croppedFrame} className="w-full h-full object-cover" loading="lazy" decoding="async" /></div>}
+                    {generationMode === 'CUT' && !node.data.croppedFrame && hasInputs && inputAssets?.some(a => a.src) && (<div className="absolute top-4 right-4 w-24 aspect-video bg-black/80 rounded-lg border border-purple-500/30 border-dashed shadow-xl overflow-hidden z-20 hover:scale-150 transition-transform origin-top-right flex flex-col items-center justify-center group/preview opacity-0 group-hover:opacity-100 transition-opacity duration-300"><div className="absolute inset-0 bg-purple-500/10 z-10"></div>{(() => { const asset = inputAssets!.find(a => a.src); if (asset?.type === 'video') { return <SecureVideo src={asset.src} className="w-full h-full object-cover opacity-60 bg-zinc-900" muted autoPlay />; } else { return <img src={asset?.src} className="w-full h-full object-cover opacity-60 bg-zinc-900" loading="lazy" decoding="async" />; } })()}<span className="absolute z-20 text-[8px] font-bold text-purple-200 bg-black/50 px-1 rounded">分镜参考</span></div>)}
                 </>
             )}
             {node.type === NodeType.VIDEO_GENERATOR && generationMode === 'CUT' && (videoBlobUrl || node.data.videoUri) && 
@@ -796,67 +914,37 @@ const NodeComponent: React.FC<NodeProps> = ({
   };
 
   const renderBottomPanel = () => {
-     const isOpen = (isHovered || isInputFocused);
-     let models: {l: string, v: string}[] = [];
-     if (node.type === NodeType.VIDEO_GENERATOR) {
-        // 视频生成模型 - 西瓜皮 Hailuo 优先
-        models = [
-            {l: 'Hailuo (推荐)', v: 'hailuo'},
-            {l: 'Veo 极速版 (备用)', v: 'veo-3.1-fast-generate-preview'},
-            {l: 'Veo 专业版 (备用)', v: 'veo-3.1-generate-preview'},
-            {l: 'Wan 2.1 (Animate)', v: 'wan-2.1-t2v-14b'}
-        ];
-     } else if (node.type === NodeType.VIDEO_ANALYZER) {
-         models = [{l: 'Gemini 2.5 Flash', v: 'gemini-2.5-flash'}, {l: 'Gemini 3 Pro', v: 'gemini-3-pro-preview'}];
-     } else if (node.type === NodeType.AUDIO_GENERATOR) {
-         models = [{l: 'Voice Factory (Gemini 2.0)', v: 'gemini-2.5-flash-preview-tts'}];
-     } else {
-        // 图片生成模型 - 西瓜皮 API 优先
-        models = [
-            {l: 'Nano Banana Pro (推荐)', v: 'nanobananapro'},
-            {l: 'Gemini 2.5 (备用)', v: 'gemini-2.5-flash-image'},
-            {l: 'Gemini 3 Pro (备用)', v: 'gemini-3-pro-image-preview'}
-        ];
-     }
+     // 底部面板已禁用 - 不需要输入框
+     return null;
+  };    
 
-     return (
-        <div className={`absolute top-full left-1/2 -translate-x-1/2 w-[98%] pt-2 z-50 flex flex-col items-center justify-start transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] ${isOpen ? `opacity-100 translate-y-0 scale-100` : 'opacity-0 translate-y-[-10px] scale-95 pointer-events-none'}`}>
-            {/* InputThumbnails: Set strict Z-Index to lower layer */}
-            {hasInputs && onInputReorder && (<div className="w-full flex justify-center mb-2 z-0 relative"><InputThumbnails assets={inputAssets!} onReorder={(newOrder) => onInputReorder(node.id, newOrder)} /></div>)}
-            {/* Glass Panel: Set strict Z-Index to higher layer to overlap thumbnails */}
-            <div className={`w-full rounded-[20px] p-1 flex flex-col gap-1 ${GLASS_PANEL} relative z-[100]`} onMouseDown={e => e.stopPropagation()} onWheel={(e) => e.stopPropagation()}>
-                <div className="relative group/input bg-black/10 rounded-[16px]">
-                    <textarea className="w-full bg-transparent text-xs text-slate-200 placeholder-slate-500/60 p-3 focus:outline-none resize-none custom-scrollbar font-medium leading-relaxed" style={{ height: `${Math.min(inputHeight, 200)}px` }} placeholder={node.type === NodeType.AUDIO_GENERATOR ? "描述您想生成的音乐或音效..." : "描述您的修改或生成需求..."} value={localPrompt} onChange={(e) => setLocalPrompt(e.target.value)} onBlur={() => { setIsInputFocused(false); commitPrompt(); }} onKeyDown={handleCmdEnter} onFocus={() => setIsInputFocused(true)} onMouseDown={e => e.stopPropagation()} readOnly={isWorking} />
-                    <div className="absolute bottom-0 left-0 w-full h-3 cursor-row-resize flex items-center justify-center opacity-0 group-hover/input:opacity-100 transition-opacity" onMouseDown={handleInputResizeStart}><div className="w-8 h-1 rounded-full bg-white/10 group-hover/input:bg-white/20" /></div>
-                </div>
-                <div className="flex items-center justify-between px-2 pb-1 pt-1 relative z-20">
-                    <div className="flex items-center gap-2">
-                         <div className="relative group/model">
-                             <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg hover:bg-white/5 cursor-pointer transition-colors text-[10px] font-bold text-slate-400 hover:text-cyan-400"><span>{models.find(m => m.v === node.data.model)?.l || 'AI Model'}</span><ChevronDown size={10} /></div>
-                             <div className="absolute bottom-full left-0 pb-2 w-40 opacity-0 translate-y-2 pointer-events-none group-hover/model:opacity-100 group-hover/model:translate-y-0 group-hover/model:pointer-events-auto transition-all duration-200 z-[200]"><div className="bg-[#1c1c1e] border border-white/10 rounded-xl shadow-xl overflow-hidden">{models.map(m => (<div key={m.v} onClick={() => onUpdate(node.id, { model: m.v })} className={`px-3 py-2 text-[10px] font-bold cursor-pointer hover:bg-white/10 ${node.data.model === m.v ? 'text-cyan-400 bg-white/5' : 'text-slate-400'}`}>{m.l}</div>))}</div></div>
-                         </div>
-                         {node.type !== NodeType.VIDEO_ANALYZER && node.type !== NodeType.AUDIO_GENERATOR && (<div className="relative group/ratio"><div className="flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-white/5 cursor-pointer transition-colors text-[10px] font-bold text-slate-400 hover:text-cyan-400"><Scaling size={12} /><span>{node.data.aspectRatio || '16:9'}</span></div><div className="absolute bottom-full left-0 pb-2 w-20 opacity-0 translate-y-2 pointer-events-none group-hover/ratio:opacity-100 group-hover/ratio:translate-y-0 group-hover/ratio:pointer-events-auto transition-all duration-200 z-[200]"><div className="bg-[#1c1c1e] border border-white/10 rounded-xl shadow-xl overflow-hidden">{(node.type.includes('VIDEO') ? VIDEO_ASPECT_RATIOS : IMAGE_ASPECT_RATIOS).map(r => (<div key={r} onClick={() => handleAspectRatioSelect(r)} className={`px-3 py-2 text-[10px] font-bold cursor-pointer hover:bg-white/10 ${node.data.aspectRatio === r ? 'text-cyan-400 bg-white/5' : 'text-slate-400'}`}>{r}</div>))}</div></div></div>)}
-                         {(node.type.includes('IMAGE') || node.type === NodeType.VIDEO_GENERATOR) && (<div className="relative group/resolution"><div className="flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-white/5 cursor-pointer transition-colors text-[10px] font-bold text-slate-400 hover:text-cyan-400"><Monitor size={12} /><span>{node.data.resolution || (node.type.includes('IMAGE') ? '1k' : '720p')}</span></div><div className="absolute bottom-full left-0 pb-2 w-20 opacity-0 translate-y-2 pointer-events-none group-hover/resolution:opacity-100 group-hover/resolution:translate-y-0 group-hover/resolution:pointer-events-auto transition-all duration-200 z-[200]"><div className="bg-[#1c1c1e] border border-white/10 rounded-xl shadow-xl overflow-hidden">{(node.type.includes('IMAGE') ? IMAGE_RESOLUTIONS : VIDEO_RESOLUTIONS).map(r => (<div key={r} onClick={() => onUpdate(node.id, { resolution: r })} className={`px-3 py-2 text-[10px] font-bold cursor-pointer hover:bg-white/10 ${node.data.resolution === r ? 'text-cyan-400 bg-white/5' : 'text-slate-400'}`}>{r}</div>))}</div></div></div>)}
-                         {(node.type.includes('IMAGE') || node.type === NodeType.VIDEO_GENERATOR) && (<div className="relative group/count"><div className="flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-white/5 cursor-pointer transition-colors text-[10px] font-bold text-slate-400 hover:text-cyan-400"><Layers size={12} /><span>{node.type.includes('IMAGE') ? (node.data.imageCount || 1) : (node.data.videoCount || 1)}</span></div><div className="absolute bottom-full left-0 pb-2 w-16 opacity-0 translate-y-2 pointer-events-none group-hover/count:opacity-100 group-hover/count:translate-y-0 group-hover/count:pointer-events-auto transition-all duration-200 z-[200]"><div className="bg-[#1c1c1e] border border-white/10 rounded-xl shadow-xl overflow-hidden">{(node.type.includes('IMAGE') ? IMAGE_COUNTS : VIDEO_COUNTS).map(c => (<div key={c} onClick={() => onUpdate(node.id, node.type.includes('IMAGE') ? { imageCount: c } : { videoCount: c })} className={`px-3 py-2 text-[10px] font-bold cursor-pointer hover:bg-white/10 ${((node.type.includes('IMAGE') ? node.data.imageCount : node.data.videoCount) || 1) === c ? 'text-cyan-400 bg-white/5' : 'text-slate-400'}`}>{c}</div>))}</div></div></div>)}
-                    </div>
-                    <button onClick={handleActionClick} disabled={isWorking} className={`relative flex items-center gap-2 px-4 py-1.5 rounded-[12px] font-bold text-[10px] tracking-wide transition-all duration-300 ${isWorking ? 'bg-white/5 text-slate-500 cursor-not-allowed' : 'bg-gradient-to-r from-cyan-500 to-blue-500 text-black hover:shadow-lg hover:shadow-cyan-500/20 hover:scale-105 active:scale-95'}`}>{isWorking ? <Loader2 className="animate-spin" size={12} /> : <Wand2 size={12} />}<span>{isWorking ? '生成中...' : '生成'}</span></button>
-                </div>
-            </div>
-        </div>
-     );
-  };
-
+  // 🔥 性能优化：交互时禁用昂贵的 CSS 属性
   const isInteracting = isDragging || isResizing || isGroupDragging;
+  
+  // 🔥 九宫格节点拖手逻辑
+  const isGridSplitter = node.type === NodeType.GRID_SPLITTER;
+  const hasGridSelection = isGridSplitter && node.data.selectedIndex !== undefined && node.data.selectedIndex >= 0;
+  const showGridDragHandle = hasGridSelection && isSelected;
+  
+  // 🔥 强制重新编译 - 2026-01-28 15:30
   return (
     <div 
-        className={`absolute rounded-[24px] group ${isSelected ? 'ring-1 ring-cyan-500/50 shadow-[0_0_40px_-10px_rgba(34,211,238,0.3)] z-30' : 'ring-1 ring-white/10 hover:ring-white/20 z-10'}`}
+        {...props}
+        id={`node-${node.id}`}
+        data-node-id={node.id}
+        className={`absolute rounded-[24px] group ${isSelected ? 'ring-1 ring-cyan-500/50 shadow-[0_0_40px_-10px_rgba(34,211,238,0.3)] z-30' : 'ring-1 ring-white/10 hover:ring-white/20 z-10'} ${className || ''}`}
         style={{ 
-            left: node.x, top: node.y, width: nodeWidth, height: nodeHeight,
+            left: node.x, 
+            top: node.y, 
+            width: nodeWidth, 
+            height: nodeHeight,
             background: isSelected ? 'rgba(28, 28, 30, 0.85)' : 'rgba(28, 28, 30, 0.6)',
-            transition: isInteracting ? 'none' : 'all 0.5s cubic-bezier(0.32, 0.72, 0, 1)',
+            // 🔥 交互时禁用 transition 和昂贵的 CSS
+            transition: isInteracting ? 'none' : 'all 0.2s cubic-bezier(0.32, 0.72, 0, 1)',
             backdropFilter: isInteracting ? 'none' : 'blur(24px)',
             boxShadow: isInteracting ? 'none' : undefined,
-            willChange: isInteracting ? 'left, top, width, height' : 'auto'
+            willChange: isInteracting ? 'transform' : 'auto',
+            ...style, // 🔥 合并传入的 style
         }}
         onMouseDown={(e) => onNodeMouseDown(e, node.id)} 
         onDoubleClick={(e) => e.stopPropagation()} 
@@ -864,11 +952,50 @@ const NodeComponent: React.FC<NodeProps> = ({
         onMouseLeave={() => setIsHovered(false)} 
         onContextMenu={(e) => onNodeContextMenu(e, node.id)}
     >
+        {/* 🔥 九宫格节点拖手 - 在节点外部，不被裁剪 */}
+        {showGridDragHandle && (
+          <div 
+            className="absolute -bottom-5 -right-5 h-8 px-3 rounded-full bg-gray-100/95 backdrop-blur-md border border-gray-300 flex items-center gap-1.5 cursor-grab active:cursor-grabbing hover:bg-gray-200 hover:border-gray-400 active:scale-95 transition-all shadow-md z-[60]"
+            draggable={true}
+            onDragStart={(e) => {
+              if (!node.data.inputImage || node.data.selectedIndex === undefined) {
+                e.preventDefault();
+                return;
+              }
+              e.stopPropagation();
+              const dragData = {
+                type: 'grid-splitter-image',
+                originalImage: node.data.inputImage,
+                selectedIndex: node.data.selectedIndex,
+                croppedImage: node.data.croppedImages?.[node.data.selectedIndex]
+              };
+              e.dataTransfer.setData('application/json', JSON.stringify(dragData));
+              e.dataTransfer.effectAllowed = 'copy';
+              if (e.currentTarget instanceof HTMLElement) {
+                e.currentTarget.style.opacity = '0.5';
+              }
+            }}
+            onDragEnd={(e) => {
+              e.stopPropagation();
+              if (e.currentTarget instanceof HTMLElement) {
+                e.currentTarget.style.opacity = '1';
+              }
+            }}
+            onMouseDown={(e) => e.stopPropagation()}
+            title="拖动创建新图片节点"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-600">
+              <circle cx="9" cy="12" r="1"/><circle cx="9" cy="5" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="19" r="1"/>
+            </svg>
+            <span className="text-[11px] font-medium text-gray-700">拖出</span>
+          </div>
+        )}
         {renderTopBar()}
         <div className={`absolute -left-3 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full border border-white/20 bg-[#1c1c1e] flex items-center justify-center transition-all duration-300 hover:scale-125 cursor-crosshair z-50 shadow-md ${isConnecting ? 'ring-2 ring-cyan-400 animate-pulse' : ''}`} onMouseDown={(e) => onPortMouseDown(e, node.id, 'input')} onMouseUp={(e) => onPortMouseUp(e, node.id, 'input')} title="Input"><Plus size={10} strokeWidth={3} className="text-white/50" /></div>
         <div className={`absolute -right-3 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full border border-white/20 bg-[#1c1c1e] flex items-center justify-center transition-all duration-300 hover:scale-125 cursor-crosshair z-50 shadow-md ${isConnecting ? 'ring-2 ring-purple-400 animate-pulse' : ''}`} onMouseDown={(e) => onPortMouseDown(e, node.id, 'output')} onMouseUp={(e) => onPortMouseUp(e, node.id, 'output')} title="Output"><Plus size={10} strokeWidth={3} className="text-white/50" /></div>
         <div className="w-full h-full flex flex-col relative rounded-[24px] overflow-hidden bg-zinc-900"><div className="flex-1 min-h-0 relative bg-zinc-900">{renderMediaContent()}</div></div>
-        {renderBottomPanel()}
+        {/* 底部面板已彻底删除 - 用户不需要这个功能 */}
+        {/* {renderBottomPanel()} */}
         <div className="absolute -bottom-3 -right-3 w-6 h-6 flex items-center justify-center cursor-nwse-resize text-slate-500 hover:text-white transition-colors opacity-0 group-hover:opacity-100 z-50" onMouseDown={(e) => onResizeMouseDown(e, node.id, nodeWidth, nodeHeight)}><div className="w-1.5 h-1.5 rounded-full bg-current" /></div>
     </div>
   );

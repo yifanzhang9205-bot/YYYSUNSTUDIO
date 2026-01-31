@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>修复组标题</title>
+</head>
+<body>
+    <h1>修复组标题乱码</h1>
+    <button onclick="fixGroupTitles()">点击修复</button>
+    <pre id="log"></pre>
+
+    <script>
+        function log(msg) {
+            document.getElementById('log').textContent += msg + '\n';
+        }
+
+        function fixGroupTitles() {
+            log('开始修复...');
+            
+            // 获取 localStorage 中的数据
+            const keys = Object.keys(localStorage);
+            log(`找到 ${keys.length} 个 localStorage 项`);
+            
+            keys.forEach(key => {
+                if (key.includes('canvas') || key.includes('group') || key.includes('node')) {
+                    try {
+                        const data = JSON.parse(localStorage.getItem(key));
+                        let modified = false;
+                        
+                        // 修复 groups 数组
+                        if (data.groups && Array.isArray(data.groups)) {
+                            data.groups.forEach(group => {
+                                if (group.title && group.title.includes('�')) {
+                                    log(`修复组: ${group.id}`);
+                                    group.title = '新建分组';
+                                    modified = true;
+                                }
+                            });
+                        }
+                        
+                        // 修复单个 group 对象
+                        if (data.title && data.title.includes('�')) {
+                            log(`修复单个组: ${data.id}`);
+                            data.title = '新建分组';
+                            modified = true;
+                        }
+                        
+                        if (modified) {
+                            localStorage.setItem(key, JSON.stringify(data));
+                            log(`✓ 已更新: ${key}`);
+                        }
+                    } catch (e) {
+                        // 忽略非 JSON 数据
+                    }
+                }
+            });
+            
+            log('\n修复完成！请刷新页面。');
+        }
+    </script>
+</body>
+</html>
