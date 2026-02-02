@@ -3,10 +3,6 @@
 import { AppNode, NodeStatus, NodeType } from '../types';
 import { RefreshCw, Play, Image as ImageIcon, Video as VideoIcon, Type, AlertCircle, CheckCircle, Plus, Maximize2, Download, MoreHorizontal, Wand2, Scaling, FileSearch, Edit, Loader2, Layers, Trash2, X, Upload, Scissors, Film, MousePointerClick, Crop as CropIcon, ChevronDown, ChevronUp, GripHorizontal, Link, Copy, Monitor, Music, Pause, Volume2, Mic2 } from 'lucide-react';
 import { VideoModeSelector, SceneDirectorOverlay } from './VideoNodeModules';
-import { StoryStudioNode } from './StoryStudioNode';
-import { CharacterReferenceNode } from './CharacterReferenceNode';
-import { SceneReferenceNode } from './SceneReferenceNode';
-import { StoryboardShotNode } from './StoryboardShotNode';
 import { MultiAngleCameraNode } from './MultiAngleCameraNode';
 import { GridSplitterNode } from './GridSplitterNode';
 import { ScriptNode } from './ScriptNode';
@@ -582,103 +578,6 @@ const NodeComponent: React.FC<NodeProps> = ({
                       // TODO: 实现单个分镜生成
                       console.log('[剧本节点] 生成分镜:', shotId);
                   }}
-              />
-          );
-      }
-      
-      // 创意工作室节点
-      if (node.type === NodeType.STORY_STUDIO) {
-          return (
-              <StoryStudioNode
-                  concept={node.data.prompt || ''}
-                  storyStyle={node.data.storyStyle || '科幻'}
-                  targetDuration={node.data.targetDuration || 30}
-                  shotCount={node.data.shotCount || 6}
-                  storyData={node.data.storyData}
-                  userPrompt={node.data.userPrompt}
-                  isWorking={isWorking}
-                  isExpanded={isSelected || false}
-                  onConceptChange={(value) => {
-                      setLocalPrompt(value);
-                      onUpdate(node.id, { prompt: value });
-                  }}
-                  onStyleChange={(value) => onUpdate(node.id, { storyStyle: value })}
-                  onDurationChange={(value) => onUpdate(node.id, { targetDuration: value })}
-                  onShotCountChange={(value) => onUpdate(node.id, { shotCount: value })}
-                  onUserPromptChange={(value) => onUpdate(node.id, { userPrompt: value })}
-                  onGenerate={() => onAction(node.id, node.data.prompt)}
-              />
-          );
-      }
-      
-      // 角色参考节点
-      if (node.type === NodeType.CHARACTER_REFERENCE) {
-          const characters = node.data.storyData?.characters || [];
-          const currentIndex = node.data.currentCharacterIndex || 0;
-          
-          return (
-              <CharacterReferenceNode
-                  characters={characters}
-                  currentCharacterIndex={currentIndex}
-                  gridImages={node.data.gridImages}
-                  selectedGridIndex={node.data.selectedGridIndex}
-                  userPrompt={node.data.userPrompt}
-                  isWorking={isWorking}
-                  isExpanded={isSelected || false}
-                  onCharacterChange={(index) => onUpdate(node.id, { currentCharacterIndex: index })}
-                  onGridSelect={(index) => onUpdate(node.id, { selectedGridIndex: index })}
-                  onUserPromptChange={(value) => onUpdate(node.id, { userPrompt: value })}
-                  onGenerate={() => onAction(node.id)}
-                  onRegenerate={() => onAction(node.id)}
-              />
-          );
-      }
-      
-      // 场景参考节点
-      if (node.type === NodeType.SCENE_REFERENCE) {
-          const scenes = node.data.storyData?.scenes || [];
-          const currentIndex = node.data.currentSceneIndex || 0;
-          
-          return (
-              <SceneReferenceNode
-                  scenes={scenes}
-                  currentSceneIndex={currentIndex}
-                  gridImages={node.data.gridImages}
-                  selectedGridIndex={node.data.selectedGridIndex}
-                  userPrompt={node.data.userPrompt}
-                  isWorking={isWorking}
-                  isExpanded={isSelected || false}
-                  onSceneChange={(index) => onUpdate(node.id, { currentSceneIndex: index })}
-                  onGridSelect={(index) => onUpdate(node.id, { selectedGridIndex: index })}
-                  onUserPromptChange={(value) => onUpdate(node.id, { userPrompt: value })}
-                  onGenerate={() => onAction(node.id)}
-                  onRegenerate={() => onAction(node.id)}
-              />
-          );
-      }
-      
-      // 分镜生成节点
-      if (node.type === NodeType.STORYBOARD_SHOT) {
-          const shots = node.data.storyData?.shots || [];
-          const currentIndex = node.data.currentShotIndex || 0;
-          
-          return (
-              <StoryboardShotNode
-                  shots={shots}
-                  currentShotIndex={currentIndex}
-                  gridImages={node.data.gridImages}
-                  selectedGridIndex={node.data.selectedGridIndex}
-                  userPrompt={node.data.userPrompt}
-                  negativePrompt={node.data.negativePrompt}
-                  fullPrompt={node.data.fullPrompt}
-                  isWorking={isWorking}
-                  isExpanded={isSelected || false}
-                  onShotChange={(index) => onUpdate(node.id, { currentShotIndex: index })}
-                  onGridSelect={(index) => onUpdate(node.id, { selectedGridIndex: index })}
-                  onUserPromptChange={(value) => onUpdate(node.id, { userPrompt: value })}
-                  onNegativePromptChange={(value) => onUpdate(node.id, { negativePrompt: value })}
-                  onGenerate={() => onAction(node.id)}
-                  onRegenerate={() => onAction(node.id)}
               />
           );
       }

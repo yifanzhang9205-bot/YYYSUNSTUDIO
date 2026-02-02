@@ -48,19 +48,11 @@ export const useNodeHelpers = () => {
       return 200;
     }
     
-    // 故事创作节点：选中时展开，未选中时收起
-    if (node.type === NodeType.STORY_STUDIO) {
+    // 故事创作节点：选中时展开,未选中时收起
+    if (node.type === NodeType.SCRIPT_NODE) {
       const selectedNodeIds = useSelectionStore.getState().selectedNodeIds;
       const isSelected = selectedNodeIds.includes(node.id);
-      return isSelected ? 500 : 120;
-    }
-    
-    if (node.type === NodeType.CHARACTER_REFERENCE || node.type === NodeType.SCENE_REFERENCE) {
-      return 400;
-    }
-    
-    if (node.type === NodeType.STORYBOARD_SHOT) {
-      return 450;
+      return isSelected ? 600 : 200;
     }
     
     // 多角度相机：始终展开，大尺寸显示

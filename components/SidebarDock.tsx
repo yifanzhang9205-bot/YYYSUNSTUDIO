@@ -38,11 +38,7 @@ const getNodeNameCN = (t: string) => {
         case NodeType.AUDIO_GENERATOR: return '灵感音乐';
         case NodeType.VIDEO_ANALYZER: return '视频分析';
         case NodeType.IMAGE_EDITOR: return '图像编辑';
-        case NodeType.STORY_STUDIO: return '创意工作室';
         case NodeType.SCRIPT_NODE: return '剧本';
-        case NodeType.CHARACTER_REFERENCE: return '角色参考';
-        case NodeType.SCENE_REFERENCE: return '场景参考';
-        case NodeType.STORYBOARD_SHOT: return '分镜生成';
         case NodeType.MULTI_ANGLE_CAMERA: return '多角度相机';
         case NodeType.GRID_SPLITTER: return '九宫格处理';
         default: return t;
@@ -57,11 +53,7 @@ const getNodeIcon = (t: string) => {
         case NodeType.AUDIO_GENERATOR: return Mic2;
         case NodeType.VIDEO_ANALYZER: return ScanFace;
         case NodeType.IMAGE_EDITOR: return Brush;
-        case NodeType.STORY_STUDIO: return Sparkles;
         case NodeType.SCRIPT_NODE: return AlignJustify;
-        case NodeType.CHARACTER_REFERENCE: return ScanFace;
-        case NodeType.SCENE_REFERENCE: return ImageIcon;
-        case NodeType.STORYBOARD_SHOT: return Film;
         case NodeType.MULTI_ANGLE_CAMERA: return Camera;
         case NodeType.GRID_SPLITTER: return Grid3X3;
         default: return Plus;
@@ -459,7 +451,7 @@ export const SidebarDock: React.FC<SidebarDockProps> = ({
                     {/* 故事创作 */}
                     <div className="space-y-2 pt-2 border-t border-gray-200">
                         <div className="px-1 text-[9px] font-bold uppercase tracking-wider text-gray-400">故事创作</div>
-                        {[NodeType.STORY_STUDIO, NodeType.SCRIPT_NODE, NodeType.CHARACTER_REFERENCE, NodeType.SCENE_REFERENCE, NodeType.STORYBOARD_SHOT].map(t => {
+                        {[NodeType.SCRIPT_NODE].map(t => {
                             const ItemIcon = getNodeIcon(t);
                             return (
                                 <button 

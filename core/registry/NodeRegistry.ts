@@ -278,32 +278,6 @@ export function initializeNodeRegistry(): void {
       description: 'AI 剧本生成和管理',
     },
     {
-      type: NodeType.CHARACTER_REFERENCE,
-      name: '角色参考',
-      iconName: 'User',
-      defaultWidth: 420,
-      defaultHeight: 480,
-      defaultData: {
-        characterRefs: {},
-        currentCharacterIndex: 0,
-      },
-      category: 'story',
-      description: '角色设定和可视化',
-    },
-    {
-      type: NodeType.SCENE_REFERENCE,
-      name: '场景参考',
-      iconName: 'MapPin',
-      defaultWidth: 420,
-      defaultHeight: 480,
-      defaultData: {
-        sceneRefs: {},
-        currentSceneIndex: 0,
-      },
-      category: 'story',
-      description: '场景设定和可视化',
-    },
-    {
       type: NodeType.SHOT_IMAGE_GENERATOR,
       name: '分镜图生成',
       iconName: 'Camera',
@@ -346,30 +320,6 @@ export function initializeNodeRegistry(): void {
       },
       category: 'advanced',
       description: '自动切割和选择九宫格图片',
-    },
-
-    // ========== 已废弃节点 ==========
-    {
-      type: NodeType.STORY_STUDIO,
-      name: '创意工作室（已废弃）',
-      iconName: 'Sparkles',
-      defaultWidth: 420,
-      defaultHeight: 600,
-      defaultData: {},
-      category: 'deprecated',
-      deprecated: true,
-      description: '已被剧本节点替代',
-    },
-    {
-      type: NodeType.STORYBOARD_SHOT,
-      name: '分镜生成（已废弃）',
-      iconName: 'Film',
-      defaultWidth: 420,
-      defaultHeight: 480,
-      defaultData: {},
-      category: 'deprecated',
-      deprecated: true,
-      description: '已被分镜图生成替代',
     },
   ]);
 }

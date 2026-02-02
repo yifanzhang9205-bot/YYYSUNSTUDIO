@@ -7,12 +7,6 @@ export enum NodeType {
   IMAGE_EDITOR = 'IMAGE_EDITOR',
   AUDIO_GENERATOR = 'AUDIO_GENERATOR',
   
-  // 新增：故事创作流程节点
-  STORY_STUDIO = 'STORY_STUDIO',           // 创意工作室（已废弃）
-  CHARACTER_REFERENCE = 'CHARACTER_REFERENCE', // 角色参考
-  SCENE_REFERENCE = 'SCENE_REFERENCE',     // 场景参考
-  STORYBOARD_SHOT = 'STORYBOARD_SHOT',     // 分镜生成（已废弃）
-  
   // 新增：AI 协作工作室节点
   SCRIPT_NODE = 'SCRIPT_NODE',             // 剧本节点
   SHOT_IMAGE_GENERATOR = 'SHOT_IMAGE_GENERATOR', // 分镜图生成

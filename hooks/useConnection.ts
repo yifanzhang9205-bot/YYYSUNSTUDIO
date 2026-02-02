@@ -171,15 +171,6 @@ export const useConnection = ({
     const compatible: NodeType[] = [];
 
     switch (sourceNode.type) {
-      case NodeType.STORY_STUDIO:
-        compatible.push(NodeType.CHARACTER_REFERENCE, NodeType.SCENE_REFERENCE, NodeType.STORYBOARD_SHOT);
-        break;
-      case NodeType.CHARACTER_REFERENCE:
-        compatible.push(NodeType.STORYBOARD_SHOT);
-        break;
-      case NodeType.SCENE_REFERENCE:
-        compatible.push(NodeType.STORYBOARD_SHOT);
-        break;
       case NodeType.MULTI_ANGLE_CAMERA:
         compatible.push(NodeType.IMAGE_GENERATOR, NodeType.VIDEO_GENERATOR);
         break;
@@ -219,13 +210,6 @@ export const useConnection = ({
         break;
       case NodeType.AUDIO_GENERATOR:
         compatible.push(NodeType.PROMPT_INPUT);
-        break;
-      case NodeType.CHARACTER_REFERENCE:
-      case NodeType.SCENE_REFERENCE:
-        compatible.push(NodeType.STORY_STUDIO);
-        break;
-      case NodeType.STORYBOARD_SHOT:
-        compatible.push(NodeType.STORY_STUDIO, NodeType.CHARACTER_REFERENCE, NodeType.SCENE_REFERENCE);
         break;
       case NodeType.MULTI_ANGLE_CAMERA:
         compatible.push(NodeType.IMAGE_GENERATOR, NodeType.IMAGE_EDITOR);
