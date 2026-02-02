@@ -34,9 +34,9 @@ import {
     analyzeVideo, 
     editImageWithText, 
     planStoryboard, 
-    urlToBase64, 
     generateAudio 
 } from '../services/geminiService';
+import { urlToBase64 } from '../services/blobStorage';
 import { getGenerationStrategy } from '../services/videoStrategies';
 import { findNonOverlappingPosition, Rect } from '../core/utils/geometry';
 

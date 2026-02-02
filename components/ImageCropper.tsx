@@ -278,7 +278,7 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({ imageSrc, onConfirm,
       
       {/* Top Bar: Title */}
       <div className="absolute top-6 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2">
-        <div className="bg-[#2c2c2e]/90 backdrop-blur-md px-6 py-2.5 rounded-full border border-white/10 text-slate-300 text-xs font-medium flex items-center gap-2 shadow-2xl">
+        <div className="bg-gray-200/90 backdrop-blur-md px-6 py-2.5 rounded-full border border-white/10 text-slate-300 text-xs font-medium flex items-center gap-2 shadow-2xl">
             <Crop size={14} className="text-cyan-400" />
             <span>局部分镜截取</span>
         </div>
@@ -372,7 +372,7 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({ imageSrc, onConfirm,
       <div className="flex flex-col items-center gap-6 mt-8 w-full max-w-2xl px-4">
         
         {/* Aspect Ratio Selector */}
-        <div className="flex items-center gap-2 p-1 bg-[#1c1c1e] border border-white/10 rounded-xl shadow-lg overflow-x-auto custom-scrollbar max-w-full">
+        <div className="flex items-center gap-2 p-1 bg-gray-100 border border-white/10 rounded-xl shadow-lg overflow-x-auto custom-scrollbar max-w-full">
             {RATIOS.map(ratio => (
                 <button
                     key={ratio.label}

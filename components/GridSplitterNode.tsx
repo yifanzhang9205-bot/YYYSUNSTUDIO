@@ -1,5 +1,5 @@
-import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { Grid3X3, Check, Trash2, RotateCcw, Maximize, X, Scissors } from 'lucide-react';
+﻿import React, { useState, useRef, useCallback, useEffect } from 'react';
+import { Grid3X3, Check, Trash2, RotateCcw, Maximize, X, Upload } from 'lucide-react';
 
 interface GridSplitterNodeProps {
   inputImage?: string;
@@ -8,7 +8,7 @@ interface GridSplitterNodeProps {
   outputImage?: string;
   isWorking?: boolean;
   isExpanded?: boolean;
-  isSelected?: boolean; // 🔥 新增：节点是否被选中
+  isSelected?: boolean;
   onUpdate: (data: {
     inputImage?: string | null;
     croppedImages?: string[];
@@ -19,18 +19,20 @@ interface GridSplitterNodeProps {
 
 /**
  * 九宫格处理节点
- * - 上传 21:9 九宫格图片
- * - 自动切割成 9 张
- * - 双击选择一张作为输出（放大覆盖）
- * - 再次双击回到九宫格
- * - 拖动单图到画布创建新的高质量图片节点
+ * 
+ * 功能：
+ * 1. 接受 3D 相机的图片
+ * 2. 自动切割成 9 张（只在接收到新数据时）
+ * 3. 双击任意一张可以放大
+ * 4. 双击后拖动可以单张拖出（使用拖动手柄）
+ * 5. 防止无限循环（使用 lastInputImage 跟踪）
  */
 export const GridSplitterNode: React.FC<GridSplitterNodeProps> = ({
   inputImage,
   croppedImages = [],
   selectedIndex,
   isExpanded = true,
-  isSelected = false, // 🔥 接收 isSelected prop
+  isSelected = false,
   onUpdate
 }) => {
   const [isProcessing, setIsProcessing] = useState(false);
@@ -39,23 +41,17 @@ export const GridSplitterNode: React.FC<GridSplitterNodeProps> = ({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  // 🔥 使用 ref 跟踪是否已经切割过，防止重复切割
-  const hasCroppedRef = useRef(false);
-  
-  // 🔥 当 croppedImages 有值时，标记为已切割
-  useEffect(() => {
-    if (croppedImages && croppedImages.length > 0) {
-      hasCroppedRef.current = true;
-    }
-  }, [croppedImages]);
+  // 🔥 跟踪上一次的输入图片，防止重复切割
+  const lastInputImageRef = useRef<string | undefined>(undefined);
 
+  
   // 是否处于单图展示模式
   const hasSelection = selectedIndex !== undefined && selectedIndex >= 0 && selectedIndex < croppedImages.length;
   const isSingleView = hasSelection && croppedImages.length > 0;
   const selectedImage = hasSelection ? croppedImages[selectedIndex] : undefined;
 
   /**
-   * 切割九宫格图片（优化版 - 使用 Blob URL 节省内存 + 高质量切割）
+   * 切割九宫格图片（高质量切割 + Blob URL 优化）
    */
   const cropGridImage = useCallback(async (imageUrl: string): Promise<string[]> => {
     return new Promise((resolve, reject) => {
@@ -68,16 +64,14 @@ export const GridSplitterNode: React.FC<GridSplitterNodeProps> = ({
         const ctx = canvas.getContext('2d');
         if (!ctx) { reject(new Error('Context not available')); return; }
 
-        // 🔥 高质量切割设置
-        // 1. 启用高质量图像平滑（避免锯齿）
+        // 高质量切割设置
         ctx.imageSmoothingEnabled = true;
         ctx.imageSmoothingQuality = 'high';
         
-        // 2. 精确计算尺寸（避免像素丢失）
+        // 精确计算尺寸
         const cellWidth = img.width / 3;
         const cellHeight = img.height / 3;
         
-        // 3. 设置 Canvas 尺寸（使用精确值）
         canvas.width = Math.round(cellWidth);
         canvas.height = Math.round(cellHeight);
 
@@ -86,7 +80,6 @@ export const GridSplitterNode: React.FC<GridSplitterNodeProps> = ({
           for (let col = 0; col < 3; col++) {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             
-            // 4. 精确绘制（使用浮点数坐标）
             ctx.drawImage(
               img, 
               col * cellWidth, 
@@ -99,24 +92,19 @@ export const GridSplitterNode: React.FC<GridSplitterNodeProps> = ({
               canvas.height
             );
             
-            // 🔥 性能优化 + 内存优化：
-            // - 使用 WebP 格式（质量 95%，文件小，速度快）
-            // - 直接转换为 Blob（避免 Base64 字符串占用内存）
-            // - 立即清理 Canvas（释放内存）
+            // 转换为 Blob URL（内存优化）
             const blob = await new Promise<Blob>((resolve) => {
               canvas.toBlob((b) => resolve(b!), 'image/webp', 0.95);
             });
             
             const blobUrl = URL.createObjectURL(blob);
             results.push(blobUrl);
-            
-            // 🔥 关键：立即清理 Canvas（释放 16MB 内存）
-            canvas.width = 0;
-            canvas.height = 0;
           }
         }
         
-        // 🔥 关键：清理 Image 对象（释放 16MB 内存）
+        // 清理资源
+        canvas.width = 0;
+        canvas.height = 0;
         img.src = '';
         img.onload = null;
         img.onerror = null;
@@ -129,56 +117,55 @@ export const GridSplitterNode: React.FC<GridSplitterNodeProps> = ({
   }, []);
 
   /**
-   * 处理文件上传
+   * 🔥 自动切割：只在接收到新数据时触发
+   * 
+   * 关键逻辑：
+   * 1. 检查 inputImage 是否改变（与 lastInputImageRef 比较）
+   * 2. 如果改变，触发切割
+   * 3. 切割完成后，更新 lastInputImageRef
+   * 4. 这样可以防止无限循环，同时支持 3D 相机反复工作
    */
-  const handleFileSelect = useCallback(async (file: File) => {
-    if (!file.type.startsWith('image/')) return;
+  useEffect(() => {
+    // 条件 1：有输入图片
+    if (!inputImage) {
+      return;
+    }
+    
+    // 条件 2：输入图片改变了（新数据）
+    if (inputImage === lastInputImageRef.current) {
+      return;
+    }
+    
+    // 条件 3：不在处理中
+    if (isProcessing) {
+      return;
+    }
+    
+    console.log('[GridSplitter] 检测到新图片，自动切割');
+    console.log('[GridSplitter] 旧图片:', lastInputImageRef.current?.substring(0, 50));
+    console.log('[GridSplitter] 新图片:', inputImage.substring(0, 50));
+    
+    // 更新跟踪
+    lastInputImageRef.current = inputImage;
     setIsProcessing(true);
     
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      const dataUrl = e.target?.result as string;
-      try {
-        const cropped = await cropGridImage(dataUrl);
-        onUpdate({
-          inputImage: dataUrl,
+    cropGridImage(inputImage)
+      .then((cropped) => {
+        console.log('[GridSplitter] 自动切割完成，共', cropped.length, '张');
+        onUpdate({ 
           croppedImages: cropped,
           selectedIndex: undefined,
           outputImage: undefined
         });
-      } catch (err) {
-        console.error('切割失败:', err);
-      } finally {
+      })
+      .catch((err) => {
+        console.error('[GridSplitter] 自动切割失败:', err);
+        // 🔥 不重置 lastInputImageRef，防止无限重试
+        // 用户可以手动清除后重新上传
+      })
+      .finally(() => {
         setIsProcessing(false);
-      }
-    };
-    reader.readAsDataURL(file);
-  }, [cropGridImage, onUpdate]);
-
-  /**
-   * 🔥 手动触发切割（不再自动切割）
-   */
-  const handleManualCrop = useCallback(async () => {
-    if (!inputImage || isProcessing) return;
-    
-    console.log('[GridSplitter] 手动触发切割');
-    hasCroppedRef.current = true;
-    setIsProcessing(true);
-    
-    try {
-      const cropped = await cropGridImage(inputImage);
-      console.log('[GridSplitter] 切割完成，共', cropped.length, '张');
-      onUpdate({ 
-        croppedImages: cropped,
-        selectedIndex: undefined,
-        outputImage: undefined
       });
-    } catch (err) {
-      console.error('[GridSplitter] 切割失败:', err);
-      hasCroppedRef.current = false;
-    } finally {
-      setIsProcessing(false);
-    }
   }, [inputImage, isProcessing, cropGridImage, onUpdate]);
 
   /**
@@ -228,7 +215,7 @@ export const GridSplitterNode: React.FC<GridSplitterNodeProps> = ({
     e.stopPropagation();
     e.preventDefault();
     console.log('[GridSplitter] 清除所有图片');
-    hasCroppedRef.current = false; // 🔥 重置切割标记
+    lastInputImageRef.current = undefined; // 🔥 重置跟踪，允许重新切割
     onUpdate({ 
       inputImage: null,
       croppedImages: [], 
@@ -263,6 +250,23 @@ export const GridSplitterNode: React.FC<GridSplitterNodeProps> = ({
       return () => window.removeEventListener('keydown', handleKeyDown);
     }
   }, [isFullscreen]);
+
+  /**
+   * 上传本地图片
+   */
+  const handleFileSelect = useCallback(async (file: File) => {
+    console.log('[GridSplitter] 上传本地图片');
+    const blobUrl = URL.createObjectURL(file);
+    
+    // 更新输入图片
+    onUpdate({ inputImage: blobUrl });
+    
+    // 异步保存到 IndexedDB
+    const { saveFileToIndexedDBAsync } = await import('../services/blobStorage');
+    saveFileToIndexedDBAsync(`grid-input-${Date.now()}`, file).catch(error => {
+      console.error('[GridSplitter] 图片异步保存失败:', error);
+    });
+  }, [onUpdate]);
 
   // 拖拽
   const handleDragOver = (e: React.DragEvent) => { e.preventDefault(); setDragOver(true); };
@@ -337,11 +341,11 @@ export const GridSplitterNode: React.FC<GridSplitterNodeProps> = ({
   // 展开状态 - 显示完整的九宫格处理界面
   return (
     <div className="w-full h-full relative">
-      <div className="w-full h-full flex flex-col bg-[#0a0a0a] rounded-2xl overflow-hidden">
+      <div className="w-full h-full flex flex-col bg-gray-100 rounded-2xl overflow-hidden">
         <canvas ref={canvasRef} style={{ display: 'none' }} />
       
       {/* 🔥 头部 - 固定在节点外部顶部 */}
-      <div className="absolute -top-11 left-0 right-0 h-10 bg-[#1c1c1e]/80 backdrop-blur-xl border border-white/5 rounded-t-xl flex items-center justify-between px-4 z-10">
+      <div className="absolute -top-11 left-0 right-0 h-10 bg-gray-100/80 backdrop-blur-xl border border-white/5 rounded-t-xl flex items-center justify-between px-4 z-10">
         <div className="flex items-center gap-2">
           <Grid3X3 size={16} className="text-white/40" />
           {isSingleView && isSelected && (
@@ -351,18 +355,6 @@ export const GridSplitterNode: React.FC<GridSplitterNodeProps> = ({
           )}
         </div>
         <div className="flex items-center gap-1">
-          {/* 🔥 手动切割按钮 - 只在有输入图片且未切割时显示 */}
-          {inputImage && croppedImages.length === 0 && !isProcessing && (
-            <button
-              onClick={handleManualCrop}
-              onMouseDown={(e) => e.stopPropagation()}
-              className="h-7 px-3 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 flex items-center gap-1.5 text-cyan-400 hover:text-cyan-300 transition-all text-xs font-medium"
-              title="切割九宫格"
-            >
-              <Scissors size={14} />
-              <span>切割</span>
-            </button>
-          )}
           {/* 全屏按钮 */}
           {(isSingleView || croppedImages.length > 0) && (
             <button
@@ -434,7 +426,7 @@ export const GridSplitterNode: React.FC<GridSplitterNodeProps> = ({
           </div>
         )}
 
-        {/* 🔥 有输入图片但未切割 - 显示预览和切割按钮 */}
+        {/* 🔥 有输入图片但未切割 - 显示预览（自动切割中） */}
         {!isProcessing && inputImage && croppedImages.length === 0 && (
           <div className="flex-1 flex flex-col items-center justify-center gap-4 p-4">
             {/* 预览图片 */}
@@ -448,7 +440,7 @@ export const GridSplitterNode: React.FC<GridSplitterNodeProps> = ({
             {/* 提示文字 */}
             <div className="text-center">
               <p className="text-sm text-white/60 font-medium">图片已接入</p>
-              <p className="text-xs text-white/40 mt-1">点击顶部"切割"按钮开始处理</p>
+              <p className="text-xs text-white/40 mt-1">正在自动切割...</p>
             </div>
           </div>
         )}
@@ -491,7 +483,7 @@ export const GridSplitterNode: React.FC<GridSplitterNodeProps> = ({
         {!isProcessing && inputImage && croppedImages.length > 0 && !isSingleView && (
           <div className="flex-1 flex flex-col">
             {/* 九宫格容器 - 保持 21:9 比例 */}
-            <div className="w-full aspect-[21/9] bg-black/20 rounded-xl grid grid-cols-3 grid-rows-3 gap-1 p-1">
+            <div className="w-full aspect-[21/9] bg-gray-100/20 rounded-xl grid grid-cols-3 grid-rows-3 gap-1 p-1">
               {croppedImages.map((img, i) => (
                 <div
                   key={i}
@@ -505,7 +497,7 @@ export const GridSplitterNode: React.FC<GridSplitterNodeProps> = ({
                 >
                   <img src={img} alt="" className="w-full h-full object-cover" draggable={false} />
                   {/* 编号 */}
-                  <div className="absolute bottom-1 left-1 w-5 h-5 rounded bg-black/60 flex items-center justify-center text-[10px] font-bold text-white/80">
+                  <div className="absolute bottom-1 left-1 w-5 h-5 rounded bg-gray-100/60 flex items-center justify-center text-[10px] font-bold text-white/80">
                     {i + 1}
                   </div>
                 </div>
@@ -549,7 +541,7 @@ export const GridSplitterNode: React.FC<GridSplitterNodeProps> = ({
               )
             ) : croppedImages.length > 0 ? (
               // 九宫格全屏
-              <div className="w-full max-w-[85vw] aspect-[21/9] grid grid-cols-3 grid-rows-3 gap-2 p-2 bg-black/40 rounded-xl">
+              <div className="w-full max-w-[85vw] aspect-[21/9] grid grid-cols-3 grid-rows-3 gap-2 p-2 bg-gray-100/40 rounded-xl">
                 {croppedImages.map((img, i) => (
                   <div
                     key={i}

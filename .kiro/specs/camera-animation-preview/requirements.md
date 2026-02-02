@@ -1,150 +1,377 @@
-# 需求文档：相机角度动画预览
+# 多角度相机动画预览功能需求文档
 
-## 简介
+## 1. 功能概述
 
-为 SunStudio 的多角度相机节点添加角度动画预览功能，使用户能够定义相机运动路径、实时预览动画效果，并导出为图片序列或视频。该功能将帮助用户创建产品 360° 展示、角色多角度参考和相机运镜设计。
+多角度相机动画预览功能允许用户在 3D 空间中可视化相机位置和角度，通过交互式控制实时预览相机视角变化，并生成对应角度的图片九宫格。
 
-## 术语表
+## 2. 用户故事
 
-- **Animation_System**: 角度动画系统，负责管理关键帧、插值计算和动画播放
-- **Keyframe**: 关键帧，定义相机在特定时间点的角度参数（水平角度、垂直角度、距离）
-- **Timeline**: 时间轴，用于可视化和编辑关键帧的 UI 组件
-- **Interpolation**: 插值，在两个关键帧之间计算平滑过渡的算法
-- **Easing_Function**: 缓动函数，控制动画速度变化的数学函数（如 linear、ease-in、ease-out）
-- **Animation_Preset**: 动画预设，预定义的常用相机运动模式（如 360° 旋转、环绕）
-- **Export_Sequence**: 导出序列，将动画的每一帧渲染为图片或视频的过程
-- **Playback_Controls**: 播放控制器，包含播放、暂停、停止、跳转等操作
-- **Camera_Path**: 相机路径，由多个关键帧组成的完整运动轨迹
+### 2.1 作为内容创作者
+**我想要** 在生成图片前预览相机的 3D 位置和角度  
+**以便** 我能直观理解相机参数对最终图片的影响  
+**验收标准：**
+- 显示 3D 场景，包含立方体、地面网格、坐标轴
+- 相机位置在 3D 空间中实时显示
+- 调整参数时，相机位置平滑移动
+- 3D 场景使用透视投影，具有真实的深度感
 
-## 需求
+### 2.2 作为内容创作者
+**我想要** 通过滑块精确控制相机的水平角度、垂直角度和距离  
+**以便** 我能获得想要的拍摄角度  
+**验收标准：**
+- 水平角度滑块：0° - 360°，步长 15°
+- 垂直角度滑块：-30° - 60°，步长 10°
+- 距离滑块：0 - 10，步长 0.5
+- 滑块实时响应，无延迟
+- 显示当前参数的数值和描述
 
-### 需求 1：关键帧管理
+### 2.3 作为内容创作者
+**我想要** 使用预设角度快速切换到常用视角  
+**以便** 我能快速测试不同的拍摄角度  
+**验收标准：**
+- 提供至少 8 个预设角度（正面、右前、右侧、右后、背面、左后、左侧、左前）
+- 点击预设按钮后，相机平滑过渡到目标位置
+- 预设按钮显示角度名称和度数
+- 当前角度的预设按钮高亮显示
 
-**用户故事：** 作为用户，我希望能够添加、编辑和删除关键帧，以便定义相机的运动路径。
+### 2.4 作为内容创作者
+**我想要** 基于参考图片生成九宫格多角度图片  
+**以便** 我能获得同一对象的多个细微变化角度  
+**验收标准：**
+- 上传参考图片后，显示在节点中
+- 点击"生成九宫格"按钮，生成 9 张图片
+- 九宫格布局：3×3，中心为目标角度
+- 周围 8 张图片为细微变化（水平 ±15°，垂直 ±10°，距离 ±0.8）
+- 显示生成进度和状态
 
-#### 验收标准
+### 2.5 作为内容创作者
+**我想要** 从九宫格中选择最满意的图片  
+**以便** 我能将其用于后续创作  
+**验收标准：**
+- 九宫格中的每张图片可点击选择
+- 选中的图片显示边框高亮
+- 选中后，图片自动设置为节点的主图片
+- 可以重新选择其他图片
 
-1. WHEN 用户点击"添加关键帧"按钮 THEN THE Animation_System SHALL 在当前时间点创建一个新关键帧，并记录当前的相机参数（水平角度、垂直角度、距离）
-2. WHEN 用户选择一个关键帧 THEN THE Timeline SHALL 高亮显示该关键帧，并在 3D 视口中显示对应的相机位置
-3. WHEN 用户修改关键帧的参数 THEN THE Animation_System SHALL 更新该关键帧的数据，并实时刷新预览
-4. WHEN 用户删除一个关键帧 THEN THE Animation_System SHALL 从路径中移除该关键帧，并重新计算插值
-5. WHEN 用户拖拽关键帧在时间轴上的位置 THEN THE Timeline SHALL 更新关键帧的时间戳，并保持参数不变
-6. THE Animation_System SHALL 支持至少 20 个关键帧
-7. WHEN 关键帧数量为 0 或 1 THEN THE Animation_System SHALL 禁用播放功能
+## 3. 功能需求
 
-### 需求 2：动画预览播放
+### 3.1 3D 场景渲染
 
-**用户故事：** 作为用户，我希望能够实时预览相机动画，以便验证运动效果是否符合预期。
+#### 3.1.1 透视容器
+- 使用 CSS `perspective: 1200px` 创建透视效果
+- 容器高度：400px
+- 背景：紫色到粉色渐变，带装饰网格
 
-#### 验收标准
+#### 3.1.2 3D 舞台
+- 使用 `transform-style: preserve-3d` 保持 3D 空间
+- 根据相机角度旋转整个场景
+- 旋转公式：`rotateX(${-verticalAngle * 0.5}deg) rotateY(${horizontalAngle}deg)`
 
-1. WHEN 用户点击"播放"按钮 THEN THE Playback_Controls SHALL 开始播放动画，并在 3D 视口中实时更新相机位置
-2. WHEN 动画播放中 THEN THE Animation_System SHALL 以至少 30 FPS 的帧率更新相机位置
-3. WHEN 用户点击"暂停"按钮 THEN THE Playback_Controls SHALL 暂停动画，并保持当前帧的相机位置
-4. WHEN 用户点击"停止"按钮 THEN THE Playback_Controls SHALL 停止动画，并将相机重置到第一个关键帧
-5. WHEN 动画播放到最后一帧 THEN THE Playback_Controls SHALL 自动停止，或根据循环设置重新开始
-6. WHEN 用户拖拽时间轴滑块 THEN THE Animation_System SHALL 跳转到指定时间点，并更新相机位置
-7. THE Playback_Controls SHALL 显示当前播放时间和总时长
+#### 3.1.3 地面网格
+- 尺寸：500×500px
+- 网格大小：40×40px
+- 颜色：紫色（#a855f7）
+- 位置：立方体下方 80px
+- 光晕效果：紫色阴影
 
-### 需求 3：插值和缓动
+#### 3.1.4 立方体
+- 尺寸：120×120×120px
+- 六个面：前、后、左、右、上、下
+- 前面：紫色装饰，易于识别
+- 其他面：半透明白色，带边框
+- 阴影：底部阴影，增强立体感
 
-**用户故事：** 作为用户，我希望相机在关键帧之间平滑过渡，并能选择不同的缓动效果，以便创建自然流畅的动画。
+#### 3.1.5 坐标轴
+- X 轴：红色，水平向右，长度 48px
+- Y 轴：绿色，垂直向上，长度 48px
+- Z 轴：蓝色，垂直向前，长度 48px
+- 渐变效果：从实色到透明
 
-#### 验收标准
+#### 3.1.6 相机图标
+- 位置：根据参数计算的 3D 坐标
+- 图标：相机 SVG，带"Camera"标签
+- 光晕：紫色脉冲动画
+- 阴影：底部阴影
 
-1. WHEN 两个关键帧之间存在时间间隔 THEN THE Interpolation SHALL 计算中间帧的相机参数，使过渡平滑连续
-2. THE Animation_System SHALL 支持线性插值（Linear）作为默认插值方式
-3. THE Animation_System SHALL 支持至少 3 种缓动函数：Ease-In、Ease-Out、Ease-In-Out
-4. WHEN 用户为关键帧选择缓动函数 THEN THE Animation_System SHALL 应用该缓动函数到该关键帧与下一个关键帧之间的过渡
-5. WHEN 水平角度跨越 0°/360° 边界 THEN THE Interpolation SHALL 选择最短路径进行插值（例如从 350° 到 10° 应顺时针旋转 20°，而非逆时针 340°）
-6. FOR ALL 关键帧对，插值计算 SHALL 在 16ms 内完成（保证 60 FPS）
+### 3.2 参数控制
 
-### 需求 4：动画预设
+#### 3.2.1 水平角度（Azimuth）
+- 范围：0° - 360°
+- 步长：15°
+- 默认值：0°（正面）
+- 描述映射：
+  - 0° - 22.5°: "front"
+  - 22.5° - 67.5°: "front-right 45°"
+  - 67.5° - 112.5°: "right side 90°"
+  - 112.5° - 157.5°: "back-right 135°"
+  - 157.5° - 202.5°: "back 180°"
+  - 202.5° - 247.5°: "back-left 225°"
+  - 247.5° - 292.5°: "left side 270°"
+  - 292.5° - 337.5°: "front-left 315°"
 
-**用户故事：** 作为用户，我希望能够快速应用常用的相机运动模式，以便节省设置时间。
+#### 3.2.2 垂直角度（Elevation）
+- 范围：-30° - 60°
+- 步长：10°
+- 默认值：0°（平视）
+- 描述映射：
+  - 80° - 90°: "top-down view"
+  - 40° - 80°: "high angle"
+  - 10° - 40°: "slightly high angle"
+  - -10° - 10°: "eye level"
+  - -30° - -10°: "slightly low angle"
+  - -60° - -30°: "low angle"
+  - -90° - -60°: "bottom-up view"
 
-#### 验收标准
+#### 3.2.3 距离（Distance）
+- 范围：0 - 10
+- 步长：0.5
+- 默认值：5（中景）
+- 描述映射：
+  - 0 - 0.5: "extreme close-up"
+  - 0.5 - 1.5: "close-up"
+  - 1.5 - 3: "medium close-up"
+  - 3 - 4.5: "medium shot"
+  - 4.5 - 6: "medium full shot"
+  - 6 - 7.5: "full shot"
+  - 7.5 - 9: "wide shot"
+  - 9 - 10: "extreme wide shot"
 
-1. THE Animation_System SHALL 提供"360° 水平旋转"预设，生成 8 个均匀分布的关键帧（每 45° 一个）
-2. THE Animation_System SHALL 提供"上下环绕"预设，生成垂直角度从 -30° 到 60° 的关键帧序列
-3. THE Animation_System SHALL 提供"推拉镜头"预设，生成距离从 0 到 10 的关键帧序列
-4. WHEN 用户选择一个预设 THEN THE Animation_System SHALL 清除现有关键帧，并生成预设的关键帧序列
-5. WHEN 用户应用预设后 THEN THE Animation_System SHALL 允许用户进一步编辑生成的关键帧
+### 3.3 预设角度
 
-### 需求 5：时间轴 UI
+提供以下预设角度：
+1. 正面：h=0°, v=0°
+2. 右前：h=45°, v=0°
+3. 右侧：h=90°, v=0°
+4. 右后：h=135°, v=0°
+5. 背面：h=180°, v=0°
+6. 左后：h=225°, v=0°
+7. 左侧：h=270°, v=0°
+8. 左前：h=315°, v=0°
 
-**用户故事：** 作为用户，我希望有一个直观的时间轴界面，以便可视化和编辑关键帧。
+### 3.4 图片生成
 
-#### 验收标准
+#### 3.4.1 API 集成
+- 使用 NanoBanana API 生成图片
+- 通过 ImgBB 上传参考图片获取 URL
+- 支持图生图（referenceUrls 参数）
 
-1. THE Timeline SHALL 显示所有关键帧在时间轴上的位置
-2. WHEN 用户点击时间轴上的某个位置 THEN THE Timeline SHALL 将播放头移动到该位置
-3. WHEN 用户悬停在关键帧上 THEN THE Timeline SHALL 显示该关键帧的参数信息（水平角度、垂直角度、距离）
-4. THE Timeline SHALL 使用不同颜色或图标区分不同类型的关键帧变化（仅水平、仅垂直、组合）
-5. THE Timeline SHALL 显示当前播放头的位置
-6. THE Timeline SHALL 支持缩放时间轴以查看更多或更少的细节
-7. THE Timeline SHALL 遵循 iOS 风格设计，与现有 UI 保持一致
+#### 3.4.2 提示词生成
+- 基于相机参数生成精确的提示词
+- 包含：角度度数、距离描述、用户补充描述
+- 格式：
+  ```
+  **TARGET CAMERA ANGLES:**
+  - Azimuth: {horizontalAngle}°
+  - Elevation: {verticalAngle}°
+  - Distance: {cameraZoom}
+  
+  **9 PANEL SPECIFICATIONS:**
+  Panel 1-9: 具体的角度参数
+  
+  **SUBJECT:** {用户描述}
+  ```
 
-### 需求 6：导出序列
+#### 3.4.3 九宫格布局
+- 3×3 网格，共 9 张图片
+- 中心（Panel 5）：目标角度
+- 水平变化：左（-15°）、中（0°）、右（+15°）
+- 垂直变化：上（+10°）、中（0°）、下（-10°）
+- 距离变化：上（-0.8）、中（0）、下（+0.8）
 
-**用户故事：** 作为用户，我希望能够将动画导出为图片序列或视频，以便在其他应用中使用。
+#### 3.4.4 图片选择
+- 点击九宫格中的图片进行选择
+- 选中的图片显示紫色边框
+- 选中后自动设置为节点主图片
 
-#### 验收标准
+### 3.5 动画效果
 
-1. WHEN 用户点击"导出序列"按钮 THEN THE Export_Sequence SHALL 显示导出配置面板
-2. THE Export_Sequence SHALL 允许用户选择导出格式：图片序列（PNG）或视频（MP4）
-3. THE Export_Sequence SHALL 允许用户设置帧率（15、30、60 FPS）
-4. THE Export_Sequence SHALL 允许用户设置输出分辨率（与当前九宫格设置一致）
-5. WHEN 用户确认导出 THEN THE Export_Sequence SHALL 遍历动画的每一帧，调用 Gemini API 生成图片
-6. WHEN 导出进行中 THEN THE Export_Sequence SHALL 显示进度条和当前帧数
-7. WHEN 导出完成 THEN THE Export_Sequence SHALL 提供下载链接或自动下载文件
-8. IF Gemini API 调用失败 THEN THE Export_Sequence SHALL 记录错误，并允许用户重试失败的帧
+#### 3.5.1 平滑过渡
+- 所有 3D 变换使用 `transition: transform 0.7s ease-out`
+- 相机移动平滑自然
+- 场景旋转平滑自然
 
-### 需求 7：数据持久化
+#### 3.5.2 实时响应
+- 滑块拖动时立即更新
+- 无延迟，无卡顿
+- 使用 GPU 硬件加速
 
-**用户故事：** 作为用户，我希望动画配置能够保存到节点数据中，以便下次打开项目时恢复。
+## 4. 非功能需求
 
-#### 验收标准
+### 4.1 性能
+- 3D 场景渲染帧率 ≥ 30 FPS
+- 参数调整响应时间 < 50ms
+- 图片生成时间 < 30s（取决于 API）
 
-1. WHEN 用户添加或修改关键帧 THEN THE Animation_System SHALL 将关键帧数据序列化到节点的 data 属性中
-2. WHEN 节点加载时 THEN THE Animation_System SHALL 从节点 data 中反序列化关键帧数据
-3. THE Animation_System SHALL 保存每个关键帧的时间戳、相机参数和缓动函数
-4. THE Animation_System SHALL 保存动画的总时长和循环设置
-5. WHEN 序列化数据损坏或版本不兼容 THEN THE Animation_System SHALL 使用默认空动画，并记录警告
+### 4.2 兼容性
+- 支持 Chrome 36+
+- 支持 Firefox 16+
+- 支持 Safari 9+
+- 支持 Edge 12+
+- 不支持 IE 11 及以下
 
-### 需求 8：性能优化
+### 4.3 可用性
+- 界面直观，易于理解
+- 参数调整实时预览
+- 错误提示清晰明确
+- 支持键盘快捷键（可选）
 
-**用户故事：** 作为用户，我希望动画预览流畅不卡顿，以便获得良好的使用体验。
+### 4.4 可维护性
+- 代码结构清晰
+- 组件化设计
+- 注释完整
+- 易于扩展
 
-#### 验收标准
+## 5. 技术约束
 
-1. WHEN 动画播放时 THEN THE Animation_System SHALL 不阻塞主线程，保持 UI 响应
-2. WHEN 关键帧数量达到 20 个 THEN THE Animation_System SHALL 仍能保持至少 30 FPS 的播放帧率
-3. THE Animation_System SHALL 使用 requestAnimationFrame 进行动画循环
-4. WHEN 用户切换到其他节点 THEN THE Animation_System SHALL 暂停动画播放，释放资源
-5. THE Animation_System SHALL 复用 Three.js 渲染器，不创建额外的 WebGL 上下文
+### 5.1 前端技术
+- React + TypeScript
+- Tailwind CSS
+- CSS 3D Transforms
 
-### 需求 9：错误处理
+### 5.2 API 依赖
+- NanoBanana API：图片生成
+- ImgBB API：图片上传
 
-**用户故事：** 作为用户，我希望在出现错误时能够得到清晰的提示，以便知道如何解决问题。
+### 5.3 环境变量
+- `NANOBANAN_API_KEY`：NanoBanana API 密钥
+- `IMGBB_API_KEY`：ImgBB API 密钥
 
-#### 验收标准
+## 6. 数据模型
 
-1. WHEN 用户尝试添加超过 20 个关键帧 THEN THE Animation_System SHALL 显示错误提示"关键帧数量已达上限（20 个）"
-2. WHEN 导出过程中 Gemini API 返回错误 THEN THE Export_Sequence SHALL 显示具体的错误信息，并提供重试选项
-3. WHEN 关键帧数据无效（如时间戳重复） THEN THE Animation_System SHALL 自动修正或提示用户
-4. WHEN 浏览器不支持 WebGL THEN THE Animation_System SHALL 显示降级提示，禁用 3D 预览
-5. WHEN 导出文件大小超过浏览器限制 THEN THE Export_Sequence SHALL 提示用户减少帧数或分辨率
+### 6.1 节点数据结构
+```typescript
+interface MultiAngleCameraNode {
+  id: string;
+  type: 'multiAngleCamera';
+  position: { x: number; y: number };
+  data: {
+    image?: string; // 参考图片（base64）
+    gridImages?: string[]; // 九宫格图片（base64）
+    selectedIndex?: number; // 选中的图片索引
+    horizontalAngle: number; // 水平角度（0-360）
+    verticalAngle: number; // 垂直角度（-30-60）
+    cameraZoom: number; // 距离（0-10）
+    description?: string; // 用户补充描述
+    isGenerating?: boolean; // 是否正在生成
+  };
+}
+```
 
-### 需求 10：UI 集成
+### 6.2 API 请求参数
+```typescript
+interface NanoBananaRequest {
+  prompt: string; // 提示词
+  referenceUrls?: string[]; // 参考图片 URL
+  model?: string; // 模型名称
+  // 其他参数...
+}
+```
 
-**用户故事：** 作为用户，我希望动画功能无缝集成到现有的多角度相机节点中，以便不影响现有工作流程。
+## 7. 用户界面
 
-#### 验收标准
+### 7.1 节点布局
+```
+┌─────────────────────────────────┐
+│ 多角度相机                        │
+├─────────────────────────────────┤
+│ [3D 场景预览]                     │
+│  - 立方体                         │
+│  - 地面网格                       │
+│  - 坐标轴                         │
+│  - 相机图标                       │
+├─────────────────────────────────┤
+│ 水平角度: [滑块] 90° (right side) │
+│ 垂直角度: [滑块] 0° (eye level)   │
+│ 距离: [滑块] 5.0 (medium full)    │
+├─────────────────────────────────┤
+│ 预设角度:                         │
+│ [正面][右前][右侧][右后]           │
+│ [背面][左后][左侧][左前]           │
+├─────────────────────────────────┤
+│ 补充描述: [文本框]                │
+│ [上传参考图片] [生成九宫格]        │
+├─────────────────────────────────┤
+│ [九宫格图片显示区域]               │
+│ ┌───┬───┬───┐                    │
+│ │ 1 │ 2 │ 3 │                    │
+│ ├───┼───┼───┤                    │
+│ │ 4 │ 5 │ 6 │                    │
+│ ├───┼───┼───┤                    │
+│ │ 7 │ 8 │ 9 │                    │
+│ └───┴───┴───┘                    │
+└─────────────────────────────────┘
+```
 
-1. THE Animation_System SHALL 作为多角度相机节点的一个可选功能模块
-2. WHEN 用户点击"动画"按钮 THEN THE Animation_System SHALL 显示动画编辑面板，覆盖在 3D 视口上方
-3. WHEN 动画面板打开时 THEN THE Animation_System SHALL 保留现有的相机控制功能（拖拽、滚轮缩放）
-4. THE Animation_System SHALL 使用与现有 UI 一致的 iOS 风格设计（毛玻璃、圆角、动画过渡）
-5. WHEN 用户关闭动画面板 THEN THE Animation_System SHALL 恢复到普通相机控制模式
-6. THE Animation_System SHALL 不影响现有的九宫格生成功能
+### 7.2 交互流程
+1. 用户上传参考图片
+2. 用户调整相机参数（或选择预设）
+3. 用户在 3D 场景中预览相机位置
+4. 用户点击"生成九宫格"
+5. 系统上传参考图片到 ImgBB
+6. 系统调用 NanoBanana API 生成 9 张图片
+7. 系统显示九宫格图片
+8. 用户选择满意的图片
+9. 选中的图片设置为节点主图片
+
+## 8. 错误处理
+
+### 8.1 API 错误
+- ImgBB 上传失败：显示错误提示，允许重试
+- NanoBanana 生成失败：显示错误提示，允许重试
+- 网络超时：显示超时提示，允许重试
+
+### 8.2 用户输入错误
+- 未上传参考图片：禁用"生成九宫格"按钮
+- 参数超出范围：自动限制在有效范围内
+
+### 8.3 浏览器兼容性
+- 不支持 3D Transforms：显示降级提示
+- 不支持 IndexedDB：使用 LocalStorage 降级
+
+## 9. 测试需求
+
+### 9.1 单元测试
+- 角度描述映射函数
+- 距离描述映射函数
+- 提示词生成函数
+- 九宫格参数计算函数
+
+### 9.2 集成测试
+- ImgBB 上传流程
+- NanoBanana 生成流程
+- 图片选择流程
+
+### 9.3 端到端测试
+- 完整的用户操作流程
+- 不同浏览器的兼容性测试
+
+### 9.4 性能测试
+- 3D 场景渲染性能
+- 大量节点时的性能
+- 内存使用情况
+
+## 10. 未来扩展
+
+### 10.1 相机路径动画
+- 定义多个关键帧
+- 自动生成相机路径
+- 预览路径动画
+
+### 10.2 批量生成
+- 一次生成多个角度的九宫格
+- 提供更多选择
+
+### 10.3 自定义提示词模板
+- 允许用户自定义提示词格式
+- 保存常用模板
+
+### 10.4 光照和材质控制
+- 添加光照参数
+- 添加材质参数
+- 在 3D 场景中预览
+
+---
+
+**文档版本：** 1.0  
+**创建日期：** 2026-01-23  
+**最后更新：** 2026-01-23

@@ -52,7 +52,7 @@ const IMAGE_RESOLUTIONS = ['1k', '2k', '4k'];
 const VIDEO_RESOLUTIONS = ['480p', '720p', '1080p'];
 const IMAGE_COUNTS = [1, 2, 3, 4];
 const VIDEO_COUNTS = [1, 2, 3, 4];
-const GLASS_PANEL = "bg-[#2c2c2e]/95 backdrop-blur-2xl border border-white/10 shadow-2xl";
+const GLASS_PANEL = "bg-[#FAFBFC] border border-gray-400 shadow-[0_2px_8px_rgba(0,0,0,0.08),0_1px_2px_rgba(0,0,0,0.06)]";
 const DEFAULT_NODE_WIDTH = 420;
 const DEFAULT_FIXED_HEIGHT = 360; 
 const AUDIO_NODE_HEIGHT = 200;
@@ -103,7 +103,7 @@ const SecureVideo = ({ src, className, autoPlay, muted, loop, onMouseEnter, onMo
     }
 
     if (!blobUrl) {
-        return <div className={`flex items-center justify-center bg-zinc-900 ${className}`}><Loader2 className="animate-spin text-zinc-600" /></div>;
+        return <div className={`flex items-center justify-center bg-gray-100 ${className}`}><Loader2 className="animate-spin text-zinc-600" /></div>;
     }
 
     return (
@@ -299,9 +299,9 @@ const InputThumbnails = ({ assets, onReorder }: { assets: InputAsset[], onReorde
                             onMouseDown={(e) => handleMouseDown(e, asset.id)}
                         >
                             {isVideo ? (
-                                <SecureVideo src={asset.src} className="w-full h-full object-cover pointer-events-none select-none opacity-80 group-hover:opacity-100 transition-opacity bg-zinc-900" muted loop autoPlay />
+                                <SecureVideo src={asset.src} className="w-full h-full object-cover pointer-events-none select-none opacity-80 group-hover:opacity-100 transition-opacity bg-gray-100" muted loop autoPlay />
                             ) : (
-                                <img src={asset.src} className="w-full h-full object-cover pointer-events-none select-none opacity-80 group-hover:opacity-100 transition-opacity bg-zinc-900" alt="" />
+                                <img src={asset.src} className="w-full h-full object-cover pointer-events-none select-none opacity-80 group-hover:opacity-100 transition-opacity bg-gray-100" alt="" />
                             )}
                             <div className="absolute inset-0 ring-1 ring-inset ring-white/10 rounded-md"></div>
                             <div className="absolute top-0.5 right-0.5 w-3.5 h-3.5 bg-black/60 backdrop-blur-md rounded-full flex items-center justify-center border border-white/20 z-20 shadow-sm pointer-events-none">
@@ -347,6 +347,15 @@ const NodeComponent: React.FC<NodeProps> = ({
   const isResizingInput = useRef(false);
   const inputStartDragY = useRef(0);
   const inputStartHeight = useRef(0);
+  
+  // 🆕 节点进入动画状态
+  const [isEntering, setIsEntering] = useState(true);
+  
+  // 🆕 节点创建后，200ms 后移除进入动画类
+  useEffect(() => {
+    const timer = setTimeout(() => setIsEntering(false), 200);
+    return () => clearTimeout(timer);
+  }, []);
   
   useEffect(() => { setLocalPrompt(node.data.prompt || ''); }, [node.data.prompt]);
   const commitPrompt = () => { if (localPrompt !== (node.data.prompt || '')) onUpdate(node.id, { prompt: localPrompt }); };
@@ -531,14 +540,14 @@ const NodeComponent: React.FC<NodeProps> = ({
             {node.type === NodeType.VIDEO_GENERATOR && (<VideoModeSelector currentMode={generationMode} onSelect={(mode) => onUpdate(node.id, { generationMode: mode })} />)}
              {(node.data.image || node.data.videoUri || node.data.audioUri) && (
                 <div className="flex items-center gap-1">
-                    <button onClick={handleDownload} className="p-1.5 bg-black/40 border border-white/10 backdrop-blur-md rounded-md text-slate-400 hover:text-white hover:border-white/30 transition-colors" title="下载"><Download size={14} /></button>
-                    <button onClick={() => fileInputRef.current?.click()} className="p-1.5 bg-black/40 border border-white/10 backdrop-blur-md rounded-md text-slate-400 hover:text-white hover:border-white/30 transition-colors" title="上传替换"><Upload size={14} /></button>
-                    {node.type !== NodeType.AUDIO_GENERATOR && <button onClick={handleExpand} className="p-1.5 bg-black/40 border border-white/10 backdrop-blur-md rounded-md text-slate-400 hover:text-white hover:border-white/30 transition-colors" title="全屏预览"><Maximize2 size={14} /></button>}
+                    <button onClick={handleDownload} className="p-1.5 bg-white border border-gray-200 rounded-md text-gray-600 hover:text-gray-900 hover:border-gray-300 transition-colors shadow-sm" title="下载"><Download size={14} /></button>
+                    <button onClick={() => fileInputRef.current?.click()} className="p-1.5 bg-white border border-gray-200 rounded-md text-gray-600 hover:text-gray-900 hover:border-gray-300 transition-colors shadow-sm" title="上传替换"><Upload size={14} /></button>
+                    {node.type !== NodeType.AUDIO_GENERATOR && <button onClick={handleExpand} className="p-1.5 bg-white border border-gray-200 rounded-md text-gray-600 hover:text-gray-900 hover:border-gray-300 transition-colors shadow-sm" title="全屏预览"><Maximize2 size={14} /></button>}
                 </div>
              )}
         </div>
         <div className="flex items-center gap-2 pointer-events-auto">
-             {isWorking && <div className="bg-[#2c2c2e]/90 backdrop-blur-md p-1.5 rounded-full border border-white/10"><Loader2 className="animate-spin w-3 h-3 text-cyan-400" /></div>}
+             {isWorking && <div className="bg-white border border-gray-200 p-1.5 rounded-full shadow-sm"><Loader2 className="animate-spin w-3 h-3 text-blue-500" /></div>}
             <div className={`px-2 py-1 flex items-center gap-2`}>
                 {isEditingTitle ? (
                     <input className="bg-transparent border-none outline-none text-slate-400 text-[10px] font-bold uppercase tracking-wider w-24 text-right" value={tempTitle} onChange={(e) => setTempTitle(e.target.value)} onBlur={handleTitleSave} onKeyDown={(e) => e.key === 'Enter' && handleTitleSave()} onMouseDown={e => e.stopPropagation()} autoFocus />
@@ -749,10 +758,10 @@ const NodeComponent: React.FC<NodeProps> = ({
               // 用户主动清除，不使用任何图片
               inputImageSrc = undefined;
           } else if (node.data.inputImage) {
-              // ✅ 已经有保存的图片，使用它（锁定）
+              // 1. 已经有保存的图片，使用它（锁定）
               inputImageSrc = node.data.inputImage;
           } else if (inputAssets && inputAssets.length > 0 && inputAssets[0].type === 'image') {
-              // ✅ 第一次接收，使用输入图片（GridSplitterNode 会自动保存）
+              // 2. 第一次接收，使用输入图片（GridSplitterNode 会自动保存）
               inputImageSrc = inputAssets[0].src;
           }
           
@@ -839,7 +848,7 @@ const NodeComponent: React.FC<NodeProps> = ({
 
       const hasContent = node.data.image || node.data.videoUri;
       return (
-        <div className="w-full h-full relative group/media overflow-hidden bg-zinc-900" onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
+        <div className="w-full h-full relative group/media overflow-hidden bg-gray-100" onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
             {!hasContent ? (
                 <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-slate-600"><div className="w-20 h-20 rounded-[28px] bg-white/5 border border-white/5 flex items-center justify-center cursor-pointer hover:bg-white/10 hover:scale-105 transition-all duration-300 shadow-inner" onClick={() => fileInputRef.current?.click()}>{isWorking ? <Loader2 className="animate-spin text-cyan-500" size={32} /> : <NodeIcon size={32} className="opacity-50" />}</div><span className="text-[11px] font-bold uppercase tracking-[0.2em] opacity-40">{isWorking ? "处理中..." : "拖拽或上传"}</span><input type="file" ref={fileInputRef} className="hidden" accept={node.type.includes('VIDEO') ? "video/*" : "image/*"} onChange={node.type.includes('VIDEO') ? handleUploadVideo : handleUploadImage} /></div>
             ) : (
@@ -848,7 +857,7 @@ const NodeComponent: React.FC<NodeProps> = ({
                         <img 
                             ref={mediaRef as any} 
                             src={node.data.image} 
-                            className="w-full h-full object-cover transition-transform duration-700 group-hover/media:scale-105 bg-zinc-900" 
+                            className="w-full h-full object-cover transition-transform duration-700 group-hover/media:scale-105 bg-gray-100" 
                             draggable={false} 
                             loading="lazy"
                             decoding="async"
@@ -859,7 +868,7 @@ const NodeComponent: React.FC<NodeProps> = ({
                         <SecureVideo 
                             videoRef={mediaRef} // Pass Ref to Video
                             src={node.data.videoUri} 
-                            className="w-full h-full object-cover bg-zinc-900" 
+                            className="w-full h-full object-cover bg-gray-100" 
                             loop 
                             muted 
                             // autoPlay removed to rely on hover logic
@@ -871,13 +880,13 @@ const NodeComponent: React.FC<NodeProps> = ({
                     {showImageGrid && (node.data.images || node.data.videoUris) && (
                         <div className="absolute inset-0 bg-black/40 z-10 grid grid-cols-2 gap-2 p-2 animate-in fade-in duration-200">
                             {node.data.images ? node.data.images.map((img, idx) => (
-                                <div key={idx} className={`relative rounded-lg overflow-hidden cursor-pointer border-2 bg-zinc-900 ${img === node.data.image ? 'border-cyan-500' : 'border-transparent hover:border-white/50'}`} onClick={(e) => { e.stopPropagation(); onUpdate(node.id, { image: img }); }}>
+                                <div key={idx} className={`relative rounded-lg overflow-hidden cursor-pointer border-2 bg-gray-100 ${img === node.data.image ? 'border-cyan-500' : 'border-transparent hover:border-white/50'}`} onClick={(e) => { e.stopPropagation(); onUpdate(node.id, { image: img }); }}>
                                     <img src={img} className="w-full h-full object-cover" loading="lazy" decoding="async" />
                                 </div>
                             )) : node.data.videoUris?.map((uri, idx) => (
-                                <div key={idx} className={`relative rounded-lg overflow-hidden cursor-pointer border-2 bg-zinc-900 ${uri === node.data.videoUri ? 'border-cyan-500' : 'border-transparent hover:border-white/50'}`} onClick={(e) => { e.stopPropagation(); onUpdate(node.id, { videoUri: uri }); }}>
+                                <div key={idx} className={`relative rounded-lg overflow-hidden cursor-pointer border-2 bg-gray-100 ${uri === node.data.videoUri ? 'border-cyan-500' : 'border-transparent hover:border-white/50'}`} onClick={(e) => { e.stopPropagation(); onUpdate(node.id, { videoUri: uri }); }}>
                                     {uri ? (
-                                        <SecureVideo src={uri} className="w-full h-full object-cover bg-zinc-900" muted loop autoPlay />
+                                        <SecureVideo src={uri} className="w-full h-full object-cover bg-gray-100" muted loop autoPlay />
                                     ) : (
                                         <div className="w-full h-full flex items-center justify-center bg-white/5 text-xs text-slate-500">Failed</div>
                                     )}
@@ -886,7 +895,7 @@ const NodeComponent: React.FC<NodeProps> = ({
                         </div>
                     )}
                     {generationMode === 'CUT' && node.data.croppedFrame && <div className="absolute top-4 right-4 w-24 aspect-video bg-black/80 rounded-lg border border-purple-500/50 shadow-xl overflow-hidden z-20 hover:scale-150 transition-transform origin-top-right opacity-0 group-hover:opacity-100 transition-opacity duration-300"><img src={node.data.croppedFrame} className="w-full h-full object-cover" loading="lazy" decoding="async" /></div>}
-                    {generationMode === 'CUT' && !node.data.croppedFrame && hasInputs && inputAssets?.some(a => a.src) && (<div className="absolute top-4 right-4 w-24 aspect-video bg-black/80 rounded-lg border border-purple-500/30 border-dashed shadow-xl overflow-hidden z-20 hover:scale-150 transition-transform origin-top-right flex flex-col items-center justify-center group/preview opacity-0 group-hover:opacity-100 transition-opacity duration-300"><div className="absolute inset-0 bg-purple-500/10 z-10"></div>{(() => { const asset = inputAssets!.find(a => a.src); if (asset?.type === 'video') { return <SecureVideo src={asset.src} className="w-full h-full object-cover opacity-60 bg-zinc-900" muted autoPlay />; } else { return <img src={asset?.src} className="w-full h-full object-cover opacity-60 bg-zinc-900" loading="lazy" decoding="async" />; } })()}<span className="absolute z-20 text-[8px] font-bold text-purple-200 bg-black/50 px-1 rounded">分镜参考</span></div>)}
+                    {generationMode === 'CUT' && !node.data.croppedFrame && hasInputs && inputAssets?.some(a => a.src) && (<div className="absolute top-4 right-4 w-24 aspect-video bg-black/80 rounded-lg border border-purple-500/30 border-dashed shadow-xl overflow-hidden z-20 hover:scale-150 transition-transform origin-top-right flex flex-col items-center justify-center group/preview opacity-0 group-hover:opacity-100 transition-opacity duration-300"><div className="absolute inset-0 bg-purple-500/10 z-10"></div>{(() => { const asset = inputAssets!.find(a => a.src); if (asset?.type === 'video') { return <SecureVideo src={asset.src} className="w-full h-full object-cover opacity-60 bg-gray-100" muted autoPlay />; } else { return <img src={asset?.src} className="w-full h-full object-cover opacity-60 bg-gray-100" loading="lazy" decoding="async" />; } })()}<span className="absolute z-20 text-[8px] font-bold text-purple-200 bg-black/50 px-1 rounded">分镜参考</span></div>)}
                 </>
             )}
             {node.type === NodeType.VIDEO_GENERATOR && generationMode === 'CUT' && (videoBlobUrl || node.data.videoUri) && 
@@ -919,6 +928,7 @@ const NodeComponent: React.FC<NodeProps> = ({
   };    
 
   // 🔥 性能优化：交互时禁用昂贵的 CSS 属性
+  // 🔥 方案 3：使用传入的 isDragging prop（来自 useDrag Hook 的实时状态）
   const isInteracting = isDragging || isResizing || isGroupDragging;
   
   // 🔥 九宫格节点拖手逻辑
@@ -932,27 +942,34 @@ const NodeComponent: React.FC<NodeProps> = ({
         {...props}
         id={`node-${node.id}`}
         data-node-id={node.id}
-        className={`absolute rounded-[24px] group ${isSelected ? 'ring-1 ring-cyan-500/50 shadow-[0_0_40px_-10px_rgba(34,211,238,0.3)] z-30' : 'ring-1 ring-white/10 hover:ring-white/20 z-10'} ${className || ''}`}
+        className={`absolute rounded-lg group ${isSelected ? 'ring-2 ring-blue-500 shadow-lg z-30' : 'ring-1 ring-gray-200 hover:ring-gray-300 z-10'} ${isEntering ? 'node-enter' : ''} ${className || ''}`}
         style={{ 
             left: node.x, 
             top: node.y, 
             width: nodeWidth, 
             height: nodeHeight,
-            background: isSelected ? 'rgba(28, 28, 30, 0.85)' : 'rgba(28, 28, 30, 0.6)',
+            background: '#ffffff',
             // 🔥 交互时禁用 transition 和昂贵的 CSS
             transition: isInteracting ? 'none' : 'all 0.2s cubic-bezier(0.32, 0.72, 0, 1)',
-            backdropFilter: isInteracting ? 'none' : 'blur(24px)',
-            boxShadow: isInteracting ? 'none' : undefined,
+            backdropFilter: 'none',
+            boxShadow: isInteracting ? 'none' : '0 1px 3px 0 rgb(0 0 0 / 0.1)',
             willChange: isInteracting ? 'transform' : 'auto',
-            ...style, // 🔥 合并传入的 style
+            ...style, // 🔥 合并传入�?style
         }}
         onMouseDown={(e) => onNodeMouseDown(e, node.id)} 
-        onDoubleClick={(e) => e.stopPropagation()} 
+        onDoubleClick={(e) => {
+            // 🔥 修复：允许九宫格节点的双击事件传播
+            if (node.type === 'gridSplitter') {
+                // 不阻止九宫格节点的双击事件
+                return;
+            }
+            e.stopPropagation();
+        }} 
         onMouseEnter={() => setIsHovered(true)} 
         onMouseLeave={() => setIsHovered(false)} 
         onContextMenu={(e) => onNodeContextMenu(e, node.id)}
     >
-        {/* 🔥 九宫格节点拖手 - 在节点外部，不被裁剪 */}
+        {/* 🔥 九宫格节点拖�?- 在节点外部，不被裁剪 */}
         {showGridDragHandle && (
           <div 
             className="absolute -bottom-5 -right-5 h-8 px-3 rounded-full bg-gray-100/95 backdrop-blur-md border border-gray-300 flex items-center gap-1.5 cursor-grab active:cursor-grabbing hover:bg-gray-200 hover:border-gray-400 active:scale-95 transition-all shadow-md z-[60]"
@@ -991,14 +1008,15 @@ const NodeComponent: React.FC<NodeProps> = ({
           </div>
         )}
         {renderTopBar()}
-        <div className={`absolute -left-3 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full border border-white/20 bg-[#1c1c1e] flex items-center justify-center transition-all duration-300 hover:scale-125 cursor-crosshair z-50 shadow-md ${isConnecting ? 'ring-2 ring-cyan-400 animate-pulse' : ''}`} onMouseDown={(e) => onPortMouseDown(e, node.id, 'input')} onMouseUp={(e) => onPortMouseUp(e, node.id, 'input')} title="Input"><Plus size={10} strokeWidth={3} className="text-white/50" /></div>
-        <div className={`absolute -right-3 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full border border-white/20 bg-[#1c1c1e] flex items-center justify-center transition-all duration-300 hover:scale-125 cursor-crosshair z-50 shadow-md ${isConnecting ? 'ring-2 ring-purple-400 animate-pulse' : ''}`} onMouseDown={(e) => onPortMouseDown(e, node.id, 'output')} onMouseUp={(e) => onPortMouseUp(e, node.id, 'output')} title="Output"><Plus size={10} strokeWidth={3} className="text-white/50" /></div>
-        <div className="w-full h-full flex flex-col relative rounded-[24px] overflow-hidden bg-zinc-900"><div className="flex-1 min-h-0 relative bg-zinc-900">{renderMediaContent()}</div></div>
-        {/* 底部面板已彻底删除 - 用户不需要这个功能 */}
+        <div className={`absolute -left-3 top-1/2 -translate-y-1/2 w-3 h-3 rounded-full border-2 border-gray-300 bg-white flex items-center justify-center transition-all duration-200 hover:border-blue-500 cursor-crosshair z-50 ${isConnecting ? 'ring-2 ring-blue-400 animate-pulse' : ''}`} onMouseDown={(e) => onPortMouseDown(e, node.id, 'input')} onMouseUp={(e) => onPortMouseUp(e, node.id, 'input')} title="Input"></div>
+        <div className={`absolute -right-3 top-1/2 -translate-y-1/2 w-3 h-3 rounded-full border-2 border-gray-300 bg-white flex items-center justify-center transition-all duration-200 hover:border-blue-500 cursor-crosshair z-50 ${isConnecting ? 'ring-2 ring-blue-400 animate-pulse' : ''}`} onMouseDown={(e) => onPortMouseDown(e, node.id, 'output')} onMouseUp={(e) => onPortMouseUp(e, node.id, 'output')} title="Output"></div>
+        <div className="w-full h-full flex flex-col relative rounded-lg overflow-hidden bg-white"><div className="flex-1 min-h-0 relative bg-gray-50">{renderMediaContent()}</div></div>
+        {/* 底部面板已彻底删�?- 用户不需要这个功�?*/}
         {/* {renderBottomPanel()} */}
-        <div className="absolute -bottom-3 -right-3 w-6 h-6 flex items-center justify-center cursor-nwse-resize text-slate-500 hover:text-white transition-colors opacity-0 group-hover:opacity-100 z-50" onMouseDown={(e) => onResizeMouseDown(e, node.id, nodeWidth, nodeHeight)}><div className="w-1.5 h-1.5 rounded-full bg-current" /></div>
+        <div className="absolute -bottom-2 -right-2 w-4 h-4 flex items-center justify-center cursor-nwse-resize text-gray-400 hover:text-blue-500 transition-colors opacity-0 group-hover:opacity-100 z-50" onMouseDown={(e) => onResizeMouseDown(e, node.id, nodeWidth, nodeHeight)}><div className="w-1 h-1 rounded-full bg-current" /></div>
     </div>
   );
 };
 
 export const Node = memo(NodeComponent, arePropsEqual);
+

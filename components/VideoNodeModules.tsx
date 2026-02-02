@@ -1,4 +1,4 @@
-
+﻿
 
 
 
@@ -35,7 +35,7 @@ export const VideoModeSelector: React.FC<VideoModeSelectorProps> = ({ currentMod
                 <button 
                    key={item.mode}
                    onClick={(e) => { e.stopPropagation(); handleSelect(item.mode); }}
-                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md transition-all text-[10px] font-bold border ${currentMode === item.mode ? 'bg-white text-black border-white shadow-md' : 'bg-black/40 border-white/10 text-slate-400 hover:text-white hover:border-white/30 backdrop-blur-md opacity-70 hover:opacity-100'}`}
+                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md transition-all text-[10px] font-bold border ${currentMode === item.mode ? 'bg-white text-black border-white shadow-md' : 'bg-gray-100/40 border-white/10 text-slate-400 hover:text-white hover:border-white/30 backdrop-blur-md opacity-70 hover:opacity-100'}`}
                    title={item.title}
                 >
                     <item.icon size={12} />
@@ -74,7 +74,7 @@ export const SceneDirectorOverlay: React.FC<SceneDirectorOverlayProps> = ({ visi
     return (
         <div 
             ref={timelineRef}
-            className="absolute bottom-0 left-0 w-full h-9 bg-[#0a0a0a]/90 backdrop-blur-xl border-t border-white/10 flex items-center cursor-crosshair z-30 opacity-0 group-hover/media:opacity-100 transition-opacity duration-300"
+            className="absolute bottom-0 left-0 w-full h-9 bg-gray-100/90 backdrop-blur-xl border-t border-white/10 flex items-center cursor-crosshair z-30 opacity-0 group-hover/media:opacity-100 transition-opacity duration-300"
             onMouseMove={(e) => {
                 if (!timelineRef.current || !videoRef.current) return;
                 const rect = timelineRef.current.getBoundingClientRect();

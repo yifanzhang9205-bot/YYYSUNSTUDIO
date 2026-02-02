@@ -7,6 +7,9 @@
 const API_BASE_URL = 'https://tasks.xiguapi.tech/';
 const API_KEY = 'w8n-cYYtSMwKtG6ghPyEykfbh8pl';
 
+// 导入通用的 URL 转 Base64 函数
+import { urlToBase64 } from './blobStorage';
+
 // imgbb 图床配置（用于上传 base64 图片获取 URL）
 const IMGBB_API_KEY = '8c87c1c0c9258b3b3f3b0c8f9c8c8c8c'; // 需要替换为你的 imgbb API key
 const IMGBB_UPLOAD_URL = 'https://api.imgbb.com/1/upload';
@@ -212,19 +215,7 @@ const waitForTaskCompletion = async (
   throw new Error('任务超时：等待时间过长');
 };
 
-/**
- * 将图片 URL 转换为 base64
- */
-const urlToBase64 = async (url: string): Promise<string> => {
-  const response = await fetch(url);
-  const blob = await response.blob();
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onloadend = () => resolve(reader.result as string);
-    reader.onerror = reject;
-    reader.readAsDataURL(blob);
-  });
-};
+// urlToBase64 函数已移至 blobStorage.ts，通过 import 使用
 
 /**
  * 生成图片（主函数）

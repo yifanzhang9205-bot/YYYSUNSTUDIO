@@ -4,6 +4,12 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0" />
     <title>SunStudio</title>
+    
+    <!-- Inter 字体 - React Flow 风格 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
       :root {
@@ -14,14 +20,10 @@
       }
 
       body {
-        /* Deep Titanium Dark Mode */
-        background-color: #0a0a0c; 
-        /* Subtle mesh gradient */
-        background-image: 
-          radial-gradient(circle at 15% 50%, rgba(56, 189, 248, 0.08), transparent 40%), 
-          radial-gradient(circle at 85% 30%, rgba(168, 85, 247, 0.08), transparent 40%);
-        color: #f5f5f7; /* Apple Off-White */
-        font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "SF Pro Text", "SF Pro Display", "Inter", sans-serif;
+        /* React Flow 风格背景 - 柔和中性灰 */
+        background-color: #e5e7eb;
+        color: #1f2937;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', "PingFang SC", "Microsoft YaHei", sans-serif;
         overflow: hidden;
         -webkit-font-smoothing: antialiased;
         -moz-osx-font-smoothing: grayscale;
@@ -58,6 +60,38 @@
       }
       .animate-flow {
         animation: dash-flow 1s linear infinite;
+      }
+
+      /* 🆕 节点动画 - React Flow 风格 */
+      @keyframes nodeEnter {
+        from {
+          opacity: 0;
+          transform: scale(0.95);
+        }
+        to {
+          opacity: 1;
+          transform: scale(1);
+        }
+      }
+      
+      @keyframes nodeExit {
+        from {
+          opacity: 1;
+          transform: scale(1);
+        }
+        to {
+          opacity: 0;
+          transform: scale(0.95);
+        }
+      }
+      
+      .node-enter {
+        animation: nodeEnter 200ms cubic-bezier(0.32, 0.72, 0, 1);
+      }
+      
+      .node-exit {
+        animation: nodeExit 150ms cubic-bezier(0.32, 0.72, 0, 1);
+        animation-fill-mode: forwards;
       }
       
       /* Selection */

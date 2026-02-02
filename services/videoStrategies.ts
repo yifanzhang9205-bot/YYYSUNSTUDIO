@@ -1,6 +1,7 @@
 
 import { AppNode, VideoGenerationMode } from '../types';
-import { extractLastFrame, urlToBase64, analyzeVideo, orchestrateVideoPrompt, generateImageFromText } from './geminiService';
+import { extractLastFrame, analyzeVideo, orchestrateVideoPrompt, generateImageFromText } from './geminiService';
+import { urlToBase64 } from './blobStorage';
 
 export interface StrategyResult {
     finalPrompt: string;

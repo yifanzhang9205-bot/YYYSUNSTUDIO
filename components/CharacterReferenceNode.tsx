@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { Sparkles, ChevronDown, ChevronUp, Loader, Users, Check, RefreshCw } from 'lucide-react';
 import { Character } from '../types';
 
@@ -145,7 +145,7 @@ export const CharacterReferenceNode: React.FC<CharacterReferenceNodeProps> = ({
                     </div>
                   </div>
                 )}
-                <div className="absolute bottom-1.5 right-1.5 px-1.5 py-0.5 bg-black/60 backdrop-blur rounded-md text-[10px] text-white font-semibold">
+                <div className="absolute bottom-1.5 right-1.5 px-1.5 py-0.5 bg-gray-100/60 backdrop-blur rounded-md text-[10px] text-white font-semibold">
                   {index + 1}
                 </div>
               </button>

@@ -3,6 +3,7 @@ import { GoogleGenAI, GenerateContentResponse, Type, Modality, Part, FunctionDec
 import { SmartSequenceItem, VideoGenerationMode } from "../types";
 import { generateImage as generateXiguapiImage, generateVideo as generateXiguapiVideo } from "./xiguapiService";
 import { uploadMultipleImagesToImgBB, isImgBBConfigured } from "./imgbbService";
+import { ensureBase64Array } from "./blobStorage"; // 🔥 新增：导入通用转换函数
 import { 
     sendChatMessageCompat as sendCozeChatMessage, 
     planStoryboard as planCozeStoryboard,
@@ -131,21 +132,7 @@ const pcmToWav = (base64PCM: string, sampleRate: number = 24000): string => {
 
 // --- Image/Video Utilities ---
 
-export const urlToBase64 = async (url: string): Promise<string> => {
-    try {
-        const response = await fetch(url);
-        const blob = await response.blob();
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = (e) => resolve(reader.result as string);
-            reader.onerror = reject;
-            reader.readAsDataURL(blob);
-        });
-    } catch (e) {
-        console.error("Failed to convert URL to Base64", e);
-        return "";
-    }
-};
+// urlToBase64 函数已移至 blobStorage.ts，使用 ensureBase64 代替
 
 const convertImageToCompatibleFormat = async (base64Str: string): Promise<{ data: string, mimeType: string, fullDataUri: string }> => {
     if (base64Str.match(/^data:image\/(png|jpeg|jpg);base64,/)) {
@@ -346,8 +333,11 @@ export const generateImageFromText = async (
         console.log('[Image Generation] 上传图片到 ImgBB...');
         
         try {
-            // 上传所有输入图片到 imgbb
-            imageUrls = await uploadMultipleImagesToImgBB(inputImages);
+            // 🔥 修复：使用通用函数将所有格式转换为 Base64
+            const base64Images = await ensureBase64Array(inputImages);
+            
+            // 上传所有 Base64 图片到 imgbb
+            imageUrls = await uploadMultipleImagesToImgBB(base64Images);
             console.log('[Image Generation] 图片上传成功，获得', imageUrls.length, '个 URL');
         } catch (uploadError: any) {
             console.error('[Image Generation] 图片上传失败:', uploadError);

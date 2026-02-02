@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { Sparkles, ChevronDown, ChevronUp, Loader, Film, Check, RefreshCw, Eye } from 'lucide-react';
 import { Shot } from '../types';
 
@@ -190,7 +190,7 @@ export const StoryboardShotNode: React.FC<StoryboardShotNodeProps> = ({
                     </div>
                   </div>
                 )}
-                <div className="absolute bottom-1.5 right-1.5 px-2 py-0.5 bg-black/60 backdrop-blur-md rounded-full text-[10px] text-white/90 font-medium">
+                <div className="absolute bottom-1.5 right-1.5 px-2 py-0.5 bg-gray-100/60 backdrop-blur-md rounded-full text-[10px] text-white/90 font-medium">
                   {index + 1}
                 </div>
               </button>

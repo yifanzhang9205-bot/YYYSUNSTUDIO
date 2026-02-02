@@ -636,9 +636,9 @@ export const MultiAngleCameraNode: React.FC<MultiAngleCameraNodeProps> = ({
   const nearestDist = DISTANCE.reduce((p, c) => Math.abs(displayValues.z - c.v) < Math.abs(displayValues.z - p.v) ? c : p);
 
   return (
-    <div className="w-full h-full flex flex-col bg-[#0a0a0a] overflow-hidden rounded-2xl">
+    <div className="w-full h-full flex flex-col bg-gray-100 overflow-hidden rounded-2xl">
       {/* 顶部拖拽条 - iOS 风格 */}
-      <div className="h-11 bg-[#1c1c1e]/80 backdrop-blur-xl border-b border-white/5 flex items-center justify-between px-4 cursor-move shrink-0">
+      <div className="h-11 bg-gray-100/80 backdrop-blur-xl border-b border-white/5 flex items-center justify-between px-4 cursor-move shrink-0">
         <div className="flex items-center gap-2.5">
           <Camera size={16} className="text-white/40" strokeWidth={1.5} />
         </div>
@@ -668,7 +668,7 @@ export const MultiAngleCameraNode: React.FC<MultiAngleCameraNodeProps> = ({
             { label: '垂直', value: `${Math.round(displayValues.v)}°` },
             { label: '距离', value: displayValues.z.toFixed(1) },
           ].map((item) => (
-            <div key={item.label} className="flex items-center gap-2 px-3 py-1.5 bg-black/40 backdrop-blur-xl rounded-full border border-white/10">
+            <div key={item.label} className="flex items-center gap-2 px-3 py-1.5 bg-gray-100/40 backdrop-blur-xl rounded-full border border-white/10">
               <span className="text-[10px] text-white/40 font-medium">{item.label}</span>
               <span className="text-[11px] text-white/80 font-semibold tabular-nums">{item.value}</span>
             </div>
@@ -676,7 +676,7 @@ export const MultiAngleCameraNode: React.FC<MultiAngleCameraNodeProps> = ({
         </div>
 
         {/* 操作提示 - iOS 风格 */}
-        <div className="absolute top-4 left-4 px-3 py-1.5 bg-black/40 backdrop-blur-xl rounded-full border border-white/10 pointer-events-none">
+        <div className="absolute top-4 left-4 px-3 py-1.5 bg-gray-100/40 backdrop-blur-xl rounded-full border border-white/10 pointer-events-none">
           <span className="text-[11px] text-white/50 font-medium">拖拽旋转 · 滚轮缩放</span>
         </div>
 
@@ -692,7 +692,7 @@ export const MultiAngleCameraNode: React.FC<MultiAngleCameraNodeProps> = ({
 
         {/* 无图片提示 */}
         {!inputImage && !error && (
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-3 px-6 py-5 bg-black/40 backdrop-blur-xl rounded-2xl border border-white/10 pointer-events-none">
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-3 px-6 py-5 bg-gray-100/40 backdrop-blur-xl rounded-2xl border border-white/10 pointer-events-none">
             <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center">
               <ImageIcon size={20} className="text-white/30" />
             </div>
@@ -705,13 +705,13 @@ export const MultiAngleCameraNode: React.FC<MultiAngleCameraNodeProps> = ({
           <div className="flex gap-2">
             <button
               onClick={() => { onHorizontalAngleChange(0); onVerticalAngleChange(0); onZoomChange(5); }}
-              className="w-10 h-10 bg-black/40 backdrop-blur-xl rounded-full border border-white/10 flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 transition-all active:scale-95"
+              className="w-10 h-10 bg-gray-100/40 backdrop-blur-xl rounded-full border border-white/10 flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 transition-all active:scale-95"
             >
               <RotateCcw size={16} />
             </button>
             <button
               onClick={() => setShowPanel(true)}
-              className="h-10 px-4 bg-black/40 backdrop-blur-xl rounded-full border border-white/10 flex items-center gap-2 text-white/60 hover:text-white hover:bg-white/10 transition-all active:scale-95"
+              className="h-10 px-4 bg-gray-100/40 backdrop-blur-xl rounded-full border border-white/10 flex items-center gap-2 text-white/60 hover:text-white hover:bg-white/10 transition-all active:scale-95"
             >
               <Settings size={15} />
               <span className="text-[13px] font-medium">设置</span>
@@ -750,7 +750,7 @@ export const MultiAngleCameraNode: React.FC<MultiAngleCameraNodeProps> = ({
 
       {/* 设置面板 - iOS 风格 */}
       {showPanel && (
-        <div className="absolute inset-0 bg-[#0a0a0a]/95 backdrop-blur-2xl flex flex-col z-20 rounded-2xl">
+        <div className="absolute inset-0 bg-gray-100/95 backdrop-blur-2xl flex flex-col z-20 rounded-2xl">
           {/* 头部 */}
           <div className="h-14 flex items-center justify-between px-5 border-b border-white/5 shrink-0">
             <span className="text-[15px] font-semibold text-white">相机设置</span>

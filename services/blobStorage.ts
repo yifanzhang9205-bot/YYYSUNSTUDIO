@@ -320,3 +320,83 @@ export const restoreMultipleBlobUrls = async (assetIds: string[]): Promise<(stri
     
     return blobUrls;
 };
+
+// ============================================
+// 🔥 新增：图片格式转换（用于 ImgBB 上传）
+// ============================================
+
+/**
+ * 将 URL（Blob URL 或 HTTP URL）转换为 Base64
+ * @param url - Blob URL 或 HTTP URL
+ * @returns Base64 字符串（带 data:image/...;base64, 前缀）
+ */
+export const urlToBase64 = async (url: string): Promise<string> => {
+    try {
+        const response = await fetch(url);
+        const blob = await response.blob();
+        
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result as string);
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+        });
+    } catch (error) {
+        console.error('[BlobStorage] URL 转 Base64 失败:', error);
+        throw error;
+    }
+};
+
+/**
+ * 确保图片数据是 Base64 格式（用于 ImgBB 上传）
+ * 
+ * 支持三种输入格式：
+ * 1. Blob URL (blob:http://...) → 转换为 Base64
+ * 2. Base64 (data:image/...) → 直接返回
+ * 3. HTTP URL (http://... 或 https://...) → 下载并转换为 Base64
+ * 
+ * @param imageData - 图片数据（Blob URL、Base64 或 HTTP URL）
+ * @returns Base64 字符串（带 data:image/...;base64, 前缀）
+ */
+export const ensureBase64 = async (imageData: string): Promise<string> => {
+    // 1. 如果已经是 Base64，直接返回
+    if (imageData.startsWith('data:')) {
+        console.log('[BlobStorage] 图片已是 Base64 格式，直接使用');
+        return imageData;
+    }
+    
+    // 2. 如果是 Blob URL，转换为 Base64
+    if (imageData.startsWith('blob:')) {
+        console.log('[BlobStorage] 检测到 Blob URL，转换为 Base64...');
+        const base64 = await urlToBase64(imageData);
+        console.log('[BlobStorage] Blob URL 转换完成');
+        return base64;
+    }
+    
+    // 3. 如果是 HTTP URL，下载并转换为 Base64
+    if (imageData.startsWith('http://') || imageData.startsWith('https://')) {
+        console.log('[BlobStorage] 检测到 HTTP URL，下载并转换为 Base64...');
+        const base64 = await urlToBase64(imageData);
+        console.log('[BlobStorage] HTTP URL 转换完成');
+        return base64;
+    }
+    
+    // 4. 其他情况，抛出错误
+    throw new Error(`不支持的图片格式: ${imageData.substring(0, 50)}`);
+};
+
+/**
+ * 批量确保图片数据是 Base64 格式
+ * @param imageDataArray - 图片数据数组
+ * @returns Base64 字符串数组
+ */
+export const ensureBase64Array = async (imageDataArray: string[]): Promise<string[]> => {
+    console.log(`[BlobStorage] 批量转换 ${imageDataArray.length} 张图片为 Base64...`);
+    
+    const base64Array = await Promise.all(
+        imageDataArray.map(data => ensureBase64(data))
+    );
+    
+    console.log(`[BlobStorage] 批量转换完成`);
+    return base64Array;
+};

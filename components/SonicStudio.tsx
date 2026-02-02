@@ -1,4 +1,4 @@
-
+﻿
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { 
     X, Play, Pause, Download, Mic2, Disc, Wand2, Volume2, 
@@ -296,7 +296,7 @@ export const SonicStudio: React.FC<SonicStudioProps> = ({ isOpen, onClose, histo
 
     return (
         <div 
-            className={`fixed inset-0 z-[100] transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] bg-[#0a0a0c] overflow-hidden flex ${isOpen ? 'opacity-100 scale-100 translate-x-0' : 'opacity-0 scale-95 -translate-x-10 pointer-events-none'}`}
+            className={`fixed inset-0 z-[100] transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] bg-gray-100 overflow-hidden flex ${isOpen ? 'opacity-100 scale-100 translate-x-0' : 'opacity-0 scale-95 -translate-x-10 pointer-events-none'}`}
             style={{ transformOrigin: 'left center' }}
         >
             {/* --- Background Ambience --- */}
@@ -304,9 +304,9 @@ export const SonicStudio: React.FC<SonicStudioProps> = ({ isOpen, onClose, histo
             <div className="absolute bottom-[-10%] left-[-10%] w-[500px] h-[500px] rounded-full bg-purple-900/10 blur-[100px] pointer-events-none" />
 
             {/* --- Left Sidebar (Navigation) - iOS Style --- */}
-            <div className="w-64 h-full border-r border-white/5 bg-[#1c1c1e]/80 backdrop-blur-3xl flex flex-col z-10">
+            <div className="w-64 h-full border-r border-white/5 bg-gray-100/80 backdrop-blur-3xl flex flex-col z-10">
                 <div className="h-16 flex items-center px-6 border-b border-white/5 gap-3">
-                    <div className="w-9 h-9 rounded-2xl bg-white/10 flex items-center justify-center border border-white/10">
+                    <div className="w-9 h-9 rounded-2xl bg-white/10 flex items-center justify-center border border-black">
                         <AudioLines size={18} className="text-white/70" />
                     </div>
                     <span className="text-sm font-semibold text-white/90">Audio Hub</span>
@@ -337,18 +337,18 @@ export const SonicStudio: React.FC<SonicStudioProps> = ({ isOpen, onClose, histo
                     <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">历史记录</div>
                     <div className="flex-1 overflow-y-auto custom-scrollbar space-y-1 h-48">
                         {history.length === 0 ? (
-                            <div className="text-xs text-slate-600 text-center py-4">暂无历史</div>
+                            <div className="text-xs text-black text-center py-4">暂无历史</div>
                         ) : (
                             history.map((item) => (
                                 <div 
                                     key={item.id}
                                     onClick={() => setCurrentTrack(item)}
-                                    className={`group flex items-center gap-2 p-2 rounded-lg cursor-pointer transition-all ${currentTrack?.id === item.id ? 'bg-white/10' : 'hover:bg-white/5'}`}
+                                    className={`group flex items-center gap-2 p-2 rounded-md cursor-pointer transition-all ${currentTrack?.id === item.id ? 'bg-white/10' : 'hover:bg-white/5'}`}
                                 >
                                     <div className={`w-6 h-6 rounded bg-gradient-to-br ${getRandomCover(item.id)} flex items-center justify-center shrink-0`}>
                                         <Mic2 size={10} className="text-white/70" />
                                     </div>
-                                    <span className={`text-xs truncate ${currentTrack?.id === item.id ? 'text-cyan-400' : 'text-slate-400'}`}>{item.title}</span>
+                                    <span className={`text-xs truncate ${currentTrack?.id === item.id ? 'text-cyan-400' : 'text-black'}`}>{item.title}</span>
                                 </div>
                             ))
                         )}
@@ -360,7 +360,7 @@ export const SonicStudio: React.FC<SonicStudioProps> = ({ isOpen, onClose, histo
             <div className="flex-1 flex flex-col relative z-0">
                 {/* Close Button - iOS Style */}
                 <div className="absolute top-6 left-6 flex items-center gap-4 z-20">
-                    <button onClick={onClose} className="w-10 h-10 rounded-2xl bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/60 hover:text-white transition-all active:scale-95 backdrop-blur-xl border border-white/10">
+                    <button onClick={onClose} className="w-10 h-10 rounded-2xl bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/60 hover:text-white transition-all active:scale-95  border border-black">
                         <X size={18} />
                     </button>
                 </div>
@@ -373,7 +373,7 @@ export const SonicStudio: React.FC<SonicStudioProps> = ({ isOpen, onClose, histo
                             <>
                                 <div className="space-y-1 pl-12"> {/* Added left padding for title due to close button */}
                                     <h1 className="text-3xl font-black text-white tracking-tight">声音工厂 <span className="text-slate-500 font-light ml-2 text-xl">Voice Factory</span></h1>
-                                    <p className="text-slate-400 text-sm">Create realistic voiceovers, clone voices, and generate emotional speech.</p>
+                                    <p className="text-black text-sm">Create realistic voiceovers, clone voices, and generate emotional speech.</p>
                                 </div>
 
                                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -381,7 +381,7 @@ export const SonicStudio: React.FC<SonicStudioProps> = ({ isOpen, onClose, histo
                                         <div className="space-y-3">
                                             <h2 className="text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2"><Upload size={12}/> 声音克隆 (参考音频)</h2>
                                             <div 
-                                                className={`relative h-32 rounded-xl border border-dashed transition-all flex flex-col items-center justify-center gap-2 cursor-pointer group overflow-hidden ${referenceAudio ? 'border-cyan-500/50 bg-cyan-500/5' : 'border-white/10 hover:border-white/30 bg-white/5 hover:bg-white/10'}`}
+                                                className={`relative h-32 rounded-md border border-dashed transition-all flex flex-col items-center justify-center gap-2 cursor-pointer group overflow-hidden ${referenceAudio ? 'border-cyan-500/50 bg-cyan-500/5' : 'border-black hover:border-white/30 bg-white/5 hover:bg-white/10'}`}
                                                 onClick={() => fileInputRef.current?.click()}
                                             >
                                                 <input type="file" ref={fileInputRef} className="hidden" accept="audio/*" onChange={handleUploadSample} />
@@ -389,13 +389,13 @@ export const SonicStudio: React.FC<SonicStudioProps> = ({ isOpen, onClose, histo
                                                     <>
                                                         <div className="w-10 h-10 rounded-full bg-cyan-500/20 flex items-center justify-center text-cyan-400"><FileAudio size={20} /></div>
                                                         <span className="text-xs font-medium text-cyan-200 truncate max-w-[80%]">{referenceFileName}</span>
-                                                        <button onClick={(e) => { e.stopPropagation(); setReferenceAudio(null); setReferenceFileName(null); }} className="absolute top-2 right-2 p-1.5 rounded-full bg-black/40 hover:bg-red-500/80 text-white/50 hover:text-white transition-colors"><X size={10} /></button>
+                                                        <button onClick={(e) => { e.stopPropagation(); setReferenceAudio(null); setReferenceFileName(null); }} className="absolute top-2 right-2 p-1.5 rounded-full bg-gray-100/40 hover:bg-red-500/80 text-white/50 hover:text-white transition-colors"><X size={10} /></button>
                                                     </>
                                                 ) : (
                                                     <>
                                                         <Mic2 size={24} className="text-slate-500 group-hover:text-cyan-400 transition-colors" />
                                                         <span className="text-xs text-slate-500 group-hover:text-slate-300">点击上传参考音频</span>
-                                                        <span className="text-[9px] text-slate-600 text-center px-4">AI 将模仿此声音朗读文本 (Approximate)</span>
+                                                        <span className="text-[9px] text-black text-center px-4">AI 将模仿此声音朗读文本 (Approximate)</span>
                                                     </>
                                                 )}
                                             </div>
@@ -405,7 +405,7 @@ export const SonicStudio: React.FC<SonicStudioProps> = ({ isOpen, onClose, histo
                                             <h2 className="text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2"><Smile size={12}/> 情感基调</h2>
                                             <div className="grid grid-cols-2 gap-2">
                                                 {EMOTIONS.map(emo => (
-                                                    <button key={emo.value} onClick={() => setSelectedEmotion(emo)} className={`px-3 py-2 rounded-lg text-xs font-medium text-left transition-all ${selectedEmotion.value === emo.value ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30' : 'bg-white/5 text-slate-400 hover:bg-white/10 border border-transparent'}`}>
+                                                    <button key={emo.value} onClick={() => setSelectedEmotion(emo)} className={`px-3 py-2 rounded-md text-xs font-medium text-left transition-all ${selectedEmotion.value === emo.value ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30' : 'bg-white/5 text-black hover:bg-white/10 border border-transparent'}`}>
                                                         {emo.label}
                                                     </button>
                                                 ))}
@@ -416,7 +416,7 @@ export const SonicStudio: React.FC<SonicStudioProps> = ({ isOpen, onClose, histo
                                     <div className="lg:col-span-2 flex flex-col gap-6">
                                         <div className="relative group flex-1">
                                             <div className="absolute -inset-1 bg-gradient-to-r from-cyan-500/10 to-purple-500/10 rounded-2xl blur opacity-0 group-hover:opacity-100 transition duration-500" />
-                                            <div className="relative bg-[#1c1c1e] border border-white/10 rounded-2xl p-5 shadow-2xl flex flex-col h-full min-h-[240px]">
+                                            <div className="relative bg-gray-100 border border-black rounded-2xl p-5 shadow-2xl flex flex-col h-full min-h-[240px]">
                                                 <textarea className="w-full flex-1 bg-transparent text-lg text-slate-200 placeholder-slate-600 focus:outline-none resize-none font-medium leading-relaxed" placeholder="在此输入您想生成的语音文本..." value={textPrompt} onChange={(e) => setTextPrompt(e.target.value)} />
                                                 <div className="flex justify-between items-center mt-4 pt-4 border-t border-white/5">
                                                     <div className="flex items-center gap-2">
@@ -435,7 +435,7 @@ export const SonicStudio: React.FC<SonicStudioProps> = ({ isOpen, onClose, histo
                                             <h2 className="text-xs font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2"><User size={12}/> 声音画像 (Personas)</h2>
                                             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                                                 {VOICE_PERSONAS.map((persona) => (
-                                                    <button key={persona.label} onClick={() => { setSelectedPersona(persona); setReferenceAudio(null); setReferenceFileName(null); }} className={`p-3 rounded-xl border text-left transition-all group ${selectedPersona?.label === persona.label ? 'bg-purple-500/10 border-purple-500/50' : 'bg-white/5 border-white/5 hover:border-white/20 hover:bg-white/10'}`}>
+                                                    <button key={persona.label} onClick={() => { setSelectedPersona(persona); setReferenceAudio(null); setReferenceFileName(null); }} className={`p-3 rounded-md border text-left transition-all group ${selectedPersona?.label === persona.label ? 'bg-purple-500/10 border-purple-500/50' : 'bg-white/5 border-white/5 hover:border-white/20 hover:bg-white/10'}`}>
                                                         <div className="flex justify-between items-start mb-1"><span className={`text-xs font-bold ${selectedPersona?.label === persona.label ? 'text-purple-400' : 'text-slate-300'}`}>{persona.label}</span></div>
                                                         <p className="text-[9px] text-slate-500 leading-relaxed line-clamp-2">{persona.desc}</p>
                                                     </button>
@@ -452,11 +452,11 @@ export const SonicStudio: React.FC<SonicStudioProps> = ({ isOpen, onClose, histo
                             <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-300 pl-12">
                                 <div className="space-y-1">
                                     <h1 className="text-3xl font-black text-white tracking-tight">语音转文字 <span className="text-slate-500 font-light ml-2 text-xl">Transcriber</span></h1>
-                                    <p className="text-slate-400 text-sm">Accurately transcribe audio files into text using Gemini 2.5.</p>
+                                    <p className="text-black text-sm">Accurately transcribe audio files into text using Gemini 2.5.</p>
                                 </div>
 
                                 <div 
-                                    className={`relative h-40 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center gap-4 cursor-pointer transition-all hover:bg-white/5 ${transcribeFile ? 'border-cyan-500/30 bg-cyan-500/5' : 'border-white/10'}`}
+                                    className={`relative h-40 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center gap-4 cursor-pointer transition-all hover:bg-white/5 ${transcribeFile ? 'border-cyan-500/30 bg-cyan-500/5' : 'border-black'}`}
                                     onClick={() => transcribeInputRef.current?.click()}
                                 >
                                     <input type="file" ref={transcribeInputRef} className="hidden" accept="audio/*" onChange={handleUploadTranscribe} />
@@ -464,14 +464,14 @@ export const SonicStudio: React.FC<SonicStudioProps> = ({ isOpen, onClose, histo
                                         <>
                                             <FileAudio size={48} className="text-cyan-400" />
                                             <span className="text-sm font-medium text-cyan-200">{transcribeFileName}</span>
-                                            <button onClick={(e) => { e.stopPropagation(); setTranscribeFile(null); }} className="absolute top-4 right-4 p-2 bg-black/40 hover:bg-red-500/20 text-white/50 hover:text-red-400 rounded-full"><X size={16}/></button>
+                                            <button onClick={(e) => { e.stopPropagation(); setTranscribeFile(null); }} className="absolute top-4 right-4 p-2 bg-gray-100/40 hover:bg-red-500/20 text-white/50 hover:text-red-400 rounded-full"><X size={16}/></button>
                                         </>
                                     ) : (
                                         <>
-                                            <Upload size={48} className="text-slate-600" />
+                                            <Upload size={48} className="text-black" />
                                             <div className="text-center">
-                                                <span className="text-sm font-bold text-slate-400">点击上传音频文件</span>
-                                                <p className="text-xs text-slate-600 mt-1">支持 MP3, WAV, M4A, AAC</p>
+                                                <span className="text-sm font-bold text-black">点击上传音频文件</span>
+                                                <p className="text-xs text-black mt-1">支持 MP3, WAV, M4A, AAC</p>
                                             </div>
                                         </>
                                     )}
@@ -489,8 +489,8 @@ export const SonicStudio: React.FC<SonicStudioProps> = ({ isOpen, onClose, histo
                                 </div>
 
                                 {transcript && (
-                                    <div className="bg-[#1c1c1e] border border-white/10 rounded-2xl p-6 relative">
-                                        <button onClick={() => navigator.clipboard.writeText(transcript)} className="absolute top-4 right-4 p-2 text-slate-500 hover:text-white bg-black/20 hover:bg-black/40 rounded-lg transition-colors" title="复制"><FileText size={14}/></button>
+                                    <div className="bg-gray-100 border border-black rounded-2xl p-6 relative">
+                                        <button onClick={() => navigator.clipboard.writeText(transcript)} className="absolute top-4 right-4 p-2 text-slate-500 hover:text-white bg-gray-100/20 hover:bg-gray-50/40 rounded-md transition-colors" title="复制"><FileText size={14}/></button>
                                         <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4">转录结果</h3>
                                         <p className="text-sm text-slate-300 leading-relaxed whitespace-pre-wrap">{transcript}</p>
                                     </div>
@@ -503,7 +503,7 @@ export const SonicStudio: React.FC<SonicStudioProps> = ({ isOpen, onClose, histo
                             <div className="flex flex-col items-center justify-center gap-10 py-10 animate-in fade-in slide-in-from-bottom-4 duration-300 pl-12">
                                 <div className="space-y-2 text-center">
                                     <h1 className="text-3xl font-black text-white tracking-tight">实时语音对话 <span className="text-slate-500 font-light ml-2 text-xl">Live</span></h1>
-                                    <p className="text-slate-400 text-sm">Bidirectional real-time conversation with Gemini 2.0 Flash Exp.</p>
+                                    <p className="text-black text-sm">Bidirectional real-time conversation with Gemini 2.0 Flash Exp.</p>
                                 </div>
 
                                 <div className="relative w-64 h-64 flex items-center justify-center">
@@ -516,9 +516,9 @@ export const SonicStudio: React.FC<SonicStudioProps> = ({ isOpen, onClose, histo
                                     )}
                                     
                                     {/* Status Circle */}
-                                    <div className={`relative z-10 w-48 h-48 rounded-full flex flex-col items-center justify-center transition-all duration-500 border-4 ${isLiveActive ? 'bg-gradient-to-br from-cyan-900/50 to-purple-900/50 border-cyan-500 shadow-[0_0_50px_rgba(6,182,212,0.3)]' : 'bg-[#1c1c1e] border-white/10'}`}>
-                                        <Activity size={48} className={isLiveActive ? "text-cyan-400 animate-pulse" : "text-slate-600"} />
-                                        <span className={`text-xs font-bold mt-4 uppercase tracking-widest ${isLiveActive ? 'text-cyan-200' : 'text-slate-600'}`}>{liveStatus}</span>
+                                    <div className={`relative z-10 w-48 h-48 rounded-full flex flex-col items-center justify-center transition-all duration-500 border-4 ${isLiveActive ? 'bg-gradient-to-br from-cyan-900/50 to-purple-900/50 border-cyan-500 shadow-[0_0_50px_rgba(6,182,212,0.3)]' : 'bg-gray-100 border-black'}`}>
+                                        <Activity size={48} className={isLiveActive ? "text-cyan-400 animate-pulse" : "text-black"} />
+                                        <span className={`text-xs font-bold mt-4 uppercase tracking-widest ${isLiveActive ? 'text-cyan-200' : 'text-black'}`}>{liveStatus}</span>
                                     </div>
                                 </div>
 
@@ -541,10 +541,10 @@ export const SonicStudio: React.FC<SonicStudioProps> = ({ isOpen, onClose, histo
 
                 {/* --- Shared Player - iOS Style --- */}
                 {(activeTab === 'factory' || (currentTrack && activeTab !== 'live')) && (
-                    <div className="h-24 bg-[#1c1c1e]/90 backdrop-blur-3xl border-t border-white/10 flex items-center px-8 gap-8 relative z-20">
+                    <div className="h-24 bg-gray-100/90 backdrop-blur-3xl border-t border-black flex items-center px-8 gap-8 relative z-20">
                         {/* Track Info */}
                         <div className="w-64 flex items-center gap-4">
-                            <div className={`w-14 h-14 rounded-lg bg-gradient-to-br ${currentTrack ? getRandomCover(currentTrack.id) : 'from-slate-700 to-slate-800'} shadow-lg flex items-center justify-center`}>
+                            <div className={`w-14 h-14 rounded-md bg-gradient-to-br ${currentTrack ? getRandomCover(currentTrack.id) : 'from-slate-700 to-slate-800'} shadow-lg flex items-center justify-center`}>
                                 {currentTrack ? <Mic2 size={24} className="text-white/80" /> : <Disc size={24} className="text-slate-500" />}
                             </div>
                             <div className="flex flex-col min-w-0">
@@ -572,12 +572,12 @@ export const SonicStudio: React.FC<SonicStudioProps> = ({ isOpen, onClose, histo
                         {/* Volume */}
                         <div className="w-64 flex items-center justify-end gap-4">
                             <div className="flex items-center gap-2 group/vol">
-                                <Volume2 size={16} className="text-slate-400" />
+                                <Volume2 size={16} className="text-black" />
                                 <div className="w-20 h-1 bg-white/10 rounded-full relative cursor-pointer">
                                     <div className="absolute top-0 left-0 h-full bg-slate-400 group-hover/vol:bg-white rounded-full" style={{ width: `${volume * 100}%` }} />
                                 </div>
                             </div>
-                            <button className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-colors"><Download size={18} /></button>
+                            <button className="p-2 rounded-md bg-white/5 hover:bg-white/10 text-black hover:text-white transition-colors"><Download size={18} /></button>
                         </div>
                         <audio ref={audioRef} onTimeUpdate={handleTimeUpdate} onEnded={() => setIsPlaying(false)} onLoadedMetadata={handleTimeUpdate} />
                     </div>

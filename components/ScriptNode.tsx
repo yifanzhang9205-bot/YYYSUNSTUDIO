@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { Film, Users, MapPin, Camera, ChevronDown, ChevronRight, Edit2, Check, X, Play } from 'lucide-react';
 import { ScriptData } from '../types';
 
@@ -29,7 +29,7 @@ export const ScriptNode: React.FC<ScriptNodeProps> = ({
   const [isEditing, setIsEditing] = useState(false);
   const [editedTitle, setEditedTitle] = useState(scriptData?.title || '');
   
-  // 输入框状�?
+  // 输入框状态
   const [showInputDialog, setShowInputDialog] = useState(false);
   const [userIdea, setUserIdea] = useState('');
 
@@ -43,11 +43,11 @@ export const ScriptNode: React.FC<ScriptNodeProps> = ({
     setUserIdea('');
   };
 
-  // 空状�?- 极简 + 清晰
+  // 空状态 - 极简 + 清晰
   if (!scriptData) {
     return (
       <>
-        <div className="w-full h-full flex flex-col items-center justify-center bg-black">
+        <div className="w-full h-full flex flex-col items-center justify-center bg-gray-100">
           {/* 图标 */}
           <div className="mb-12">
             <Film size={36} strokeWidth={0.75} className="text-white/30" />
@@ -69,11 +69,11 @@ export const ScriptNode: React.FC<ScriptNodeProps> = ({
           </button>
         </div>
 
-        {/* 输入对话�?- 自适应大小 */}
+        {/* 输入对话框 - 自适应大小 */}
         {showInputDialog && (
-          <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/90" onClick={() => setShowInputDialog(false)}>
-            <div className="bg-black border border-white/15 rounded-sm p-10 w-[600px] max-w-[85vw]" onClick={(e) => e.stopPropagation()}>
-              {/* 输入�?- 更大更清�?*/}
+          <div className="fixed inset-0 z-[200] flex items-center justify-center bg-gray-100/90" onClick={() => setShowInputDialog(false)}>
+            <div className="bg-gray-100 border border-white/15 rounded-sm p-10 w-[600px] max-w-[85vw]" onClick={(e) => e.stopPropagation()}>
+              {/* 输入框 - 更大更清晰 */}
               <textarea
                 value={userIdea}
                 onChange={(e) => setUserIdea(e.target.value)}
@@ -119,10 +119,10 @@ export const ScriptNode: React.FC<ScriptNodeProps> = ({
     );
   }
 
-  // 折叠状�?- 清晰可读
+  // 折叠状态 - 清晰可读
   if (viewMode === 'overview') {
     return (
-      <div className="w-full h-full flex flex-col bg-black">
+      <div className="w-full h-full flex flex-col bg-gray-100">
         {/* 头部 */}
         <div className="px-6 py-4 border-b border-white/8 flex items-center justify-between">
           <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -207,9 +207,9 @@ export const ScriptNode: React.FC<ScriptNodeProps> = ({
     );
   }
 
-  // 展开状�?- 极简
+  // 展开状态 - 极简
   return (
-    <div className="w-full h-full flex flex-col bg-black overflow-hidden">
+    <div className="w-full h-full flex flex-col bg-gray-100 overflow-hidden">
       {/* 头部 */}
       <div className="px-6 py-4 border-b border-white/5 flex items-center gap-3 shrink-0">
         <button onClick={() => setViewMode('overview')} className="p-1 hover:bg-white/5 rounded transition-colors">

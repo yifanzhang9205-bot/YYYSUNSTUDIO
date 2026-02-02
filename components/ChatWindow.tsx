@@ -77,7 +77,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
       // H1 (# Title)
       if (line.startsWith('# ')) {
           elements.push(
-              <h1 key={key} className="text-base font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-400 mt-5 mb-3 border-b border-white/10 pb-2">
+              <h1 key={key} className="text-base font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-400 mt-5 mb-3 border-b border-black pb-2">
                   {line.replace(/^#\s/, '')}
               </h1>
           );
@@ -139,7 +139,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
       if (trimmed.startsWith('> ')) {
           const content = trimmed.replace(/^>\s/, '');
           elements.push(
-              <div key={key} className="pl-3 border-l-2 border-cyan-500/30 italic text-slate-400 my-2 text-xs">
+              <div key={key} className="pl-3 border-l-2 border-cyan-500/30 italic text-black my-2 text-xs">
                   {parseInlineStyles(content)}
               </div>
           );
@@ -162,7 +162,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
 
   return (
     <div 
-      className={`fixed right-6 top-1/2 -translate-y-1/2 h-[85vh] w-[420px] bg-[#1c1c1e]/95 backdrop-blur-3xl rounded-[24px] border border-white/10 shadow-2xl z-40 flex flex-col overflow-hidden ${SPRING_ANIMATION} ${isOpen ? 'opacity-100 translate-x-0 scale-100' : 'opacity-0 translate-x-10 scale-95 pointer-events-none'}`}
+      className={`fixed right-6 top-1/2 -translate-y-1/2 h-[85vh] w-[420px] bg-gray-100/95 backdrop-blur-3xl rounded-[24px] border border-black shadow-2xl z-40 flex flex-col overflow-hidden ${SPRING_ANIMATION} ${isOpen ? 'opacity-100 translate-x-0 scale-100' : 'opacity-0 translate-x-10 scale-95 pointer-events-none'}`}
       onMouseDown={(e) => e.stopPropagation()}
     >
       {/* Header */}
@@ -187,14 +187,14 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
             <span className="text-xs font-bold text-slate-200 tracking-wide">AI 创意助手</span>
             <span className="text-[10px] text-slate-500 font-medium">提示词优化 & 灵感生成</span>
           </div>
-          <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-cyan-500/20 to-blue-500/20 flex items-center justify-center border border-white/10 shadow-inner">
+          <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-cyan-500/20 to-blue-500/20 flex items-center justify-center border border-black shadow-inner">
              <Sparkles size={14} className="text-cyan-400" />
           </div>
         </div>
       </div>
 
       {/* Chat Content */}
-      <div className="flex-1 overflow-y-auto p-5 space-y-6 custom-scrollbar bg-[#0a0a0c]/50">
+      <div className="flex-1 overflow-y-auto p-5 space-y-6 custom-scrollbar bg-gray-100/50">
         {messages.map((m, i) => (
           <div key={i} className={`flex w-full ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
             <div className={`flex flex-col max-w-[92%] gap-1.5 ${m.role === 'user' ? 'items-end' : 'items-start'}`}>
@@ -211,8 +211,8 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                         className={`
                             px-5 py-4 rounded-2xl shadow-sm border select-text
                             ${m.role === 'user' 
-                                ? 'bg-[#2c2c2e] border-white/10 text-slate-100 rounded-tr-sm' 
-                                : 'bg-[#1c1c1e] border-white/5 text-slate-300 rounded-tl-sm w-full'
+                                ? 'bg-gray-200 border-black text-slate-100 rounded-tr-sm' 
+                                : 'bg-gray-100 border-white/5 text-slate-300 rounded-tl-sm w-full'
                             }
                         `}
                     >
@@ -222,7 +222,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                     {/* Copy Button */}
                     <button 
                         onClick={() => handleCopy(m.text, i)}
-                        className={`absolute top-2 ${m.role === 'user' ? '-left-8' : '-right-8'} p-1.5 rounded-full bg-black/40 border border-white/10 text-slate-400 opacity-0 group-hover:opacity-100 transition-all hover:text-white hover:scale-110 hover:bg-black/60`}
+                        className={`absolute top-2 ${m.role === 'user' ? '-left-8' : '-right-8'} p-1.5 rounded-full bg-black/40 border border-black text-black opacity-0 group-hover:opacity-100 transition-all hover:text-white hover:scale-110 hover:bg-black/60`}
                         title="复制内容"
                     >
                         {copiedIndex === i ? <span className="text-[10px] font-bold text-green-400">OK</span> : <Copy size={12} />}
@@ -236,9 +236,9 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
             <div className="flex justify-start w-full animate-in fade-in slide-in-from-bottom-2">
                 <div className="flex flex-col gap-2 max-w-[85%]">
                     <span className="text-[10px] font-bold text-cyan-500/80 uppercase tracking-wider px-1">Thinking</span>
-                    <div className="px-5 py-4 bg-[#1c1c1e] border border-white/5 rounded-2xl rounded-tl-sm flex items-center gap-3 w-fit shadow-lg shadow-cyan-900/10">
+                    <div className="px-5 py-4 bg-gray-100 border border-white/5 rounded-2xl rounded-tl-sm flex items-center gap-3 w-fit shadow-lg shadow-cyan-900/10">
                         <Loader2 size={16} className="animate-spin text-cyan-500" />
-                        <span className="text-xs text-slate-400 font-medium tracking-wide">正在思考创意...</span>
+                        <span className="text-xs text-black font-medium tracking-wide">正在思考创意...</span>
                     </div>
                 </div>
             </div>
@@ -247,10 +247,10 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
       </div>
 
       {/* Input Area */}
-      <div className="p-4 bg-[#1c1c1e] border-t border-white/5 shrink-0">
+      <div className="p-4 bg-gray-100 border-t border-white/5 shrink-0">
         <div className="relative group/input">
           <textarea 
-            className="w-full bg-black/20 border border-white/10 rounded-[20px] pl-4 pr-12 py-3.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:bg-black/40 focus:border-cyan-500/30 transition-all resize-none custom-scrollbar leading-5" 
+            className="w-full bg-black/20 border border-black rounded-[20px] pl-4 pr-12 py-3.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:bg-black/40 focus:border-cyan-500/30 transition-all resize-none custom-scrollbar leading-5" 
             placeholder="输入您的想法，让 AI 为您完善..." 
             value={input} 
             onChange={e => setInput(e.target.value)} 
@@ -266,12 +266,12 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
           <button 
             onClick={handleSend} 
             disabled={!input.trim() || isLoading}
-            className={`absolute right-2 top-2 p-2 rounded-full transition-all duration-300 ${input.trim() && !isLoading ? 'bg-cyan-500 text-black hover:bg-cyan-400 hover:scale-105 shadow-lg shadow-cyan-500/20' : 'bg-white/5 text-slate-600 cursor-not-allowed'}`}
+            className={`absolute right-2 top-2 p-2 rounded-full transition-all duration-300 ${input.trim() && !isLoading ? 'bg-cyan-500 text-black hover:bg-cyan-400 hover:scale-105 shadow-lg shadow-cyan-500/20' : 'bg-white/5 text-black cursor-not-allowed'}`}
           >
             {isLoading ? <Loader2 size={16} className="animate-spin" /> : <CornerDownLeft size={16} />}
           </button>
         </div>
-        <div className="text-[9px] text-slate-600 text-center mt-2 font-medium tracking-wide">
+        <div className="text-[9px] text-black text-center mt-2 font-medium tracking-wide">
             Shift + Enter 换行
         </div>
       </div>

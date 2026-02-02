@@ -1,4 +1,4 @@
-
+﻿
 import React, { useRef, useState, useEffect } from 'react';
 import { 
     X, Brush, Eraser, Palette, Undo, Trash2, 
@@ -274,9 +274,9 @@ export const SketchEditor: React.FC<SketchEditorProps> = ({ onClose, onGenerate 
     };
 
     return (
-        <div className="fixed inset-0 z-[100] bg-[#0a0a0c] flex flex-col animate-in fade-in duration-300">
+        <div className="fixed inset-0 z-[100] bg-gray-100 flex flex-col animate-in fade-in duration-300">
             {/* 1. Top Navigation Bar */}
-            <div className="h-14 border-b border-white/10 flex items-center justify-between px-6 bg-[#1c1c1e]">
+            <div className="h-14 border-b border-white/10 flex items-center justify-between px-6 bg-gray-100">
                 <button 
                     onClick={onClose}
                     className="absolute left-6 p-2 rounded-full bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition-colors"
@@ -285,7 +285,7 @@ export const SketchEditor: React.FC<SketchEditorProps> = ({ onClose, onGenerate 
                 </button>
 
                 <div className="flex-1 flex justify-center">
-                    <div className="flex bg-black/30 p-1 rounded-lg">
+                    <div className="flex bg-gray-100/30 p-1 rounded-lg">
                         {[
                             { id: 'video', label: '涂鸦生视频', icon: Play },
                             { id: 'image', label: '涂鸦生图', icon: ImageIcon },
@@ -310,10 +310,10 @@ export const SketchEditor: React.FC<SketchEditorProps> = ({ onClose, onGenerate 
             </div>
 
             {/* 2. Main Canvas Area */}
-            <div className="flex-1 relative bg-[#121214] flex items-center justify-center p-8 overflow-hidden">
+            <div className="flex-1 relative bg-gray-100 flex items-center justify-center p-8 overflow-hidden">
                 
                 {/* Floating Toolbar */}
-                <div className="absolute top-12 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 p-1.5 bg-[#2c2c2e]/90 backdrop-blur-xl border border-white/10 rounded-full shadow-2xl">
+                <div className="absolute top-12 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 p-1.5 bg-gray-200/90 backdrop-blur-xl border border-white/10 rounded-full shadow-2xl">
                     <button 
                         onClick={() => setTool('brush')}
                         className={`p-2.5 rounded-full transition-colors ${tool === 'brush' ? 'bg-cyan-500 text-black' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
@@ -343,7 +343,7 @@ export const SketchEditor: React.FC<SketchEditorProps> = ({ onClose, onGenerate 
                         </button>
 
                         {showPalette && (
-                            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-3 p-3 bg-[#1c1c1e] border border-white/10 rounded-xl shadow-xl grid grid-cols-4 gap-2 w-48 z-30">
+                            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-3 p-3 bg-gray-100 border border-white/10 rounded-xl shadow-xl grid grid-cols-4 gap-2 w-48 z-30">
                                 {PRESET_COLORS.map(c => (
                                     <button 
                                         key={c}
@@ -393,7 +393,7 @@ export const SketchEditor: React.FC<SketchEditorProps> = ({ onClose, onGenerate 
             </div>
 
             {/* 3. Bottom Control Bar */}
-            <div className="h-20 bg-[#1c1c1e] border-t border-white/10 flex items-center px-8 gap-4">
+            <div className="h-20 bg-gray-100 border-t border-white/10 flex items-center px-8 gap-4">
                 {/* Tools (Left) */}
                 <div className="flex items-center gap-2 mr-4">
                     {/* Import Background Button */}
@@ -417,14 +417,14 @@ export const SketchEditor: React.FC<SketchEditorProps> = ({ onClose, onGenerate 
                         value={prompt}
                         onChange={(e) => setPrompt(e.target.value)}
                         placeholder={activeMode === 'pose' ? "描述姿势 (e.g. A stick figure running fast)..." : "描述画面内容 (e.g. Milk splash around the bottle)..."}
-                        className="w-full h-11 bg-black/30 border border-white/10 rounded-xl px-4 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500/50 transition-colors"
+                        className="w-full h-11 bg-gray-100/30 border border-white/10 rounded-xl px-4 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500/50 transition-colors"
                         onKeyDown={(e) => e.key === 'Enter' && handleGenerate()}
                     />
                 </div>
 
                 {/* Settings & Generate */}
                 <div className="flex items-center gap-3">
-                    <div className="h-11 px-4 flex items-center gap-2 bg-black/30 border border-white/10 rounded-xl text-xs text-slate-300 font-medium">
+                    <div className="h-11 px-4 flex items-center gap-2 bg-gray-100/30 border border-white/10 rounded-xl text-xs text-slate-300 font-medium">
                         <span>{activeMode === 'pose' ? 'Gemini 2.5 (Pose)' : activeMode === 'video' ? 'Veo 3.1 Fast' : 'Gemini 2.5'}</span>
                         <ChevronDown size={12} className="text-slate-500" />
                     </div>

@@ -38,7 +38,7 @@ const renderFormattedMessage = (text: string) => {
 
     if (line.startsWith('# ')) {
         elements.push(
-            <h1 key={key} className="text-base font-bold text-white/90 mt-5 mb-3 border-b border-white/10 pb-2">
+            <h1 key={key} className="text-base font-bold text-white/90 mt-5 mb-3 border-b border-black pb-2">
                 {line.replace(/^#\s/, '')}
             </h1>
         );
@@ -177,12 +177,12 @@ export const AssistantPanel: React.FC<AssistantPanelProps> = ({ isOpen, onClose 
   return (
     <div 
       ref={panelRef}
-      className={`fixed right-6 top-1/2 -translate-y-1/2 h-[85vh] w-[420px] bg-[#1c1c1e]/95 backdrop-blur-3xl rounded-3xl border border-white/10 shadow-2xl z-40 flex flex-col overflow-hidden transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] ${isOpen ? 'opacity-100 translate-x-0 scale-100' : 'opacity-0 translate-x-10 scale-95 pointer-events-none'}`}
+      className={`fixed right-6 top-1/2 -translate-y-1/2 h-[85vh] w-[420px] bg-gray-100/95 backdrop-blur-3xl rounded-3xl border border-black shadow-2xl z-40 flex flex-col overflow-hidden transition-all duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] ${isOpen ? 'opacity-100 translate-x-0 scale-100' : 'opacity-0 translate-x-10 scale-95 pointer-events-none'}`}
       onMouseDown={(e) => e.stopPropagation()}
       onWheel={(e) => e.stopPropagation()}
     >
       {/* Header */}
-      <div className="p-4 border-b border-white/5 flex justify-between items-center bg-white/5 backdrop-blur-xl shrink-0">
+      <div className="p-4 border-b border-white/5 flex justify-between items-center bg-white/5  shrink-0">
         <div className="flex items-center gap-1">
           <button 
             onClick={onClose} 
@@ -203,7 +203,7 @@ export const AssistantPanel: React.FC<AssistantPanelProps> = ({ isOpen, onClose 
             <span className="text-xs font-semibold text-white/90">AI 创意助手</span>
             <span className="text-[10px] text-white/40">提示词优化 & 灵感生成</span>
           </div>
-          <div className="w-9 h-9 rounded-2xl bg-white/10 flex items-center justify-center border border-white/10">
+          <div className="w-9 h-9 rounded-2xl bg-white/10 flex items-center justify-center border border-black">
              <Sparkles size={16} className="text-white/70" />
           </div>
         </div>
@@ -223,7 +223,7 @@ export const AssistantPanel: React.FC<AssistantPanelProps> = ({ isOpen, onClose 
                         className={`
                             relative px-5 py-4 rounded-3xl shadow-sm border select-text cursor-text
                             ${m.role === 'user' 
-                                ? 'bg-white/10 border-white/10 text-white/90 rounded-tr-lg' 
+                                ? 'bg-white/10 border-black text-white/90 rounded-tr-lg' 
                                 : 'bg-white/5 border-white/5 text-white/80 rounded-tl-lg w-full pr-10'
                             }
                         `}
@@ -248,7 +248,7 @@ export const AssistantPanel: React.FC<AssistantPanelProps> = ({ isOpen, onClose 
                     <span className={`text-[10px] font-semibold uppercase tracking-wider px-1 ${isThinkingMode ? 'text-white/60' : 'text-white/40'}`}>
                         {isThinkingMode ? 'Deep Thinking' : 'Thinking'}
                     </span>
-                    <div className={`px-5 py-4 bg-white/5 border border-white/10 rounded-3xl rounded-tl-lg flex items-center gap-3 w-fit`}>
+                    <div className={`px-5 py-4 bg-white/5 border border-black rounded-3xl rounded-tl-lg flex items-center gap-3 w-fit`}>
                         <Loader2 size={16} className="animate-spin text-white/60" />
                         <span className="text-xs font-medium text-white/50">
                             {isThinkingMode ? "深度思考中..." : isStoryboardActive ? "正在规划分镜..." : isHelpMeWriteActive ? "正在润色文本..." : "正在思考创意..."}
@@ -261,7 +261,7 @@ export const AssistantPanel: React.FC<AssistantPanelProps> = ({ isOpen, onClose 
       </div>
 
       {/* Input Area */}
-      <div className="p-4 bg-[#1c1c1e] border-t border-white/5 shrink-0 flex flex-col gap-3">
+      <div className="p-4 bg-gray-100 border-t border-white/5 shrink-0 flex flex-col gap-3">
         {/* Tool Bar */}
         <div className="flex items-center justify-between px-1">
              <div className="flex items-center gap-2">
@@ -293,7 +293,7 @@ export const AssistantPanel: React.FC<AssistantPanelProps> = ({ isOpen, onClose 
 
         <div className="relative">
           <textarea 
-            className="w-full bg-white/5 border border-white/10 rounded-2xl pl-4 pr-14 py-3.5 text-xs text-white placeholder-white/30 focus:outline-none focus:bg-white/10 focus:border-white/20 transition-all resize-none custom-scrollbar leading-5" 
+            className="w-full bg-white/5 border border-black rounded-2xl pl-4 pr-14 py-3.5 text-xs text-white placeholder-white/30 focus:outline-none focus:bg-white/10 focus:border-white/20 transition-all resize-none custom-scrollbar leading-5" 
             placeholder={
                 isStoryboardActive ? "输入视频描述，我将为您生成专业分镜脚本..." :
                 isThinkingMode ? "输入复杂问题，进行深度逻辑推理..." : 
@@ -314,7 +314,7 @@ export const AssistantPanel: React.FC<AssistantPanelProps> = ({ isOpen, onClose 
           <button 
             onClick={handleSendMessage} 
             disabled={!input.trim() || isLoading}
-            className={`absolute right-2 top-2 w-9 h-9 rounded-xl flex items-center justify-center transition-all active:scale-95 ${input.trim() && !isLoading ? 'bg-white text-black hover:bg-white/90 shadow-lg' : 'bg-white/10 text-white/30 cursor-not-allowed'}`}
+            className={`absolute right-2 top-2 w-9 h-9 rounded-md flex items-center justify-center transition-all active:scale-95 ${input.trim() && !isLoading ? 'bg-white text-black hover:bg-white/90 shadow-lg' : 'bg-white/10 text-white/30 cursor-not-allowed'}`}
           >
             {isLoading ? <Loader2 size={16} className="animate-spin" /> : <CornerDownLeft size={16} />}
           </button>
