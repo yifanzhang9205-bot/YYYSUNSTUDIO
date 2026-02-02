@@ -161,6 +161,7 @@ import { useNodeHelpers } from './hooks/useNodeHelpers';
 import { useAssetHistory } from './hooks/useAssetHistory';
 import { useUIState } from './hooks/useUIState';
 import { useNodeActions } from './hooks/useNodeActions'; // 🔥 新增：节点操作 Hook
+import { useContextMenu } from './hooks/useContextMenu'; // 🔥 新增：上下文菜单 Hook（架构重构）
 
 // 引入 Stores（架构重构 - 阶段 A - 第 2 步）
 import { useNodeStore } from './core/stores/nodeStore';
@@ -457,11 +458,16 @@ export const App = () => {
     downloadSelectedImagesAndClear 
   } = useAssetHistory();
 
+  // === 架构重构：使用 useContextMenu Hook（上下文菜单逻辑抽离）===
   const { 
     contextMenu, 
     contextMenuTarget, 
     openContextMenu, 
     closeContextMenu,
+    menuItems: getMenuItemsFromRegistry, // 🔥 从 NodeRegistry 获取菜单项
+  } = useContextMenu();
+
+  const { 
     expandedMedia, 
     openMedia, 
     closeMedia,
@@ -2076,16 +2082,79 @@ export const App = () => {
                           <button className="w-full text-left px-3 py-1.5 text-[11px] font-medium text-red-400 hover:bg-red-500/20 rounded-lg flex items-center gap-2 transition-colors mt-0.5" onClick={() => { deleteNodesCallback([contextMenuTarget.id]); closeContextMenu(); }}><Trash2 size={12} /> 删除节点</button>
                       </>
                   )}
-                  {contextMenuTarget?.type === 'create' && (
-                      <>
-                          <div className="px-3 py-1.5 text-[9px] font-bold uppercase tracking-wider text-white/30">基础节点</div>
-                          {[NodeType.PROMPT_INPUT, NodeType.IMAGE_GENERATOR, NodeType.VIDEO_GENERATOR].map(t => { const ItemIcon = getNodeIcon(t); return ( <button key={t} className="w-full text-left px-3 py-1.5 text-[11px] font-medium text-white/90 hover:bg-white/10 rounded-lg flex items-center gap-2 transition-colors" onClick={() => { addNode(t, (contextMenu.x-pan.x)/scale, (contextMenu.y-pan.y)/scale); closeContextMenu(); }}> <ItemIcon size={13} className="text-cyan-400" /> {getNodeNameCN(t)} </button> ); })}
-                          <div className="px-3 py-1.5 text-[9px] font-bold uppercase tracking-wider text-white/30 mt-1 border-t border-white/5 pt-1.5">故事创作</div>
-                          {[NodeType.STORY_STUDIO, NodeType.CHARACTER_REFERENCE, NodeType.SCENE_REFERENCE, NodeType.STORYBOARD_SHOT].map(t => { const ItemIcon = getNodeIcon(t); return ( <button key={t} className="w-full text-left px-3 py-1.5 text-[11px] font-medium text-white/90 hover:bg-white/10 rounded-lg flex items-center gap-2 transition-colors" onClick={() => { addNode(t, (contextMenu.x-pan.x)/scale, (contextMenu.y-pan.y)/scale); closeContextMenu(); }}> <ItemIcon size={13} className="text-purple-400" /> {getNodeNameCN(t)} </button> ); })}
-                          <div className="px-3 py-1.5 text-[9px] font-bold uppercase tracking-wider text-white/30 mt-1 border-t border-white/5 pt-1.5">高级工具</div>
-                          {[NodeType.MULTI_ANGLE_CAMERA, NodeType.GRID_SPLITTER].map(t => { const ItemIcon = getNodeIcon(t); return ( <button key={t} className="w-full text-left px-3 py-1.5 text-[11px] font-medium text-white/90 hover:bg-white/10 rounded-lg flex items-center gap-2 transition-colors" onClick={() => { addNode(t, (contextMenu.x-pan.x)/scale, (contextMenu.y-pan.y)/scale); closeContextMenu(); }}> <ItemIcon size={13} className="text-pink-400" /> {getNodeNameCN(t)} </button> ); })}
-                      </>
-                  )}
+                  {contextMenuTarget?.type === 'create' && (() => {
+                      // 🔥 架构重构：从 NodeRegistry 获取菜单项
+                      const menuItems = getMenuItemsFromRegistry();
+                      
+                      return (
+                          <>
+                              {/* 基础节点 */}
+                              <div className="px-3 py-1.5 text-[9px] font-bold uppercase tracking-wider text-white/30">基础节点</div>
+                              {menuItems.basic.map(def => {
+                                  const ItemIcon = getNodeIcon(def.type);
+                                  return (
+                                      <button
+                                          key={def.type}
+                                          className="w-full text-left px-3 py-1.5 text-[11px] font-medium text-white/90 hover:bg-white/10 rounded-lg flex items-center gap-2 transition-colors"
+                                          onClick={() => {
+                                              addNode(def.type, (contextMenu.x - pan.x) / scale, (contextMenu.y - pan.y) / scale);
+                                              closeContextMenu();
+                                          }}
+                                      >
+                                          <ItemIcon size={13} className="text-cyan-400" />
+                                          {def.name}
+                                      </button>
+                                  );
+                              })}
+
+                              {/* 故事创作 */}
+                              {menuItems.story.length > 0 && (
+                                  <>
+                                      <div className="px-3 py-1.5 text-[9px] font-bold uppercase tracking-wider text-white/30 mt-1 border-t border-white/5 pt-1.5">故事创作</div>
+                                      {menuItems.story.map(def => {
+                                          const ItemIcon = getNodeIcon(def.type);
+                                          return (
+                                              <button
+                                                  key={def.type}
+                                                  className="w-full text-left px-3 py-1.5 text-[11px] font-medium text-white/90 hover:bg-white/10 rounded-lg flex items-center gap-2 transition-colors"
+                                                  onClick={() => {
+                                                      addNode(def.type, (contextMenu.x - pan.x) / scale, (contextMenu.y - pan.y) / scale);
+                                                      closeContextMenu();
+                                                  }}
+                                              >
+                                                  <ItemIcon size={13} className="text-purple-400" />
+                                                  {def.name}
+                                              </button>
+                                          );
+                                      })}
+                                  </>
+                              )}
+
+                              {/* 高级工具 */}
+                              {menuItems.advanced.length > 0 && (
+                                  <>
+                                      <div className="px-3 py-1.5 text-[9px] font-bold uppercase tracking-wider text-white/30 mt-1 border-t border-white/5 pt-1.5">高级工具</div>
+                                      {menuItems.advanced.map(def => {
+                                          const ItemIcon = getNodeIcon(def.type);
+                                          return (
+                                              <button
+                                                  key={def.type}
+                                                  className="w-full text-left px-3 py-1.5 text-[11px] font-medium text-white/90 hover:bg-white/10 rounded-lg flex items-center gap-2 transition-colors"
+                                                  onClick={() => {
+                                                      addNode(def.type, (contextMenu.x - pan.x) / scale, (contextMenu.y - pan.y) / scale);
+                                                      closeContextMenu();
+                                                  }}
+                                              >
+                                                  <ItemIcon size={13} className="text-pink-400" />
+                                                  {def.name}
+                                              </button>
+                                          );
+                                      })}
+                                  </>
+                              )}
+                          </>
+                      );
+                  })()}
                   {contextMenuTarget?.type === 'smart-connect' && (
                       <>
                           <div className="px-3 py-1.5 text-[9px] font-bold uppercase tracking-wider text-white/30 flex items-center gap-1.5">

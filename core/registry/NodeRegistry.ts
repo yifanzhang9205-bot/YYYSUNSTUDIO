@@ -358,3 +358,15 @@ export function isNodeDeprecated(type: NodeType): boolean {
   const definition = nodeRegistry.get(type);
   return definition?.deprecated || false;
 }
+
+/**
+ * 获取菜单项（按分类分组）
+ * 用于双击画布菜单
+ */
+export function getMenuItems() {
+  return {
+    basic: nodeRegistry.getByCategory('basic'),
+    story: nodeRegistry.getByCategory('story'),
+    advanced: nodeRegistry.getByCategory('advanced'),
+  };
+}
