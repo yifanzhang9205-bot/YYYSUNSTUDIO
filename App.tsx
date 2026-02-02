@@ -138,7 +138,7 @@ import { SettingsModal } from './components/SettingsModal';
 import { GroupToolbar } from './components/GroupToolbar';
 import { Minimap } from './components/Minimap'; // 🔥 新增：小地图组件
 import { AppNode, NodeType, NodeStatus, Connection, ContextMenuState, Group, Workflow, SmartSequenceItem } from './types';
-import { generateImageFromText, generateVideo, analyzeVideo, editImageWithText, planStoryboard, orchestrateVideoPrompt, compileMultiFramePrompt, urlToBase64, extractLastFrame, generateAudio } from './services/geminiService';
+import { generateImageFromText, generateVideo, analyzeVideo, editImageWithText, planStoryboard, orchestrateVideoPrompt, compileMultiFramePrompt, extractLastFrame, generateAudio } from './services/geminiService';
 import { generateImage as generateNanoBananaImage } from './services/nanoBananaService';
 import { getGenerationStrategy } from './services/videoStrategies';
 import { saveToStorage, loadFromStorage } from './services/storage';
@@ -1211,6 +1211,13 @@ export const App = () => {
 
   /**
    * 从剧本节点生成完整工作流
+   * 
+   * ⚠️ 注意：此功能暂时禁用
+   * 原因：依赖的节点类型（CHARACTER_REFERENCE, SCENE_REFERENCE）已被删除
+   * 
+   * TODO: 重新设计工作流生成逻辑
+   * - 使用新的节点类型
+   * - 或者直接生成分镜图节点
    */
   const createWorkflowFromScript = useCallback((scriptNodeId: string) => {
       const scriptNode = nodesRef.current.get(scriptNodeId) as AppNode | undefined;
@@ -1218,6 +1225,13 @@ export const App = () => {
           console.error('[生成工作流] 剧本节点不存在或没有剧本数据');
           return;
       }
+      
+      // ⚠️ 暂时禁用此功能
+      alert('⚠️ 工作流生成功能暂时不可用\n\n原因：此功能依赖的节点类型（角色参考、场景参考）已被移除。\n\n建议：\n1. 手动创建分镜图生成节点\n2. 或者等待功能重新设计');
+      return;
+      
+      /* 
+      // === 原有代码已注释，等待重新设计 ===
       
       const scriptData = scriptNode.data.scriptData;
       saveHistory(); // 保存历史记录
@@ -1233,215 +1247,17 @@ export const App = () => {
       const startY = scriptNode.y;
       
       // === 1. 创建角色参考节点 ===
-      let currentY = startY;
-      scriptData.characters.forEach((char: any, index: number) => {
-          const nodeId = `char-ref-${Date.now()}-${index}`;
-          const nodeHeight = 400;
-          
-          newNodes.push({
-              id: nodeId,
-              type: NodeType.CHARACTER_REFERENCE,
-              x: startX,
-              y: currentY,
-              width: nodeWidth,
-              height: nodeHeight,
-              title: `角色：${char.name}`,
-              status: NodeStatus.IDLE,
-              data: {
-                  characterId: char.id,
-                  characterName: char.name,
-                  description: char.description,
-                  personality: char.personality,
-                  visualKeywords: char.visualKeywords,
-                  scriptNodeId: scriptNodeId
-              },
-              inputs: [scriptNodeId]
-          });
-          
-          newConnections.push({
-              from: scriptNodeId,
-              to: nodeId
-          });
-          
-          currentY += nodeHeight + rowGap;
-      });
+      // ❌ 已删除：NodeType.CHARACTER_REFERENCE
       
       // === 2. 创建场景参考节点 ===
-      scriptData.scenes.forEach((scene: any, index: number) => {
-          const nodeId = `scene-ref-${Date.now()}-${index}`;
-          const nodeHeight = 400;
-          
-          newNodes.push({
-              id: nodeId,
-              type: NodeType.SCENE_REFERENCE,
-              x: startX,
-              y: currentY,
-              width: nodeWidth,
-              height: nodeHeight,
-              title: `场景 ${scene.sceneNumber}：${scene.location}`,
-              status: NodeStatus.IDLE,
-              data: {
-                  sceneId: scene.id,
-                  sceneNumber: scene.sceneNumber,
-                  location: scene.location,
-                  timeOfDay: scene.timeOfDay,
-                  mood: scene.mood,
-                  description: scene.description,
-                  visualKeywords: scene.visualKeywords,
-                  scriptNodeId: scriptNodeId
-              },
-              inputs: [scriptNodeId]
-          });
-          
-          newConnections.push({
-              from: scriptNodeId,
-              to: nodeId
-          });
-          
-          currentY += nodeHeight + rowGap;
-      });
+      // ❌ 已删除：NodeType.SCENE_REFERENCE
       
-      // === 3. 创建分镜图生成节点（网格布局）===
-      const shotStartX = startX + nodeWidth + colGap;
-      const shotStartY = startY;
-      const shotColumns = 3;
-      const shotNodeHeight = 500;
+      // === 3. 创建分镜图生成节点 ===
+      // ✅ 保留：NodeType.SHOT_IMAGE_GENERATOR
       
-      scriptData.shots.forEach((shot: any, index: number) => {
-          const col = index % shotColumns;
-          const row = Math.floor(index / shotColumns);
-          const nodeId = `shot-img-${Date.now()}-${index}`;
-          
-          const posX = shotStartX + col * (nodeWidth + colGap);
-          const posY = shotStartY + row * (shotNodeHeight + rowGap);
-          
-          // 找到该分镜关联的角色参考节点和场景参考节点
-          const characterNodeIds = shot.characters
-              .map((charName: string) => {
-                  const charIndex = scriptData.characters.findIndex((c: any) => c.name === charName);
-                  return charIndex >= 0 ? newNodes[charIndex].id : null;
-              })
-              .filter(Boolean) as string[];
-          
-          const sceneNodeId = newNodes.find(n => 
-              n.type === NodeType.SCENE_REFERENCE && 
-              n.data.sceneId === shot.sceneId
-          )?.id;
-          
-          // 输入节点：剧本节点 + 角色参考 + 场景参考
-          const inputNodeIds = [
-              scriptNodeId,
-              ...characterNodeIds,
-              ...(sceneNodeId ? [sceneNodeId] : [])
-          ];
-          
-          newNodes.push({
-              id: nodeId,
-              type: NodeType.SHOT_IMAGE_GENERATOR,
-              x: posX,
-              y: posY,
-              width: nodeWidth,
-              height: shotNodeHeight,
-              title: `镜头 ${shot.shotNumber}`,
-              status: NodeStatus.IDLE,
-              data: {
-                  shotId: shot.id,
-                  shotNumber: shot.shotNumber,
-                  shotType: shot.shotType,
-                  cameraAngle: shot.cameraAngle,
-                  cameraMovement: shot.cameraMovement,
-                  duration: shot.duration,
-                  characters: shot.characters,
-                  action: shot.action,
-                  dialogue: shot.dialogue,
-                  visualDescription: shot.visualDescription,
-                  basePrompt: shot.imagePrompt,
-                  scriptNodeId: scriptNodeId,
-                  sceneId: shot.sceneId
-              },
-              inputs: inputNodeIds
-          });
-          
-          // 创建连接
-          inputNodeIds.forEach(inputId => {
-              newConnections.push({
-                  from: inputId,
-                  to: nodeId
-              });
-          });
-      });
-      
-      // === 4. 创建分组 ===
-      const newGroups: Group[] = [];
-      
-      // 角色参考组
-      if (scriptData.characters.length > 0) {
-          const charNodes = newNodes.filter(n => n.type === NodeType.CHARACTER_REFERENCE);
-          const groupPadding = 30;
-          const groupHeight = charNodes.reduce((sum, n) => sum + (n.height || 400) + rowGap, 0) - rowGap + groupPadding * 2;
-          
-          newGroups.push({
-              id: `group-chars-${Date.now()}`,
-              title: '角色参考',
-              x: startX - groupPadding,
-              y: startY - groupPadding,
-              width: nodeWidth + groupPadding * 2,
-              height: groupHeight,
-              nodeIds: charNodes.map(n => n.id)
-          });
-      }
-      
-      // 场景参考组
-      if (scriptData.scenes.length > 0) {
-          const sceneNodes = newNodes.filter(n => n.type === NodeType.SCENE_REFERENCE);
-          const groupPadding = 30;
-          const firstSceneY = sceneNodes[0].y;
-          const groupHeight = sceneNodes.reduce((sum, n) => sum + (n.height || 400) + rowGap, 0) - rowGap + groupPadding * 2;
-          
-          newGroups.push({
-              id: `group-scenes-${Date.now()}`,
-              title: '场景参考',
-              x: startX - groupPadding,
-              y: firstSceneY - groupPadding,
-              width: nodeWidth + groupPadding * 2,
-              height: groupHeight,
-              nodeIds: sceneNodes.map(n => n.id)
-          });
-      }
-      
-      // 分镜图生成组
-      if (scriptData.shots.length > 0) {
-          const shotNodes = newNodes.filter(n => n.type === NodeType.SHOT_IMAGE_GENERATOR);
-          const groupPadding = 30;
-          const totalRows = Math.ceil(scriptData.shots.length / shotColumns);
-          const groupWidth = (Math.min(scriptData.shots.length, shotColumns) * nodeWidth) + 
-                            ((Math.min(scriptData.shots.length, shotColumns) - 1) * colGap) + 
-                            (groupPadding * 2);
-          const groupHeight = (totalRows * shotNodeHeight) + ((totalRows - 1) * rowGap) + (groupPadding * 2);
-          
-          newGroups.push({
-              id: `group-shots-${Date.now()}`,
-              title: '分镜图生成',
-              x: shotStartX - groupPadding,
-              y: shotStartY - groupPadding,
-              width: groupWidth,
-              height: groupHeight,
-              nodeIds: shotNodes.map(n => n.id)
-          });
-      }
-      
-      // === 5. 使用 Store 更新状态 ===
-      useNodeStore.getState().addNodes(newNodes);
-      newConnections.forEach(conn => {
-          useConnectionStore.getState().addConnection(conn);
-      });
-      newGroups.forEach(group => {
-          useGroupStore.getState().addGroup(group);
-      });
-      
-      // 提示用户
-      alert(`✅ 工作流生成成功！\n\n已创建：\n- ${scriptData.characters.length} 个角色参考节点\n- ${scriptData.scenes.length} 个场景参考节点\n- ${scriptData.shots.length} 个分镜图生成节点`);
-  }, [saveHistory]);
+      // TODO: 重新设计工作流生成逻辑
+      */
+  }, []);
 
   const loadWorkflow = (id: string) => {
       const wf = workflows.find(w => w.id === id);
@@ -2071,7 +1887,7 @@ export const App = () => {
               {selectionRect && <div className="absolute border border-cyan-500/40 bg-cyan-500/10 rounded-lg pointer-events-none" style={{ left: (Math.min(selectionRect.startX, selectionRect.currentX) - pan.x) / scale, top: (Math.min(selectionRect.startY, selectionRect.currentY) - pan.y) / scale, width: Math.abs(selectionRect.currentX - selectionRect.startX) / scale, height: Math.abs(selectionRect.currentY - selectionRect.startY) / scale }} />}
           </div>
 
-          {contextMenu && (
+          {contextMenu.visible && (
               <div className="fixed z-[100] bg-[#2c2c2e]/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-2xl p-1 min-w-[140px] animate-in fade-in zoom-in-95 duration-200 origin-top-left" style={{ top: contextMenu.y, left: contextMenu.x }} onMouseDown={(e) => e.stopPropagation()}>
                   {contextMenuTarget?.type === 'node' && (
                       <>
