@@ -12,7 +12,7 @@
  * 3. 获取所有：nodeRegistry.getAll()
  */
 
-import { NodeType, NodeStatus, AppNode } from '../../types';
+import { NodeType, NodeStatus, AppNode, TextNodeMode } from '../../types';
 import type { LucideIcon } from 'lucide-react';
 
 // ============================================
@@ -49,6 +49,9 @@ export interface NodeDefinition {
   
   /** 是否已废弃 */
   deprecated?: boolean;
+  
+  /** 是否隐藏（不在菜单中显示） */
+  hidden?: boolean;
   
   /** 描述 */
   description?: string;
@@ -182,19 +185,22 @@ export function initializeNodeRegistry(): void {
     // ========== 基础节点 ==========
     {
       type: NodeType.PROMPT_INPUT,
-      name: '创意描述',
+      name: '文字',
       iconName: 'Type',
       defaultWidth: 420,
-      defaultHeight: 200,
+      defaultHeight: 280,  // 🔥 升级为多功能节点，增加高度
       defaultData: {
+        // 🔥 文字节点升级：支持多种模式
+        mode: TextNodeMode.INITIAL,  // 初始状态：显示功能选项列表
         prompt: '',
+        model: 'gemini-2.0-flash-exp',  // 默认 API 模型
       },
       category: 'basic',
-      description: '文本输入节点，用于输入提示词',
+      description: '多功能文字节点：支持手动输入、图片反推、文生图、提示词生成',
     },
     {
       type: NodeType.IMAGE_GENERATOR,
-      name: '文字生图',
+      name: '图片',
       iconName: 'Image',
       defaultWidth: 420,
       defaultHeight: 480,
@@ -210,7 +216,7 @@ export function initializeNodeRegistry(): void {
     },
     {
       type: NodeType.VIDEO_GENERATOR,
-      name: '文生视频',
+      name: '视频',
       iconName: 'Video',
       defaultWidth: 420,
       defaultHeight: 480,
@@ -237,6 +243,7 @@ export function initializeNodeRegistry(): void {
       },
       category: 'basic',
       description: '分析视频内容',
+      hidden: true, // 🔥 暂时隐藏
     },
     {
       type: NodeType.IMAGE_EDITOR,
@@ -249,6 +256,7 @@ export function initializeNodeRegistry(): void {
       },
       category: 'basic',
       description: '编辑图片',
+      hidden: true, // 🔥 暂时隐藏
     },
     {
       type: NodeType.AUDIO_GENERATOR,
@@ -262,34 +270,7 @@ export function initializeNodeRegistry(): void {
       },
       category: 'basic',
       description: 'AI 音频生成节点',
-    },
-
-    // ========== 故事创作节点 ==========
-    {
-      type: NodeType.SCRIPT_NODE,
-      name: '剧本节点',
-      iconName: 'Film',
-      defaultWidth: 420,
-      defaultHeight: 600,
-      defaultData: {
-        storyData: undefined,
-      },
-      category: 'story',
-      description: 'AI 剧本生成和管理',
-    },
-    {
-      type: NodeType.SHOT_IMAGE_GENERATOR,
-      name: '分镜图生成',
-      iconName: 'Camera',
-      defaultWidth: 420,
-      defaultHeight: 480,
-      defaultData: {
-        prompt: '',
-        model: 'imagen-3.0-generate-001',
-        imageCount: 1,
-      },
-      category: 'story',
-      description: '生成分镜图',
+      hidden: true, // 🔥 暂时隐藏
     },
 
     // ========== 高级工具节点 ==========
@@ -362,11 +343,15 @@ export function isNodeDeprecated(type: NodeType): boolean {
 /**
  * 获取菜单项（按分类分组）
  * 用于双击画布菜单
+ * 自动过滤隐藏和废弃的节点
  */
 export function getMenuItems() {
+  const filterVisible = (nodes: NodeDefinition[]) => 
+    nodes.filter(node => !node.hidden && !node.deprecated);
+  
   return {
-    basic: nodeRegistry.getByCategory('basic'),
-    story: nodeRegistry.getByCategory('story'),
-    advanced: nodeRegistry.getByCategory('advanced'),
+    basic: filterVisible(nodeRegistry.getByCategory('basic')),
+    story: filterVisible(nodeRegistry.getByCategory('story')),
+    advanced: filterVisible(nodeRegistry.getByCategory('advanced')),
   };
 }

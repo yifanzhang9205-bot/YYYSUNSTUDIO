@@ -2,10 +2,11 @@ import React, { useState, useRef, useEffect } from 'react';
 import { 
     Plus, RotateCcw, History, MessageSquare, FolderHeart, X, 
     ImageIcon, Video as VideoIcon, Film, Save, 
-    Edit, Trash2, Type, Workflow as WorkflowIcon,
+    Edit, Trash2, Type,
     Clapperboard, Mic2, Settings, ScanFace, Brush, AlignJustify, Grid3X3, Camera, Sparkles, Check
 } from 'lucide-react';
-import { NodeType, Workflow } from '../types';
+import { NodeType } from '../types';
+import { AssetLibraryPanel } from './AssetLibraryPanel';
 
 interface SidebarDockProps {
     onAddNode: (type: NodeType) => void;
@@ -21,13 +22,9 @@ interface SidebarDockProps {
     onDeleteAsset: (id: string) => void;
     onDeleteMultipleAssets?: (ids: string[]) => Promise<void>; // 🔥 新增：批量删除方法
     onDownloadSelectedAndClear?: (selectedIds: Set<string>) => void;
-    workflows: Workflow[];
-    selectedWorkflowId: string | null;
-    onSelectWorkflow: (id: string | null) => void;
-    onSaveWorkflow: () => void;
-    onDeleteWorkflow: (id: string) => void;
-    onRenameWorkflow: (id: string, title: string) => void;
     onOpenSettings: () => void;
+    // 🔥 新增：资产库相关
+    onUseAsset: (assetId: string, position: { x: number; y: number }) => void;
 }
 
 const getNodeNameCN = (t: string) => {
@@ -74,23 +71,17 @@ export const SidebarDock: React.FC<SidebarDockProps> = ({
     onDeleteAsset,
     onDeleteMultipleAssets, // 🔥 新增：批量删除方法
     onDownloadSelectedAndClear,
-    workflows,
-    selectedWorkflowId,
-    onSelectWorkflow,
-    onSaveWorkflow,
-    onDeleteWorkflow,
-    onRenameWorkflow,
-    onOpenSettings
+    onOpenSettings,
+    onUseAsset, // 🔥 新增：使用资产
 }) => {
-    const [activePanel, setActivePanel] = useState<'history' | 'workflow' | 'add' | null>(null);
+    const [activePanel, setActivePanel] = useState<'history' | 'asset-library' | 'add' | null>(null);
     const [activeHistoryTab, setActiveHistoryTab] = useState<'image' | 'video'>('image');
     const [selectedImageIds, setSelectedImageIds] = useState<Set<string>>(new Set());
-    const [editingWorkflowId, setEditingWorkflowId] = useState<string | null>(null);
-    const [contextMenu, setContextMenu] = useState<{ visible: boolean, x: number, y: number, id: string, type: 'workflow' | 'history' } | null>(null);
+    const [contextMenu, setContextMenu] = useState<{ visible: boolean, x: number, y: number, id: string, type: 'history' } | null>(null);
     const closeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const handleSidebarHover = (id: string) => {
-        if (['add', 'history', 'workflow'].includes(id)) {
+        if (['add', 'history', 'asset-library'].includes(id)) {
             if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
             setActivePanel(id as any);
         } else {
@@ -345,77 +336,8 @@ export const SidebarDock: React.FC<SidebarDockProps> = ({
             );
         }
 
-        if (activePanel === 'workflow') {
-            return (
-                <>
-                    <div className="p-1 border-b border-gray-200 flex justify-between items-center bg-white">
-                        <span className="text-xs font-semibold text-gray-600 uppercase tracking-wider">我的工作流</span>
-                        <button 
-                            onClick={onSaveWorkflow} 
-                            className="w-9 h-9 bg-blue-500 hover:bg-blue-600 text-white rounded-xl flex items-center justify-center transition-all active:scale-95 shadow-sm"
-                            title="保存当前工作流"
-                        >
-                            <Save size={14} />
-                        </button>
-                    </div>
-                    <div className="flex-1 overflow-y-auto p-1 custom-scrollbar space-y-2 relative">
-                        {workflows.length === 0 ? (
-                            <div className="flex flex-col items-center justify-center py-16 text-gray-400">
-                                <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mb-4">
-                                    <FolderHeart size={24} />
-                                </div>
-                                <span className="text-xs font-medium text-center">空空如也<br/>保存您的第一个工作流</span>
-                            </div>
-                        ) : (
-                            workflows.map(wf => (
-                                <div 
-                                    key={wf.id} 
-                                    className={`
-                                        relative p-3 rounded-2xl border bg-white group transition-all cursor-grab active:cursor-grabbing hover:bg-gray-50 hover:scale-[1.01] active:scale-[0.99]
-                                        ${selectedWorkflowId === wf.id ? 'border-blue-500 ring-2 ring-blue-200' : 'border-gray-200 hover:border-gray-400'}
-                                    `}
-                                    draggable={true}
-                                    onDragStart={(e) => {
-                                        e.dataTransfer.setData('application/workflow-id', wf.id);
-                                        e.dataTransfer.effectAllowed = 'copy';
-                                    }}
-                                    onClick={(e) => { e.stopPropagation(); onSelectWorkflow(wf.id); }}
-                                    onDoubleClick={(e) => { e.stopPropagation(); setEditingWorkflowId(wf.id); }}
-                                    onContextMenu={(e) => { 
-                                        e.preventDefault(); 
-                                        e.stopPropagation(); 
-                                        setContextMenu({visible: true, x: e.clientX, y: e.clientY, id: wf.id, type: 'workflow'}); 
-                                    }}
-                                >
-                                    <div className="aspect-[2/1] bg-black/30 rounded-xl mb-3 overflow-hidden relative">
-                                        {wf.thumbnail ? (
-                                            <img src={wf.thumbnail} className="w-full h-full object-cover opacity-70 group-hover:opacity-100 transition-opacity" draggable={false} />
-                                        ) : (
-                                            <div className="w-full h-full flex items-center justify-center text-gray-300">
-                                                <WorkflowIcon size={24} />
-                                            </div>
-                                        )}
-                                    </div>
-                                    <div className="flex items-center justify-between px-1">
-                                        {editingWorkflowId === wf.id ? (
-                                            <input 
-                                                className="bg-white border border-gray-300 rounded-lg px-2 py-1 text-xs text-gray-900 w-full outline-none focus:border-blue-500"
-                                                defaultValue={wf.title}
-                                                autoFocus
-                                                onBlur={(e) => { onRenameWorkflow(wf.id, e.target.value); setEditingWorkflowId(null); }}
-                                                onKeyDown={(e) => { if(e.key === 'Enter') { onRenameWorkflow(wf.id, e.currentTarget.value); setEditingWorkflowId(null); } }}
-                                            />
-                                        ) : (
-                                            <span className="text-xs font-medium text-gray-700 truncate group-hover:text-gray-900 transition-colors">{wf.title}</span>
-                                        )}
-                                        <span className="text-[10px] text-gray-500 font-mono">{wf.nodes.length} 节点</span>
-                                    </div>
-                                </div>
-                            ))
-                        )}
-                    </div>
-                </>
-            );
+        if (activePanel === 'asset-library') {
+            return <AssetLibraryPanel onUseAsset={onUseAsset} />;
         }
 
         // Default: Add Node
@@ -524,7 +446,7 @@ export const SidebarDock: React.FC<SidebarDockProps> = ({
             >
                 {[
                     { id: 'add', icon: Plus, tooltip: '添加节点', disabled: false },
-                    { id: 'workflow', icon: FolderHeart, tooltip: '工作流', disabled: false }, 
+                    { id: 'asset-library', icon: FolderHeart, tooltip: '资产库', disabled: false }, 
                     { id: 'history', icon: History, tooltip: '历史记录', disabled: false },
                     { id: 'chat', icon: MessageSquare, action: onToggleChat, active: isChatOpen, tooltip: 'AI 助手', disabled: false },
                     { id: 'undo', icon: RotateCcw, action: onUndo, tooltip: '撤销', disabled: false },
@@ -594,22 +516,6 @@ export const SidebarDock: React.FC<SidebarDockProps> = ({
                          >
                              <Trash2 size={14} /> 删除
                          </button>
-                    )}
-                    {contextMenu.type === 'workflow' && (
-                        <>
-                            <button 
-                                className="w-full text-left px-4 py-2.5 text-xs text-gray-700 hover:bg-gray-100 rounded-lg flex items-center gap-3 transition-colors" 
-                                onClick={() => { setEditingWorkflowId(contextMenu.id); setContextMenu(null); }}
-                            >
-                                <Edit size={14} /> 重命名
-                            </button>
-                            <button 
-                                className="w-full text-left px-4 py-2.5 text-xs text-red-600 hover:bg-red-50 rounded-lg flex items-center gap-3 transition-colors" 
-                                onClick={() => { onDeleteWorkflow(contextMenu.id); setContextMenu(null); }}
-                            >
-                                <Trash2 size={14} /> 删除
-                            </button>
-                        </>
                     )}
                 </div>
             )}

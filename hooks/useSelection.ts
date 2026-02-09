@@ -18,7 +18,8 @@ import { useSelectionStore } from '../core/stores/selectionStore';
 interface UseSelectionOptions {
   nodes: Map<string, AppNode>;
   onDeleteNodes: (ids: string[]) => void;
-  onExpandOrCreateGroup?: (selectedNodeIds: string[]) => void; // 新增：动态扩展组回调
+  // 🔥 框选批量移动：框选后自动创建临时组
+  onExpandOrCreateGroup?: (selectedNodeIds: string[]) => void;
 }
 
 export const useSelection = ({ nodes, onDeleteNodes, onExpandOrCreateGroup }: UseSelectionOptions) => {
@@ -101,7 +102,12 @@ export const useSelection = ({ nodes, onDeleteNodes, onExpandOrCreateGroup }: Us
    * 结束框选
    */
   const endBoxSelection = useCallback((scale: number, pan: { x: number; y: number }) => {
-    if (!selectionRect) return;
+    if (!selectionRect) {
+      console.log('[useSelection] endBoxSelection: 没有框选区域');
+      return;
+    }
+
+    console.log('[useSelection] endBoxSelection 开始', { selectionRect, scale, pan });
 
     // 计算框选区域（世界坐标）
     const minX = Math.min(selectionRect.startX, selectionRect.currentX);
@@ -115,6 +121,13 @@ export const useSelection = ({ nodes, onDeleteNodes, onExpandOrCreateGroup }: Us
     const worldMinY = (minY - pan.y) / scale;
     const worldMaxY = (maxY - pan.y) / scale;
 
+    console.log('[useSelection] 框选区域（世界坐标）', {
+      worldMinX,
+      worldMaxX,
+      worldMinY,
+      worldMaxY,
+    });
+
     // 查找在框选区域内的节点
     const selectedIds: string[] = [];
     nodes.forEach((node, id) => {
@@ -122,34 +135,35 @@ export const useSelection = ({ nodes, onDeleteNodes, onExpandOrCreateGroup }: Us
       const nodeBottom = node.y + (node.height || 300);
 
       // AABB 碰撞检测
-      if (
+      const isInside =
         node.x < worldMaxX &&
         nodeRight > worldMinX &&
         node.y < worldMaxY &&
-        nodeBottom > worldMinY
-      ) {
+        nodeBottom > worldMinY;
+
+      if (isInside) {
         selectedIds.push(id);
+        console.log('[useSelection] 节点在框选区域内', {
+          id,
+          nodeX: node.x,
+          nodeY: node.y,
+          nodeRight,
+          nodeBottom,
+        });
       }
+    });
+
+    console.log('[useSelection] 框选结果', {
+      selectedCount: selectedIds.length,
+      selectedIds,
     });
 
     // 更新选择（使用 Store）
     selectNodesInStore(selectedIds);
 
-    // === 动态扩展组或创建新组 ===
-    // 如果框选区域足够大且有节点被选中，调用 expandOrCreateGroup
-    const width = maxX - minX;
-    const height = maxY - minY;
-    
-    console.log('[useSelection] 框选结束', {
-      width,
-      height,
-      selectedCount: selectedIds.length,
-      hasCallback: !!onExpandOrCreateGroup,
-      willTrigger: width > 10 && height > 10 && selectedIds.length > 0 && !!onExpandOrCreateGroup
-    });
-    
-    if (width > 10 && height > 10 && selectedIds.length > 0 && onExpandOrCreateGroup) {
-      console.log('[useSelection] 调用 expandOrCreateGroup', selectedIds);
+    // 🔥 框选批量移动：框选后自动创建临时组
+    if (selectedIds.length >= 2 && onExpandOrCreateGroup) {
+      console.log('[useSelection] 框选后自动创建临时组', { selectedIds });
       onExpandOrCreateGroup(selectedIds);
     }
 
@@ -174,6 +188,38 @@ export const useSelection = ({ nodes, onDeleteNodes, onExpandOrCreateGroup }: Us
     }
   }, [selectedNodeIds, onDeleteNodes, clearSelectionInStore]);
 
+  /**
+   * 🔥 资产库重构：计算选区边界
+   * 用于显示临时工具栏的位置
+   */
+  const getSelectionBounds = useCallback(() => {
+    if (selectedNodeIds.length === 0) {
+      return { x: 0, y: 0, width: 0, height: 0 };
+    }
+
+    let minX = Infinity;
+    let minY = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+
+    selectedNodeIds.forEach(id => {
+      const node = nodes.get(id);
+      if (node) {
+        minX = Math.min(minX, node.x);
+        minY = Math.min(minY, node.y);
+        maxX = Math.max(maxX, node.x + (node.width || 420));
+        maxY = Math.max(maxY, node.y + (node.height || 300));
+      }
+    });
+
+    return {
+      x: minX,
+      y: minY,
+      width: maxX - minX,
+      height: maxY - minY,
+    };
+  }, [selectedNodeIds, nodes]);
+
   // === 快捷键处理已移至 App.tsx（避免冲突）===
   // useEffect(() => {
   //   const handleKeyDown = (e: KeyboardEvent) => {
@@ -197,5 +243,6 @@ export const useSelection = ({ nodes, onDeleteNodes, onExpandOrCreateGroup }: Us
     endBoxSelection,
     cancelBoxSelection,
     deleteSelected,
+    getSelectionBounds, // 🔥 新增：计算选区边界
   };
 };

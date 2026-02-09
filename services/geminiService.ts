@@ -13,10 +13,12 @@ import {
 // --- Initialization ---
 
 const getClient = () => {
-  if (!process.env.API_KEY) {
+  // Vite 项目使用 import.meta.env 访问环境变量
+  const apiKey = import.meta.env.VITE_API_KEY;
+  if (!apiKey) {
     throw new Error("API Key is missing. Please select a paid API key via the Google AI Studio button.");
   }
-  return new GoogleGenAI({ apiKey: process.env.API_KEY });
+  return new GoogleGenAI({ apiKey });
 };
 
 const getPolloKey = () => {
@@ -479,7 +481,8 @@ export const generateVideo = async (
                 if (res.status === 'fulfilled') {
                     const vid = res.value.response?.generatedVideos?.[0]?.video;
                     if (vid?.uri) {
-                        const fullUri = `${vid.uri}&key=${process.env.API_KEY}`;
+                        const apiKey = import.meta.env.VITE_API_KEY;
+                        const fullUri = `${vid.uri}&key=${apiKey}`;
                         validUris.push(fullUri);
                         if (!primaryMetadata) primaryMetadata = vid;
                     }
@@ -619,6 +622,61 @@ export const transcribeAudio = async (audioBase64: string): Promise<string> => {
     });
     
     return response.text || "";
+};
+
+/**
+ * 分析图片并生成提示词（用于文字节点的图片反推功能）
+ * @param imageBase64 - Base64 图片数据
+ * @param model - 使用的模型（默认使用 gemini-2.0-flash-001）
+ * @param signal - AbortSignal（可选，用于取消请求）
+ * @returns 分析出的提示词
+ */
+export const analyzeImageForPrompt = async (
+    imageBase64: string, 
+    model: string = 'gemini-2.0-flash-001',
+    signal?: AbortSignal
+): Promise<string> => {
+    const ai = getClient();
+    
+    // 转换图片格式
+    const compat = await convertImageToCompatibleFormat(imageBase64);
+    
+    // 结构化提示词生成准则
+    const promptInstruction = `
+请分析这张图片，并按照以下结构生成专业的 AI 图片生成提示词：
+
+**必须包含以下 7 个要素：**
+
+1. **[核心主体]** - 图片的主要对象是什么？（人物、动物、物体等）
+2. **[动作/场景]** - 主体在做什么？处于什么场景？
+3. **[画风/媒介]** - 艺术风格、绘画媒介、摄影风格（如：写实、油画、3D渲染、电影感等）
+4. **[镜头参数]** - 镜头类型、景别、角度（如：广角、特写、俯视、仰视等）
+5. **[光影氛围]** - 光线类型、明暗对比、氛围感（如：柔和光、戏剧性光影、黄金时段等）
+6. **[色彩方案]** - 主要色调、配色方案（如：暖色调、冷色调、高饱和度、莫兰迪色系等）
+7. **[细节/材质]** - 重要的细节、材质、纹理（如：皮肤质感、布料纹理、金属光泽等）
+
+**输出格式要求：**
+- 直接输出提示词内容，不要输出标签或编号
+- 用自然流畅的语言组织，不要生硬地列举
+- 长度控制在 150-200 字
+- 使用专业的摄影和艺术术语
+- 适合直接用于 AI 图片生成
+
+**示例格式：**
+"一位年轻女性站在霓虹灯闪烁的赛博朋克街道上，身穿未来感科技外套，电影级构图，使用 35mm 镜头拍摄，低角度仰视，戏剧性的蓝紫色霓虹光影，高对比度，冷色调为主配以暖色点缀，精致的面部细节和服装材质，8K 超高清画质"
+`;
+    
+    const response = await ai.models.generateContent({
+        model: model,
+        contents: {
+            parts: [
+                { inlineData: { mimeType: compat.mimeType, data: compat.data } },
+                { text: promptInstruction }
+            ]
+        }
+    });
+    
+    return response.text || "图片分析失败";
 };
 
 export const connectLiveSession = async (

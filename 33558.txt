@@ -1,0 +1,92 @@
+你好！我仔细分析了你提供的 useGroup.ts 与 useDrag.ts 的代码对比。
+
+这是一个非常经典的 "React 状态同步与浏览器原生 DOM 操作时序冲突" 问题。
+
+1. 为什么节点不闪，而组在闪？
+问题的根源在于 setIsDraggingGroup(false) 的触发时机与 React 渲染周期。
+
+节点拖动 (useDrag.ts)： 它在执行 onUpdateNode（更新 Store）之前，已经通过原生 DOM 操作禁用了 transition、清除了 transform 并通过 offsetHeight 强制浏览器同步重绘。当 React 随后完成渲染时，DOM 的状态已经归位了，所以肉眼看不出变化。
+
+组拖动 (useGroup.ts)： 你的 endGroupDrag 逻辑是：
+
+先更新 Store。
+
+在 requestAnimationFrame (RAF) 里才去清除 transform 和修改状态。
+
+致命点： 当 Store 更新导致 React 重新渲染 App.tsx 时，你的 shouldDisableTransition 逻辑（依赖 isDraggingGroup）在 RAF 执行前可能就已经变回了 false。
+
+结果： 浏览器发现 transition 被重新启用了，同时 transform 还没被清除，紧接着 RAF 来了，清除 transform。浏览器以为这是一个“从 transform: translate(x, y) 到 none”的过渡动画，于是它优雅地闪了一下。
+
+2. 修复方案：对齐“成功案例”的逻辑
+我们要对 endGroupDrag 进行“手术”，模仿 useDrag.ts 的策略：先处理 DOM 归位，再交给 React 更新。
+
+修改 hooks/useGroup.ts 中的 endGroupDrag
+TypeScript
+const endGroupDrag = useCallback((e: MouseEvent, currentScale: number) => {
+  if (!dragGroupRef.current) return;
+
+  const { id, startX, startY, mouseStartX, mouseStartY, childNodes } = dragGroupRef.current;
+
+  // 1. 计算最终位置
+  const worldDx = (e.clientX - mouseStartX) / currentScale;
+  const worldDy = (e.clientY - mouseStartY) / currentScale;
+
+  // 2. 获取 DOM 引用
+  const groupElement = document.querySelector(`[data-group-id="${id}"]`) as HTMLElement;
+
+  // 3. 【关键】在更新 Store 前，强制清理 DOM 状态
+  if (groupElement) {
+    // 禁用 transition
+    groupElement.style.setProperty('transition', 'none', 'important');
+    // 清除 transform
+    groupElement.style.transform = '';
+    groupElement.style.willChange = 'auto';
+    // 强制触发重绘 (Reflow)
+    groupElement.offsetHeight;
+  }
+
+  // 子节点同理清理
+  childNodes.forEach((child) => {
+    if (child.element) {
+      child.element.style.setProperty('transition', 'none', 'important');
+      child.element.style.transform = '';
+      child.element.style.willChange = 'auto';
+      child.element.offsetHeight;
+    }
+  });
+
+  // 4. 更新 Store
+  onSaveHistory();
+  onUpdateGroup(id, { x: startX + worldDx, y: startY + worldDy });
+  childNodes.forEach((child) => {
+    onUpdateNode(child.id, {
+      x: child.startX + worldDx,
+      y: child.startY + worldDy,
+    });
+  });
+
+  // 5. 清理状态
+  dragGroupRef.current = null;
+  setIsDraggingGroup(false);
+  setDraggingGroupOffset(null);
+
+  // 6. 【可选】在下一帧让 React 恢复 transition
+  // 此时 React 已经根据新的 isDraggingGroup 完成渲染了
+}, [onSaveHistory, onUpdateGroup, onUpdateNode]);
+3. App.tsx 的配合逻辑优化
+你在 App.tsx 中的 shouldDisableTransition 判断逻辑已经很接近了，但为了更保险，我们可以确保在拖动结束的瞬间，transition 依然是 none。
+
+TypeScript
+// App.tsx 中
+// 修改此逻辑：增加一个极短的延迟缓冲，或者直接依赖 isDraggingGroup
+const shouldDisableTransition = isThisGroupDragging || draggingGroupOffset?.id === g.id;
+
+// style 里的 transition 改为：
+transition: shouldDisableTransition ? 'none' : 'border-color 0.2s, background 0.2s, transform 0s', 
+// 💡 小技巧：将 transform 的 transition 时间设为 0s，或者像你之前那样直接 'none'
+4. 总结：为什么这个方案能解决？
+打断异步链条： 放弃在 requestAnimationFrame 里清除 transform。因为 React 的渲染可能比你的 RAF 更快或在不同帧，导致时序不可控。
+
+强制同步： offsetHeight 是核心秘诀，它告诉浏览器：“你先把手头所有的样式计算和位置归位做完，再执行下一行代码。”
+
+状态先行： 在 React 还没有机会把 transition 重新加回去之前，我们就已经在原生 DOM 层面把 transform 去掉了。

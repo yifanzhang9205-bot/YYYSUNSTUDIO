@@ -1,0 +1,3 @@
+备份时间: 02/08/2026 06:40:04
+备份原因: 开始实施资产库和组功能重构
+备份文件: App.tsx, useSelection.ts, useGroup.ts, GroupToolbar.tsx

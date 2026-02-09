@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>组拖动闪烁监控工具</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            padding: 20px;
+            background: #1e1e1e;
+            color: #d4d4d4;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            color: #4ec9b0;
+            border-bottom: 2px solid #4ec9b0;
+            padding-bottom: 10px;
+        }
+        
+        .section {
+            background: #252526;
+            border: 1px solid #3e3e42;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        
+        .section h2 {
+            color: #569cd6;
+            margin-top: 0;
+            font-size: 16px;
+        }
+        
+        .log-entry {
+            padding: 8px;
+            margin: 4px 0;
+            border-left: 3px solid #4ec9b0;
+            background: #1e1e1e;
+            font-size: 13px;
+        }
+        
+        .log-entry.error {
+            border-left-color: #f48771;
+            background: #2d1e1e;
+        }
+        
+        .log-entry.warning {
+            border-left-color: #dcdcaa;
+            background: #2d2d1e;
+        }
+        
+        .timestamp {
+            color: #858585;
+            font-size: 11px;
+        }
+        
+        .value {
+            color: #ce9178;
+        }
+        
+        .key {
+            color: #9cdcfe;
+        }
+        
+        button {
+            background: #0e639c;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 5px;
+        }
+        
+        button:hover {
+            background: #1177bb;
+        }
+        
+        button.danger {
+            background: #c5302f;
+        }
+        
+        button.danger:hover {
+            background: #e03e3d;
+        }
+        
+        .status {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 3px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        .status.active {
+            background: #4ec9b0;
+            color: #1e1e1e;
+        }
+        
+        .status.inactive {
+            background: #858585;
+            color: #1e1e1e;
+        }
+        
+        #logs {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .code {
+            background: #1e1e1e;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 组拖动闪烁监控工具</h1>
+        
+        <div class="section">
+            <h2>📊 监控状态</h2>
+            <p>
+                监控器: <span id="monitorStatus" class="status inactive">未激活</span>
+                <button id="startBtn" onclick="startMonitoring()">启动监控</button>
+                <button id="stopBtn" onclick="stopMonitoring()" disabled>停止监控</button>
+                <button class="danger" onclick="clearLogs()">清除日志</button>
+            </p>
+        </div>
+        
+        <div class="section">
+            <h2>📝 使用说明</h2>
+            <ol>
+                <li>在浏览器中打开你的应用（http://localhost:3000）</li>
+                <li>打开浏览器控制台（F12）</li>
+                <li>在控制台中粘贴并执行下面的代码</li>
+                <li>拖动组，观察日志输出</li>
+                <li>找到闪烁发生的时刻和原因</li>
+            </ol>
+        </div>
+        
+        <div class="section">
+            <h2>💻 监控代码（复制到浏览器控制台）</h2>
+            <div class="code">
+<pre>// 🔍 组拖动闪烁监控器
+(function() {
+    console.log('🔍 组拖动闪烁监控器已启动');
+    
+    // 查找所有组元素
+    const groups = document.querySelectorAll('[data-group-id]');
+    console.log(`📦 找到 ${groups.length} 个组`);
+    
+    if (groups.length === 0) {
+        console.error('❌ 没有找到组元素！请确保页面已加载完成。');
+        return;
+    }
+    
+    // 监控每个组
+    groups.forEach((group, index) => {
+        const groupId = group.getAttribute('data-group-id');
+        console.log(`\n📌 监控组 ${index + 1}: ${groupId}`);
+        
+        // 记录初始状态
+        const initialState = {
+            left: group.style.left,
+            top: group.style.top,
+            transform: group.style.transform,
+            transition: group.style.transition,
+            willChange: group.style.willChange
+        };
+        console.log('初始状态:', initialState);
+        
+        // 监控样式变化
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach(mutation => {
+                if (mutation.attributeName === 'style') {
+                    const timestamp = new Date().toISOString().split('T')[1];
+                    const currentState = {
+                        left: group.style.left,
+                        top: group.style.top,
+                        transform: group.style.transform,
+                        transition: group.style.transition,
+                        willChange: group.style.willChange
+                    };
+                    
+                    // 检测关键变化
+                    const changes = [];
+                    if (currentState.transform !== initialState.transform) {
+                        changes.push(`transform: "${initialState.transform}" → "${currentState.transform}"`);
+                    }
+                    if (currentState.transition !== initialState.transition) {
+                        changes.push(`transition: "${initialState.transition}" → "${currentState.transition}"`);
+                    }
+                    if (currentState.left !== initialState.left) {
+                        changes.push(`left: "${initialState.left}" → "${currentState.left}"`);
+                    }
+                    if (currentState.top !== initialState.top) {
+                        changes.push(`top: "${initialState.top}" → "${currentState.top}"`);
+                    }
+                    
+                    if (changes.length > 0) {
+                        console.log(`\n⏰ [${timestamp}] 组 ${groupId} 样式变化:`);
+                        changes.forEach(change => console.log(`  - ${change}`));
+                        
+                        // 🔥 检测闪烁的关键时刻
+                        if (currentState.transition !== 'none' && currentState.transform === '') {
+                            console.error(`🚨 闪烁警告！transition 已启用但 transform 被清除`);
+                            console.error(`  - 这会导致从 transform 位置过渡到 left/top 位置`);
+                            console.error(`  - 当前 transition: "${currentState.transition}"`);
+                            console.error(`  - 当前 left: "${currentState.left}", top: "${currentState.top}"`);
+                        }
+                        
+                        // 更新初始状态
+                        Object.assign(initialState, currentState);
+                    }
+                }
+            });
+        });
+        
+        observer.observe(group, { 
+            attributes: true, 
+            attributeFilter: ['style'] 
+        });
+        
+        console.log(`✅ 组 ${groupId} 监控已启动`);
+    });
+    
+    // 监控子节点
+    const nodes = document.querySelectorAll('[data-node-id]');
+    console.log(`\n📦 找到 ${nodes.length} 个节点`);
+    
+    // 只监控前 5 个节点（避免日志过多）
+    const nodesToMonitor = Array.from(nodes).slice(0, 5);
+    nodesToMonitor.forEach((node, index) => {
+        const nodeId = node.getAttribute('data-node-id');
+        console.log(`📌 监控节点 ${index + 1}: ${nodeId}`);
+        
+        const initialState = {
+            transform: node.style.transform,
+            transition: node.style.transition
+        };
+        
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach(mutation => {
+                if (mutation.attributeName === 'style') {
+                    const timestamp = new Date().toISOString().split('T')[1];
+                    const currentState = {
+                        transform: node.style.transform,
+                        transition: node.style.transition
+                    };
+                    
+                    const changes = [];
+                    if (currentState.transform !== initialState.transform) {
+                        changes.push(`transform: "${initialState.transform}" → "${currentState.transform}"`);
+                    }
+                    if (currentState.transition !== initialState.transition) {
+                        changes.push(`transition: "${initialState.transition}" → "${currentState.transition}"`);
+                    }
+                    
+                    if (changes.length > 0) {
+                        console.log(`\n⏰ [${timestamp}] 节点 ${nodeId} 样式变化:`);
+                        changes.forEach(change => console.log(`  - ${change}`));
+                        
+                        // 🔥 检测闪烁的关键时刻
+                        if (currentState.transition !== 'none' && currentState.transform === '') {
+                            console.error(`🚨 节点闪烁警告！transition 已启用但 transform 被清除`);
+                        }
+                        
+                        Object.assign(initialState, currentState);
+                    }
+                }
+            });
+        });
+        
+        observer.observe(node, { 
+            attributes: true, 
+            attributeFilter: ['style'] 
+        });
+    });
+    
+    console.log('\n✅ 监控器已完全启动');
+    console.log('📝 现在拖动组，观察日志输出');
+    console.log('🔥 特别注意 "闪烁警告" 的日志');
+})();</pre>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2>🎯 关键检测点</h2>
+            <ul>
+                <li><strong>闪烁时刻</strong>: transition 已启用 + transform 被清除</li>
+                <li><strong>正常时刻</strong>: transition = 'none' + transform 被清除</li>
+                <li><strong>拖动中</strong>: transition = 'none' + transform 有值</li>
+                <li><strong>拖动结束</strong>: transition 恢复 + transform 清空（应该在同一帧）</li>
+            </ul>
+        </div>
+        
+        <div class="section">
+            <h2>📋 实时日志</h2>
+            <div id="logs">
+                <p style="color: #858585;">等待监控数据...</p>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2>🔧 调试建议</h2>
+            <ol>
+                <li><strong>如果看到闪烁警告</strong>: 说明 transition 在 transform 清除前就恢复了</li>
+                <li><strong>解决方案</strong>: 确保 offsetHeight 在 transition 恢复前执行</li>
+                <li><strong>检查时序</strong>: transition = 'none' → transform = '' → offsetHeight → transition 恢复</li>
+                <li><strong>验证代码</strong>: 检查 useGroup.ts 的 endGroupDrag 函数</li>
+            </ol>
+        </div>
+    </div>
+    
+    <script>
+        function startMonitoring() {
+            document.getElementById('monitorStatus').textContent = '监控中';
+            document.getElementById('monitorStatus').className = 'status active';
+            document.getElementById('startBtn').disabled = true;
+            document.getElementById('stopBtn').disabled = false;
+            
+            addLog('✅ 监控已启动', 'success');
+            addLog('📝 请在浏览器控制台中粘贴监控代码', 'info');
+        }
+        
+        function stopMonitoring() {
+            document.getElementById('monitorStatus').textContent = '未激活';
+            document.getElementById('monitorStatus').className = 'status inactive';
+            document.getElementById('startBtn').disabled = false;
+            document.getElementById('stopBtn').disabled = true;
+            
+            addLog('⏹️ 监控已停止', 'warning');
+        }
+        
+        function clearLogs() {
+            document.getElementById('logs').innerHTML = '<p style="color: #858585;">日志已清除</p>';
+        }
+        
+        function addLog(message, type = 'info') {
+            const logsDiv = document.getElementById('logs');
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type === 'error' ? 'error' : type === 'warning' ? 'warning' : ''}`;
+            
+            const timestamp = new Date().toLocaleTimeString();
+            entry.innerHTML = `<span class="timestamp">[${timestamp}]</span> ${message}`;
+            
+            logsDiv.appendChild(entry);
+            logsDiv.scrollTop = logsDiv.scrollHeight;
+        }
+    </script>
+</body>
+</html>

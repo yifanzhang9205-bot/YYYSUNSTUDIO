@@ -783,3 +783,84 @@ export const updateCozeConfig = (apiKey: string, botId: string, baseUrl?: string
   console.log('[Coze] API 配置已更新');
   // 注意：这里需要修改为可配置的方式，当前是硬编码
 };
+
+/**
+ * 检查 Coze API 是否可用
+ * @returns 是否可用
+ */
+export const isCozeAvailable = (): boolean => {
+  const config = getApiConfig();
+  return !!(config.apiKey && config.botId);
+};
+
+/**
+ * 根据用户描述生成专业提示词
+ * @param description - 用户的自然语言描述
+ * @param signal - AbortSignal（可选，用于取消请求）
+ * @returns 生成的专业提示词
+ */
+export const generatePromptFromDescription = async (
+    description: string,
+    signal?: AbortSignal
+): Promise<string> => {
+  try {
+    const result = await optimizePrompt(description, 'IMAGE_GENERATOR');
+    
+    // 返回标准结构化提示词（版本二）
+    return result.versions.standard;
+  } catch (error) {
+    console.error('[Coze] 提示词生成失败:', error);
+    throw error;
+  }
+};
+
+/**
+ * 分析图片并生成提示词（用于文字节点的图片反推功能）
+ * @param imageBase64 - Base64 图片数据
+ * @param signal - AbortSignal（可选，用于取消请求）
+ * @returns 分析出的提示词
+ */
+export const analyzeImageForPrompt = async (
+    imageBase64: string,
+    signal?: AbortSignal
+): Promise<string> => {
+  try {
+    // 构建图片分析提示
+    const analysisPrompt = `请分析这张图片，并按照以下结构生成专业的 AI 图片生成提示词：
+
+**必须包含以下 7 个要素：**
+
+1. **[核心主体]** - 图片的主要对象是什么？（人物、动物、物体等）
+2. **[动作/场景]** - 主体在做什么？处于什么场景？
+3. **[画风/媒介]** - 艺术风格、绘画媒介、摄影风格（如：写实、油画、3D渲染、电影感等）
+4. **[镜头参数]** - 镜头类型、景别、角度（如：广角、特写、俯视、仰视等）
+5. **[光影氛围]** - 光线类型、明暗对比、氛围感（如：柔和光、戏剧性光影、黄金时段等）
+6. **[色彩方案]** - 主要色调、配色方案（如：暖色调、冷色调、高饱和度、莫兰迪色系等）
+7. **[细节/材质]** - 重要的细节、材质、纹理（如：皮肤质感、布料纹理、金属光泽等）
+
+**输出格式要求：**
+- 直接输出提示词内容，不要输出标签或编号
+- 用自然流畅的语言组织，不要生硬地列举
+- 长度控制在 150-200 字
+- 使用专业的摄影和艺术术语
+- 适合直接用于 AI 图片生成
+
+**示例格式：**
+"一位年轻女性站在霓虹灯闪烁的赛博朋克街道上，身穿未来感科技外套，电影级构图，使用 35mm 镜头拍摄，低角度仰视，戏剧性的蓝紫色霓虹光影，高对比度，冷色调为主配以暖色点缀，精致的面部细节和服装材质，8K 超高清画质"
+
+请根据图片内容生成提示词：`;
+
+    // 注意：Coze API 目前不直接支持图片输入
+    // 这里我们先用文本描述的方式，未来可以扩展为支持图片
+    // 临时方案：提示用户 Coze 暂不支持图片分析，建议使用 Gemini
+    
+    console.warn('[Coze] 当前 Coze API 不支持图片分析，将使用 Gemini API 作为备用');
+    
+    // 抛出特定错误，让调用方切换到 Gemini
+    throw new Error('COZE_IMAGE_NOT_SUPPORTED');
+    
+  } catch (error) {
+    console.error('[Coze] 图片分析失败:', error);
+    throw error;
+  }
+};

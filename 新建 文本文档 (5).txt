@@ -1,0 +1,146 @@
+核心问题在于：React 的渲染（setHelperLines）跟不上鼠标的移动频率（RAF），且每次 setState 都会触发组件重渲染，导致掉帧。
+
+你现在的做法是“混合双打”：
+
+节点移动：走的是 Direct DOM（直接操作 DOM），非常快，绕过了 React。
+
+辅助线：走的是 React State（setHelperLines），这是异步的且昂贵的。
+
+当这两者结合时，节点移动丝滑，但辅助线会闪烁、滞后，或者因为 React 的重渲染抢占主线程导致整个拖拽变卡。
+
+解决方案：全 DOM 操作（去 React 化）
+就像你直接操作 Node 的 style.transform 一样，你也应该直接操作辅助线 DOM 元素的 style，而不是去 setState。
+
+步骤 1：在 JSX 中预埋辅助线 DOM
+不要根据 helperLines 数组动态生成 div，而是永远渲染几条隐藏的“静态”辅助线（通常一根横线、一根竖线就够了，或者根据你的需求预埋多根），用 useRef 获取它们。
+
+TypeScript
+// 在组件顶层
+const vLineRef = useRef<HTMLDivElement>(null); // 垂直辅助线
+const hLineRef = useRef<HTMLDivElement>(null); // 水平辅助线
+
+// 在 render 部分 (JSX)
+return (
+  <div className="canvas">
+    {/* ... 其他节点 ... */}
+    
+    {/* 预埋的辅助线，初始隐藏 */}
+    <div 
+      ref={vLineRef} 
+      className="helper-line-vertical" 
+      style={{ position: 'absolute', display: 'none', top: 0, bottom: 0, width: '1px', background: 'blue' }} 
+    />
+    <div 
+      ref={hLineRef} 
+      className="helper-line-horizontal" 
+      style={{ position: 'absolute', display: 'none', left: 0, right: 0, height: '1px', background: 'blue' }} 
+    />
+  </div>
+);
+步骤 2：修改 handleMouseMove
+移除 setHelperLines，改为直接计算并设置 Ref 的 style。这样即使每秒计算 60 次，只要不触发 React Render，性能通常都是足够的。
+
+TypeScript
+const handleMouseMove = (e: MouseEvent) => {
+  if (!dragRef.current || !nodes) return;
+
+  // RAF 节流保持不变
+  if (rafRef.current !== null) {
+    return;
+  }
+
+  rafRef.current = requestAnimationFrame(() => {
+    rafRef.current = null;
+
+    if (!dragRef.current || !nodes) return;
+
+    const { element, mouseStartX, mouseStartY, id, startX, startY } = dragRef.current;
+    
+    // ... 之前的坐标计算逻辑保持不变 ...
+    const dx = (e.clientX - mouseStartX) / scale;
+    const dy = (e.clientY - mouseStartY) / scale;
+    const newX = startX + dx;
+    const newY = startY + dy;
+    const transformDx = newX - startX;
+    const transformDy = newY - startY;
+
+    // 1. 移动节点（保持你现有的逻辑）
+    if (element) {
+      element.style.transform = `translate(${transformDx}px, ${transformDy}px)`;
+      // ... 其他 properties
+    }
+
+    // 2. 辅助线逻辑优化：不再使用计数器节流，或者将阈值降到非常低 (e.g., 2)
+    // 因为直接操作 DOM 开销很小，我们可以尝试每一帧都计算，获得最丝滑的体验
+    
+    const currentNode = nodes.get(id);
+    if (currentNode) {
+      // 计算辅助线数据 (假设 detectHelperLines 返回 { vertical: number | null, horizontal: number | null })
+      const lines = detectHelperLines(
+        { ...currentNode, x: newX, y: newY },
+        nodes,
+        5
+      );
+
+      // --- 直接操作垂直辅助线 DOM ---
+      if (vLineRef.current) {
+        if (lines.vertical !== null) {
+           // 假设 vertical 返回的是 x 坐标
+           vLineRef.current.style.display = 'block';
+           // 注意：这里可能需要根据你的画布原点或 scale 进行调整
+           vLineRef.current.style.transform = `translate(${lines.vertical}px, 0)`; 
+        } else {
+           vLineRef.current.style.display = 'none';
+        }
+      }
+
+      // --- 直接操作水平辅助线 DOM ---
+      if (hLineRef.current) {
+        if (lines.horizontal !== null) {
+           // 假设 horizontal 返回的是 y 坐标
+           hLineRef.current.style.display = 'block';
+           hLineRef.current.style.transform = `translate(0, ${lines.horizontal}px)`;
+        } else {
+           hLineRef.current.style.display = 'none';
+        }
+      }
+    }
+  });
+};
+步骤 3：在 handleMouseUp 清理
+拖拽结束时，记得把辅助线隐藏。
+
+TypeScript
+const handleMouseUp = () => {
+   // ... 原有逻辑 ...
+   
+   // 隐藏辅助线
+   if (vLineRef.current) vLineRef.current.style.display = 'none';
+   if (hLineRef.current) hLineRef.current.style.display = 'none';
+}
+为什么这样做能解决问题？
+消除 Re-render：你完全移除了 setHelperLines。整个拖拽过程中，React 组件一次都不会渲染。
+
+同步性：节点的位置更新和辅助线的位置更新在同一个 RAF 帧内完成，视觉上完全同步。
+
+计算频率：之前你为了防止 React 卡顿不得不“每 10 次检测一次”。现在既然只是改 DOM 样式，你可以每帧检测（或者每 2-3 帧），辅助线的响应会极其灵敏。
+
+如果计算量（detectHelperLines）实在太大怎么办？
+如果 nodes 有几千个，导致 detectHelperLines 本身计算耗时超过 16ms，那么即使不操作 React 也会卡。这时可以保留你原来的“节流计数器”逻辑，但只节流“计算”，不节流“隐藏”：
+
+TypeScript
+helperLinesCounterRef.current++;
+// 比如每 3 帧计算一次，平衡性能和跟手度
+if (helperLinesCounterRef.current >= 3) {
+   helperLinesCounterRef.current = 0;
+   // 计算并更新 DOM 显示/位置
+   const lines = detectHelperLines(...);
+   updateLineDoms(lines); // 封装好的 DOM 操作函数
+   
+   // 缓存上一次的结果，以便下次 RAF 使用（可选）
+   lastLinesRef.current = lines; 
+} else {
+   // 可选：如果是单纯的移动，可以复用上一帧的 lines 坐标并加上鼠标的 delta (如果辅助线是吸附在鼠标上的)
+   // 但通常辅助线是固定在目标位置的，所以不动它们即可
+}
+总结： 把辅助线当成和“拖拽节点”一样的一等公民，用 useRef + 直接 DOM 操作来控制显隐和位置，彻底抛弃拖拽过程中的 React State 更新。

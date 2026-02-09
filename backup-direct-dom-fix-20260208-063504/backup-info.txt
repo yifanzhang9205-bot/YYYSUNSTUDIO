@@ -1,0 +1,41 @@
+﻿# 备份信息
+
+**备份时间**: 2026-02-08 06:35:04
+**备份原因**: Direct DOM 优化完成 - SVG 辅助线类型修复
+
+## 修改的文件
+
+1. **hooks/useDrag.ts**
+   - 修改 HelperLineRefs 类型定义：HTMLDivElement[]  SVGLineElement[]
+   - 修改 updateHelperLinesDom 函数：使用 setAttribute 操作 SVG 属性
+   - 修改 hideHelperLines 函数：正确操作 SVG 元素
+
+2. **App.tsx**
+   - 修改 helperLineRefs 类型定义：HTMLDivElement[]  SVGLineElement[]
+   - 移除错误的类型转换：el as any as HTMLDivElement  el
+
+## 修复的问题
+
+1. **类型不匹配**：之前定义为 HTMLDivElement[]，但实际使用 SVG line 元素
+2. **DOM 操作错误**：之前使用 style.left/top/width/height，对 SVG 无效
+3. **类型转换错误**：之前强制转换为 HTMLDivElement，隐藏类型错误
+
+## 验证结果
+
+-  编译通过，无 TypeScript 错误
+- ✅ 类型安全，编译时可以发现错误
+- ✅ 逻辑正确，SVG 元素使用正确的属性
+
+## 相关文档
+
+- 节点拖动性能-Direct-DOM优化-完成-2026-02-08.md
+- 节点拖动性能-Direct-DOM优化-2026-02-08.md
+- 新建 文本文档 (5).txt (Gemini 分析)
+
+## 恢复方法
+
+如果需要恢复，执行：
+```powershell
+Copy-Item "backup-direct-dom-fix-20260208-063504/useDrag.ts" "hooks/useDrag.ts" -Force
+Copy-Item "backup-direct-dom-fix-20260208-063504/App.tsx" "App.tsx" -Force
+```

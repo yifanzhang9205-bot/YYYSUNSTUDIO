@@ -619,7 +619,6 @@ export const useGroup = ({
     }
 
     // 布局参数
-    const nodeWidth = 420;
     const horizontalGap = 80;
     const verticalGap = 100;
     const padding = 40;
@@ -631,7 +630,17 @@ export const useGroup = ({
     let currentY = group.y + padding;
 
     layers.forEach(layer => {
-      const layerWidth = layer.length * nodeWidth + (layer.length - 1) * horizontalGap;
+      // ✅ 修复：计算这一层的实际宽度（累加每个节点的实际宽度）
+      let layerWidth = 0;
+      layer.forEach(nodeId => {
+        const node = nodes.get(nodeId);
+        if (node) {
+          layerWidth += (node.width || 420);
+        }
+      });
+      layerWidth += (layer.length - 1) * horizontalGap;
+
+      // ✅ 修复：基于实际宽度居中对齐
       let currentX = group.x + padding + (group.width - padding * 2 - layerWidth) / 2;
 
       // 🔥 计算这一层的最大高度
@@ -648,13 +657,14 @@ export const useGroup = ({
         const node = nodes.get(nodeId);
         if (node) {
           const nodeHeight = getApproxNodeHeight(node);
+          const nodeWidth = node.width || 420; // ✅ 使用实际宽度
           
           onUpdateNode(nodeId, {
             x: currentX,
             y: currentY,
           });
 
-          // 记录节点位置和大小
+          // ✅ 修复：记录实际宽度和高度
           nodePositions.set(nodeId, {
             x: currentX,
             y: currentY,
@@ -662,6 +672,7 @@ export const useGroup = ({
             height: nodeHeight
           });
 
+          // ✅ 修复：使用实际宽度移动
           currentX += nodeWidth + horizontalGap;
         }
       });
@@ -690,7 +701,247 @@ export const useGroup = ({
       width: (maxX - minX) + padding * 2,
       height: (maxY - minY) + padding * 2,
     });
-  }, [groups, getGroupNodes, connections, onSaveHistory, onUpdateNode, onUpdateGroup]);
+  }, [groups, getGroupNodes, connections, onSaveHistory, onUpdateNode, onUpdateGroup, nodes, getApproxNodeHeight]);
+
+  /**
+   * 宫格排列（每排4个）
+   * 性能优化：使用 Map 查询，避免重复计算
+   */
+  const arrangeGrid = useCallback((groupId: string) => {
+    const group = groups.find(g => g.id === groupId);
+    if (!group) return;
+
+    const groupNodes = getGroupNodes(groupId);
+    if (groupNodes.length === 0) return;
+
+    onSaveHistory();
+
+    // 🔥 性能优化：构建邻接表和入度表（使用 Map）
+    const nodeIds = new Set(groupNodes.map(n => n.id));
+    const groupConnections = connections.filter(c => nodeIds.has(c.from) && nodeIds.has(c.to));
+
+    const adjacency = new Map<string, string[]>();
+    const inDegree = new Map<string, number>();
+
+    groupNodes.forEach(n => {
+      adjacency.set(n.id, []);
+      inDegree.set(n.id, 0);
+    });
+
+    groupConnections.forEach(conn => {
+      adjacency.get(conn.from)?.push(conn.to);
+      inDegree.set(conn.to, (inDegree.get(conn.to) || 0) + 1);
+    });
+
+    // Kahn 算法拓扑排序
+    const layers: string[][] = [];
+    const queue: string[] = [];
+    const processed = new Set<string>();
+
+    // 找到所有入度为 0 的节点
+    groupNodes.forEach(n => {
+      if (inDegree.get(n.id) === 0) {
+        queue.push(n.id);
+      }
+    });
+
+    // 按层级处理节点
+    while (queue.length > 0) {
+      const currentLayer: string[] = [...queue];
+      layers.push(currentLayer);
+      queue.length = 0;
+
+      currentLayer.forEach(nodeId => {
+        processed.add(nodeId);
+
+        const outputs = adjacency.get(nodeId) || [];
+        outputs.forEach(outputId => {
+          const degree = inDegree.get(outputId) || 0;
+          inDegree.set(outputId, degree - 1);
+
+          if (degree - 1 === 0 && !processed.has(outputId)) {
+            queue.push(outputId);
+          }
+        });
+      });
+    }
+
+    // 处理未被处理的节点（孤立节点）
+    const unprocessed = groupNodes.filter(n => !processed.has(n.id));
+    if (unprocessed.length > 0) {
+      layers.push(unprocessed.map(n => n.id));
+    }
+
+    // 🔥 关键：展平所有节点，按每排4个重新分组
+    const NODES_PER_ROW = 4;
+    const allNodeIds = layers.flat();
+    const gridRows: string[][] = [];
+
+    for (let i = 0; i < allNodeIds.length; i += NODES_PER_ROW) {
+      gridRows.push(allNodeIds.slice(i, i + NODES_PER_ROW));
+    }
+
+    // 布局参数
+    const horizontalGap = 80;
+    const verticalGap = 100;
+    const padding = 40;
+
+    // 🔥 性能优化：记录每个节点的实际位置和大小
+    const nodePositions = new Map<string, { x: number; y: number; width: number; height: number }>();
+
+    // 计算每行的位置
+    let currentY = group.y + padding;
+
+    gridRows.forEach(row => {
+      // ✅ 计算这一行的实际宽度
+      let rowWidth = 0;
+      row.forEach(nodeId => {
+        const node = nodes.get(nodeId);
+        if (node) {
+          rowWidth += (node.width || 420);
+        }
+      });
+      rowWidth += (row.length - 1) * horizontalGap;
+
+      // ✅ 基于实际宽度居中对齐
+      let currentX = group.x + padding + (group.width - padding * 2 - rowWidth) / 2;
+
+      // 🔥 计算这一行的最大高度
+      let maxRowHeight = 0;
+      row.forEach(nodeId => {
+        const node = nodes.get(nodeId);
+        if (node) {
+          const nodeHeight = getApproxNodeHeight(node);
+          maxRowHeight = Math.max(maxRowHeight, nodeHeight);
+        }
+      });
+
+      // 更新节点位置
+      row.forEach(nodeId => {
+        const node = nodes.get(nodeId);
+        if (node) {
+          const nodeHeight = getApproxNodeHeight(node);
+          const nodeWidth = node.width || 420;
+
+          onUpdateNode(nodeId, {
+            x: currentX,
+            y: currentY,
+          });
+
+          // 记录实际位置和大小
+          nodePositions.set(nodeId, {
+            x: currentX,
+            y: currentY,
+            width: nodeWidth,
+            height: nodeHeight
+          });
+
+          currentX += nodeWidth + horizontalGap;
+        }
+      });
+
+      currentY += maxRowHeight + verticalGap;
+    });
+
+    // 🔥 根据实际节点位置计算组的边界
+    let minX = Infinity;
+    let minY = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+
+    nodePositions.forEach(pos => {
+      minX = Math.min(minX, pos.x);
+      minY = Math.min(minY, pos.y);
+      maxX = Math.max(maxX, pos.x + pos.width);
+      maxY = Math.max(maxY, pos.y + pos.height);
+    });
+
+    // 更新分组大小和位置
+    onUpdateGroup(groupId, {
+      x: minX - padding,
+      y: minY - padding,
+      width: (maxX - minX) + padding * 2,
+      height: (maxY - minY) + padding * 2,
+    });
+  }, [groups, getGroupNodes, connections, onSaveHistory, onUpdateNode, onUpdateGroup, nodes, getApproxNodeHeight]);
+
+  /**
+   * 竖排排列（从上到下一列）
+   * 性能优化：一次遍历计算最大宽度
+   */
+  const arrangeVertical = useCallback((groupId: string) => {
+    const group = groups.find(g => g.id === groupId);
+    if (!group) return;
+
+    const groupNodes = getGroupNodes(groupId);
+    if (groupNodes.length === 0) return;
+
+    onSaveHistory();
+
+    // 布局参数
+    const verticalGap = 80;
+    const padding = 40;
+
+    // 🔥 性能优化：一次遍历计算最大宽度
+    let maxWidth = 0;
+    groupNodes.forEach(node => {
+      const nodeWidth = node.width || 420;
+      maxWidth = Math.max(maxWidth, nodeWidth);
+    });
+
+    // 居中对齐的起始 X 坐标
+    const startX = group.x + padding + (group.width - padding * 2 - maxWidth) / 2;
+
+    // 🔥 性能优化：记录每个节点的实际位置和大小
+    const nodePositions = new Map<string, { x: number; y: number; width: number; height: number }>();
+
+    // 从上到下排列
+    let currentY = group.y + padding;
+
+    groupNodes.forEach(node => {
+      const nodeWidth = node.width || 420;
+      const nodeHeight = getApproxNodeHeight(node);
+
+      // 居中对齐
+      const nodeX = startX + (maxWidth - nodeWidth) / 2;
+
+      onUpdateNode(node.id, {
+        x: nodeX,
+        y: currentY,
+      });
+
+      // 记录实际位置和大小
+      nodePositions.set(node.id, {
+        x: nodeX,
+        y: currentY,
+        width: nodeWidth,
+        height: nodeHeight
+      });
+
+      currentY += nodeHeight + verticalGap;
+    });
+
+    // 🔥 根据实际节点位置计算组的边界
+    let minX = Infinity;
+    let minY = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+
+    nodePositions.forEach(pos => {
+      minX = Math.min(minX, pos.x);
+      minY = Math.min(minY, pos.y);
+      maxX = Math.max(maxX, pos.x + pos.width);
+      maxY = Math.max(maxY, pos.y + pos.height);
+    });
+
+    // 更新分组大小和位置
+    onUpdateGroup(groupId, {
+      x: minX - padding,
+      y: minY - padding,
+      width: (maxX - minX) + padding * 2,
+      height: (maxY - minY) + padding * 2,
+    });
+  }, [groups, getGroupNodes, onSaveHistory, onUpdateNode, onUpdateGroup, nodes, getApproxNodeHeight]);
 
   // === 批量缩放功能 ===
   
@@ -891,8 +1142,8 @@ export const useGroup = ({
       }
     }
 
-    // 如果没有节点在组内，创建新组
-    console.log('[useGroup] 创建新组');
+    // 如果没有节点在组内，创建新组（临时组）
+    console.log('[useGroup] 创建临时组');
     
     onSaveHistory();
 
@@ -903,9 +1154,10 @@ export const useGroup = ({
 
     const padding = 32;
 
+    // 🔥 创建临时组（title = '临时分组'）
     const newGroup: Group = {
       id: `g-${Date.now()}`,
-      title: '新建分组',
+      title: '临时分组', // 🔥 临时组标记
       x: minX - padding,
       y: minY - padding,
       width: (maxX - minX) + padding * 2,
@@ -914,7 +1166,7 @@ export const useGroup = ({
     };
 
     onAddGroup(newGroup);
-    console.log('[useGroup] 新组创建完成', newGroup.id);
+    console.log('[useGroup] 临时组创建完成', newGroup.id);
   }, [nodes, groups, getApproxNodeHeight, getGroupNodes, onSaveHistory, onUpdateGroup, onAddGroup, onDeleteGroup]);
   
   /**
@@ -1024,8 +1276,10 @@ export const useGroup = ({
     distributeH,
     distributeV,
 
-    // 拓扑排序
+    // 排列功能
     arrangeTopology,
+    arrangeGrid, // 🔥 新增：宫格排列（每排4个）
+    arrangeVertical, // 🔥 新增：竖排排列（从上到下一列）
 
     // 批量缩放
     scaleNodes,

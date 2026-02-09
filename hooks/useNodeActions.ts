@@ -206,8 +206,13 @@ export const useNodeActions = () => {
                             );
                             
                             // 性能优化：将 base64 转换为 Blob URL
-                            const { saveImagesToBlob } = await import('../services/blobStorage');
+                            const { saveImagesToBlob, saveNodeImageBlob } = await import('../services/blobStorage');
                             const blobUrls = await saveImagesToBlob(res, n.id, 'image');
+                            
+                            // 🔥 数据持久化：保存到 IndexedDB（阶段1）
+                            if (blobUrls[0]) {
+                                await saveNodeImageBlob(n.id, blobUrls[0]);
+                            }
                             
                             handleNodeUpdate(n.id, { image: blobUrls[0], images: blobUrls, status: NodeStatus.SUCCESS });
                         } catch (e: any) {
@@ -234,8 +239,16 @@ export const useNodeActions = () => {
         );
         
         // 性能优化：将 base64 转换为 Blob URL（内存减少 99%）
-        const { saveImagesToBlob } = await import('../services/blobStorage');
+        const { saveImagesToBlob, saveNodeImageBlob, saveNodeImagesBlob } = await import('../services/blobStorage');
         const blobUrls = await saveImagesToBlob(res, node.id, 'image');
+        
+        // 🔥 数据持久化：保存到 IndexedDB（阶段1）
+        if (blobUrls[0]) {
+            await saveNodeImageBlob(node.id, blobUrls[0]);
+        }
+        if (blobUrls.length > 0) {
+            await saveNodeImagesBlob(node.id, blobUrls);
+        }
         
         handleNodeUpdate(node.id, { image: blobUrls[0], images: blobUrls });
     }, [handleNodeUpdate]);
@@ -328,8 +341,13 @@ export const useNodeActions = () => {
         const res = await editImageWithText(img, prompt, node.data.model);
         
         // 性能优化：将 base64 转换为 Blob URL
-        const { saveImageToBlob } = await import('../services/blobStorage');
+        const { saveImageToBlob, saveNodeImageBlob } = await import('../services/blobStorage');
         const blobUrl = await saveImageToBlob(res, node.id, 'edited');
+        
+        // 🔥 数据持久化：保存到 IndexedDB（阶段1）
+        if (blobUrl) {
+            await saveNodeImageBlob(node.id, blobUrl);
+        }
         
         handleNodeUpdate(node.id, { image: blobUrl });
     }, [handleNodeUpdate]);

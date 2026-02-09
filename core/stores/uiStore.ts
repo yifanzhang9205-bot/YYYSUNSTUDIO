@@ -32,6 +32,9 @@ export interface UIStore {
   
   /** 应用是否已加载 */
   isLoaded: boolean;
+  
+  /** 正在编辑的组 ID（双击改名功能）*/
+  editingGroupId: string | null;
 
   // ========== 操作 ==========
   /** 切换聊天面板 */
@@ -69,10 +72,14 @@ export interface UIStore {
   
   /** 关闭所有面板 */
   closeAllPanels: () => void;
+  
+  /** 设置正在编辑的组 ID */
+  setEditingGroupId: (id: string | null) => void;
 }
 
 // ============================================
 // 创建 Store
+// ============================================
 // ============================================
 
 export const useUIStore = create<UIStore>()(
@@ -84,6 +91,7 @@ export const useUIStore = create<UIStore>()(
     isSonicStudioOpen: false,
     isSettingsOpen: false,
     isLoaded: false,
+    editingGroupId: null,
 
     // ========== 操作 ==========
     toggleChat: () => set((state) => {
@@ -136,6 +144,10 @@ export const useUIStore = create<UIStore>()(
       state.isMultiFrameOpen = false;
       state.isSonicStudioOpen = false;
       state.isSettingsOpen = false;
+    }),
+
+    setEditingGroupId: (id) => set((state) => {
+      state.editingGroupId = id;
     }),
   }))
 );

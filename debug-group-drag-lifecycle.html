@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>组拖动生命周期调试器</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            background: #1a1a1a;
+            color: #00ff00;
+            padding: 20px;
+            margin: 0;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            color: #00ff00;
+            border-bottom: 2px solid #00ff00;
+            padding-bottom: 10px;
+        }
+        
+        .section {
+            background: #2a2a2a;
+            border: 1px solid #00ff00;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        
+        .section h2 {
+            color: #ffff00;
+            margin-top: 0;
+        }
+        
+        .log-entry {
+            padding: 5px;
+            margin: 2px 0;
+            border-left: 3px solid #00ff00;
+            padding-left: 10px;
+            font-size: 12px;
+        }
+        
+        .log-entry.error {
+            border-left-color: #ff0000;
+            color: #ff0000;
+        }
+        
+        .log-entry.warning {
+            border-left-color: #ffff00;
+            color: #ffff00;
+        }
+        
+        .log-entry.info {
+            border-left-color: #00ffff;
+            color: #00ffff;
+        }
+        
+        .timeline {
+            position: relative;
+            padding-left: 30px;
+        }
+        
+        .timeline-item {
+            position: relative;
+            padding: 10px;
+            margin: 5px 0;
+            background: #333;
+            border-radius: 4px;
+        }
+        
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -20px;
+            top: 50%;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #00ff00;
+            transform: translateY(-50%);
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+        }
+        
+        .stat-card {
+            background: #333;
+            padding: 15px;
+            border-radius: 4px;
+            border: 1px solid #00ff00;
+        }
+        
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #00ff00;
+        }
+        
+        .stat-label {
+            font-size: 12px;
+            color: #888;
+            margin-top: 5px;
+        }
+        
+        button {
+            background: #00ff00;
+            color: #1a1a1a;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            margin: 5px;
+        }
+        
+        button:hover {
+            background: #00cc00;
+        }
+        
+        .code-block {
+            background: #1a1a1a;
+            border: 1px solid #00ff00;
+            border-radius: 4px;
+            padding: 10px;
+            overflow-x: auto;
+            font-size: 11px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 组拖动生命周期调试器</h1>
+        
+        <div class="section">
+            <h2>📊 实时统计</h2>
+            <div class="stats">
+                <div class="stat-card">
+                    <div class="stat-value" id="dragCount">0</div>
+                    <div class="stat-label">拖动次数</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="flickerCount">0</div>
+                    <div class="stat-label">闪烁次数</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="avgDuration">0ms</div>
+                    <div class="stat-label">平均拖动时长</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="rafCount">0</div>
+                    <div class="stat-label">RAF 调用次数</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2>⏱️ 时间线</h2>
+            <button onclick="clearTimeline()">清空时间线</button>
+            <button onclick="exportLogs()">导出日志</button>
+            <div class="timeline" id="timeline"></div>
+        </div>
+        
+        <div class="section">
+            <h2>🐛 详细日志</h2>
+            <button onclick="clearLogs()">清空日志</button>
+            <div id="logs"></div>
+        </div>
+        
+        <div class="section">
+            <h2>📋 使用说明</h2>
+            <div class="code-block">
+// 1. 在浏览器控制台中运行以下代码来注入监控：
+
+window.groupDragMonitor = {
+    logs: [],
+    timeline: [],
+    stats: {
+        dragCount: 0,
+        flickerCount: 0,
+        totalDuration: 0,
+        rafCount: 0
+    },
+    
+    log(type, message, data) {
+        const entry = {
+            timestamp: Date.now(),
+            type,
+            message,
+            data
+        };
+        this.logs.push(entry);
+        
+        // 发送到调试页面
+        if (window.opener) {
+            window.opener.postMessage({
+                type: 'log',
+                entry
+            }, '*');
+        }
+    },
+    
+    startDrag(groupId) {
+        this.stats.dragCount++;
+        this.currentDrag = {
+            groupId,
+            startTime: Date.now(),
+            events: []
+        };
+        this.log('info', '🚀 开始拖动', { groupId });
+    },
+    
+    updateDrag(dx, dy) {
+        if (this.currentDrag) {
+            this.currentDrag.events.push({
+                time: Date.now() - this.currentDrag.startTime,
+                dx,
+                dy
+            });
+            this.stats.rafCount++;
+        }
+    },
+    
+    endDrag() {
+        if (this.currentDrag) {
+            const duration = Date.now() - this.currentDrag.startTime;
+            this.stats.totalDuration += duration;
+            this.log('info', '✅ 结束拖动', {
+                duration: `${duration}ms`,
+                events: this.currentDrag.events.length
+            });
+            this.currentDrag = null;
+        }
+    },
+    
+    detectFlicker(element) {
+        // 监控元素的 transform 和 left/top 变化
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                if (mutation.type === 'attributes' && 
+                    (mutation.attributeName === 'style')) {
+                    const style = element.style;
+                    const hasTransform = style.transform && style.transform !== 'none';
+                    const hasPosition = style.left || style.top;
+                    
+                    if (hasTransform && hasPosition) {
+                        this.stats.flickerCount++;
+                        this.log('error', '⚠️ 检测到闪烁', {
+                            transform: style.transform,
+                            left: style.left,
+                            top: style.top,
+                            transition: style.transition
+                        });
+                    }
+                }
+            });
+        });
+        
+        observer.observe(element, {
+            attributes: true,
+            attributeFilter: ['style']
+        });
+        
+        return observer;
+    }
+};
+
+// 2. 在 useGroup.ts 的关键位置添加监控调用：
+
+// startGroupDrag:
+window.groupDragMonitor?.startDrag(groupId);
+
+// updateGroupDrag:
+window.groupDragMonitor?.updateDrag(worldDx, worldDy);
+
+// endGroupDrag:
+window.groupDragMonitor?.endDrag();
+
+// 3. 监控组元素：
+const groupElement = document.querySelector('[data-group-id="g-xxx"]');
+if (groupElement) {
+    window.groupDragMonitor?.detectFlicker(groupElement);
+}
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let dragCount = 0;
+        let flickerCount = 0;
+        let totalDuration = 0;
+        let rafCount = 0;
+        
+        // 接收来自主窗口的消息
+        window.addEventListener('message', (event) => {
+            if (event.data.type === 'log') {
+                addLog(event.data.entry);
+            }
+        });
+        
+        function addLog(entry) {
+            const logsDiv = document.getElementById('logs');
+            const timelineDiv = document.getElementById('timeline');
+            
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry ${entry.type}`;
+            logEntry.textContent = `[${new Date(entry.timestamp).toLocaleTimeString()}] ${entry.message}`;
+            if (entry.data) {
+                logEntry.textContent += ` ${JSON.stringify(entry.data)}`;
+            }
+            logsDiv.insertBefore(logEntry, logsDiv.firstChild);
+            
+            // 添加到时间线
+            const timelineItem = document.createElement('div');
+            timelineItem.className = 'timeline-item';
+            timelineItem.innerHTML = `
+                <strong>${entry.message}</strong><br>
+                <small>${new Date(entry.timestamp).toLocaleTimeString()}</small>
+            `;
+            timelineDiv.insertBefore(timelineItem, timelineDiv.firstChild);
+            
+            // 更新统计
+            updateStats();
+        }
+        
+        function updateStats() {
+            // 这里应该从主窗口获取实际统计数据
+            // 暂时使用模拟数据
+        }
+        
+        function clearLogs() {
+            document.getElementById('logs').innerHTML = '';
+        }
+        
+        function clearTimeline() {
+            document.getElementById('timeline').innerHTML = '';
+        }
+        
+        function exportLogs() {
+            const logs = document.getElementById('logs').innerText;
+            const blob = new Blob([logs], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `group-drag-logs-${Date.now()}.txt`;
+            a.click();
+        }
+    </script>
+</body>
+</html>

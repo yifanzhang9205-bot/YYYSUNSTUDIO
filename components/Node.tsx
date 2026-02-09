@@ -6,7 +6,51 @@ import { VideoModeSelector, SceneDirectorOverlay } from './VideoNodeModules';
 import { MultiAngleCameraNode } from './MultiAngleCameraNode';
 import { GridSplitterNode } from './GridSplitterNode';
 import { ScriptNode } from './ScriptNode';
+import { TextNode } from './TextNode';
+import { AIInputBar } from './AIInputBar';
+import { useTextNodeStore } from '../core/stores/textNodeStore';
 import React, { memo, useRef, useState, useEffect, useCallback } from 'react';
+
+// AIInputBarWrapper - 包装 AIInputBar，避免在 JSX 中使用 Hook
+const AIInputBarWrapper: React.FC<{
+  node: AppNode;
+  nodeWidth: number;
+  nodeHeight: number;
+  isWorking: boolean;
+  onUpdate: (id: string, data: Partial<AppNode['data']>, size?: { width?: number, height?: number }, title?: string) => void;
+}> = ({ node, nodeWidth, nodeHeight, isWorking, onUpdate }) => {
+  // 使用 Hook 获取节点数据
+  const nodeData = useTextNodeStore(state => state.getNode(node.id));
+  const isManualMode = nodeData?.mode === 'manual';
+  
+  return (
+    <AIInputBar
+      nodeId={node.id}
+      nodeX={node.x}
+      nodeY={node.y}
+      nodeWidth={nodeWidth}
+      nodeHeight={nodeHeight}
+      isVisible={true}
+      onSend={(nodeId, prompt, model) => {
+        console.log('[Node] AI 输入:', { nodeId, prompt, model });
+        
+        if (isManualMode) {
+          // MANUAL 模式：追加内容到文本框
+          const currentPrompt = nodeData?.prompt || '';
+          const newPrompt = currentPrompt 
+            ? `${currentPrompt}\n\n${prompt}`
+            : prompt;
+          useTextNodeStore.getState().updatePrompt(nodeId, newPrompt);
+        } else {
+          // 其他模式：更新节点的 prompt 和 model
+          onUpdate(nodeId, { prompt, model });
+        }
+      }}
+      placeholder={isManualMode ? "输入你的灵感，AI 会帮你生成内容..." : "描述你想要的内容，AI 会帮你实现..."}
+      isGenerating={isWorking}
+    />
+  );
+};
 
 // ... (keep constants and helper functions: arePropsEqual, safePlay, safePause, InputThumbnails, AudioVisualizer) ...
 
@@ -703,13 +747,7 @@ const NodeComponent: React.FC<NodeProps> = ({
       }
       
       if (node.type === NodeType.PROMPT_INPUT) {
-          return (
-            <div className="w-full h-full p-6 flex flex-col group/text">
-                <div className="flex-1 bg-black/10 rounded-2xl border border-white/5 p-4 relative overflow-hidden backdrop-blur-sm transition-colors group-hover/text:bg-black/20">
-                    <textarea className="w-full h-full bg-transparent resize-none focus:outline-none text-sm text-slate-200 placeholder-slate-500 font-medium leading-relaxed custom-scrollbar selection:bg-amber-500/30" placeholder="输入您的创意构想..." value={localPrompt} onChange={(e) => setLocalPrompt(e.target.value)} onBlur={commitPrompt} onKeyDown={handleCmdEnter} onWheel={(e) => e.stopPropagation()} onMouseDown={e => e.stopPropagation()} maxLength={1000} />
-                </div>
-            </div>
-          );
+          return <TextNode nodeId={node.id} isSelected={isSelected || false} />;
       }
       if (node.type === NodeType.VIDEO_ANALYZER) {
           return (
@@ -837,83 +875,98 @@ const NodeComponent: React.FC<NodeProps> = ({
   
   // 🔥 强制重新编译 - 2026-01-28 15:30
   return (
-    <div 
-        {...props}
-        id={`node-${node.id}`}
-        data-node-id={node.id}
-        className={`absolute rounded-lg group ${isSelected ? 'ring-2 ring-blue-500 shadow-lg z-30' : 'ring-1 ring-gray-200 hover:ring-gray-300 z-10'} ${isEntering ? 'node-enter' : ''} ${className || ''}`}
-        style={{ 
-            left: node.x, 
-            top: node.y, 
-            width: nodeWidth, 
-            height: nodeHeight,
-            background: '#ffffff',
-            // 🔥 交互时禁用 transition 和昂贵的 CSS
-            transition: isInteracting ? 'none' : 'all 0.2s cubic-bezier(0.32, 0.72, 0, 1)',
-            backdropFilter: 'none',
-            boxShadow: isInteracting ? 'none' : '0 1px 3px 0 rgb(0 0 0 / 0.1)',
-            willChange: isInteracting ? 'transform' : 'auto',
-            ...style, // 🔥 合并传入�?style
-        }}
-        onMouseDown={(e) => onNodeMouseDown(e, node.id)} 
-        onDoubleClick={(e) => {
-            // 🔥 修复：允许九宫格节点的双击事件传播
-            if (node.type === 'gridSplitter') {
-                // 不阻止九宫格节点的双击事件
-                return;
-            }
-            e.stopPropagation();
-        }} 
-        onMouseEnter={() => setIsHovered(true)} 
-        onMouseLeave={() => setIsHovered(false)} 
-        onContextMenu={(e) => onNodeContextMenu(e, node.id)}
-    >
-        {/* 🔥 九宫格节点拖�?- 在节点外部，不被裁剪 */}
-        {showGridDragHandle && (
-          <div 
-            className="absolute -bottom-5 -right-5 h-8 px-3 rounded-full bg-gray-100/95 backdrop-blur-md border border-gray-300 flex items-center gap-1.5 cursor-grab active:cursor-grabbing hover:bg-gray-200 hover:border-gray-400 active:scale-95 transition-all shadow-md z-[60]"
-            draggable={true}
-            onDragStart={(e) => {
-              if (!node.data.inputImage || node.data.selectedIndex === undefined) {
-                e.preventDefault();
-                return;
+    <>
+      <div 
+          {...props}
+          id={`node-${node.id}`}
+          data-node-id={node.id}
+          className={`absolute rounded-lg group ${isEntering ? 'node-enter' : ''} ${!isInteracting ? 'transition-all duration-200' : ''} ${className || ''}`}
+          style={{ 
+              left: node.x, 
+              top: node.y, 
+              width: nodeWidth, 
+              height: nodeHeight,
+              background: '#ffffff',
+              // 🔥 选中状态：使用更明显的边框和阴影
+              border: isSelected ? '2px solid #3B82F6' : '1px solid #E5E7EB',
+              boxShadow: isSelected 
+                ? '0 0 0 3px rgba(59, 130, 246, 0.1), 0 4px 6px -1px rgb(0 0 0 / 0.1)' 
+                : (isInteracting ? 'none' : '0 1px 3px 0 rgb(0 0 0 / 0.1)'),
+              zIndex: isSelected ? 30 : 10,
+              // 🔥 移除内联 transition，改用 CSS 类（2026-02-09）
+              backdropFilter: 'none',
+              willChange: isInteracting ? 'transform' : 'auto',
+              ...style, // 🔥 合并传入的 style
+          }}
+          onMouseDown={(e) => onNodeMouseDown(e, node.id)} 
+          onDoubleClick={(e) => {
+              // 🔥 修复：允许九宫格节点的双击事件传播
+              if (node.type === 'gridSplitter') {
+                  // 不阻止九宫格节点的双击事件
+                  return;
               }
               e.stopPropagation();
-              const dragData = {
-                type: 'grid-splitter-image',
-                originalImage: node.data.inputImage,
-                selectedIndex: node.data.selectedIndex,
-                croppedImage: node.data.croppedImages?.[node.data.selectedIndex]
-              };
-              e.dataTransfer.setData('application/json', JSON.stringify(dragData));
-              e.dataTransfer.effectAllowed = 'copy';
-              if (e.currentTarget instanceof HTMLElement) {
-                e.currentTarget.style.opacity = '0.5';
-              }
-            }}
-            onDragEnd={(e) => {
-              e.stopPropagation();
-              if (e.currentTarget instanceof HTMLElement) {
-                e.currentTarget.style.opacity = '1';
-              }
-            }}
-            onMouseDown={(e) => e.stopPropagation()}
-            title="拖动创建新图片节点"
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-600">
-              <circle cx="9" cy="12" r="1"/><circle cx="9" cy="5" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="19" r="1"/>
-            </svg>
-            <span className="text-[11px] font-medium text-gray-700">拖出</span>
-          </div>
-        )}
-        {renderTopBar()}
-        <div className={`absolute -left-3 top-1/2 -translate-y-1/2 w-3 h-3 rounded-full border-2 border-gray-300 bg-white flex items-center justify-center transition-all duration-200 hover:border-blue-500 cursor-crosshair z-50 ${isConnecting ? 'ring-2 ring-blue-400 animate-pulse' : ''}`} onMouseDown={(e) => onPortMouseDown(e, node.id, 'input')} onMouseUp={(e) => onPortMouseUp(e, node.id, 'input')} title="Input"></div>
-        <div className={`absolute -right-3 top-1/2 -translate-y-1/2 w-3 h-3 rounded-full border-2 border-gray-300 bg-white flex items-center justify-center transition-all duration-200 hover:border-blue-500 cursor-crosshair z-50 ${isConnecting ? 'ring-2 ring-blue-400 animate-pulse' : ''}`} onMouseDown={(e) => onPortMouseDown(e, node.id, 'output')} onMouseUp={(e) => onPortMouseUp(e, node.id, 'output')} title="Output"></div>
-        <div className="w-full h-full flex flex-col relative rounded-lg overflow-hidden bg-white"><div className="flex-1 min-h-0 relative bg-gray-50">{renderMediaContent()}</div></div>
-        {/* 底部面板已彻底删�?- 用户不需要这个功�?*/}
-        {/* {renderBottomPanel()} */}
-        <div className="absolute -bottom-2 -right-2 w-4 h-4 flex items-center justify-center cursor-nwse-resize text-gray-400 hover:text-blue-500 transition-colors opacity-0 group-hover:opacity-100 z-50" onMouseDown={(e) => onResizeMouseDown(e, node.id, nodeWidth, nodeHeight)}><div className="w-1 h-1 rounded-full bg-current" /></div>
-    </div>
+          }} 
+          onMouseEnter={() => setIsHovered(true)} 
+          onMouseLeave={() => setIsHovered(false)} 
+          onContextMenu={(e) => onNodeContextMenu(e, node.id)}
+      >
+          {/* 🔥 九宫格节点拖手 - 在节点外部，不被裁剪 */}
+          {showGridDragHandle && (
+            <div 
+              className="absolute -bottom-5 -right-5 h-8 px-3 rounded-full bg-gray-100/95 backdrop-blur-md border border-gray-300 flex items-center gap-1.5 cursor-grab active:cursor-grabbing hover:bg-gray-200 hover:border-gray-400 active:scale-95 transition-all shadow-md z-[60]"
+              draggable={true}
+              onDragStart={(e) => {
+                if (!node.data.inputImage || node.data.selectedIndex === undefined) {
+                  e.preventDefault();
+                  return;
+                }
+                e.stopPropagation();
+                const dragData = {
+                  type: 'grid-splitter-image',
+                  originalImage: node.data.inputImage,
+                  selectedIndex: node.data.selectedIndex,
+                  croppedImage: node.data.croppedImages?.[node.data.selectedIndex]
+                };
+                e.dataTransfer.setData('application/json', JSON.stringify(dragData));
+                e.dataTransfer.effectAllowed = 'copy';
+                if (e.currentTarget instanceof HTMLElement) {
+                  e.currentTarget.style.opacity = '0.5';
+                }
+              }}
+              onDragEnd={(e) => {
+                e.stopPropagation();
+                if (e.currentTarget instanceof HTMLElement) {
+                  e.currentTarget.style.opacity = '1';
+                }
+              }}
+              onMouseDown={(e) => e.stopPropagation()}
+              title="拖动创建新图片节点"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-600">
+                <circle cx="9" cy="12" r="1"/><circle cx="9" cy="5" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="19" r="1"/>
+              </svg>
+              <span className="text-[11px] font-medium text-gray-700">拖出</span>
+            </div>
+          )}
+          {renderTopBar()}
+          <div className={`absolute -left-3 top-1/2 -translate-y-1/2 w-3 h-3 rounded-full border-2 border-gray-300 bg-white flex items-center justify-center transition-all duration-200 hover:border-blue-500 cursor-crosshair z-50 ${isConnecting ? 'ring-2 ring-blue-400 animate-pulse' : ''}`} onMouseDown={(e) => onPortMouseDown(e, node.id, 'input')} onMouseUp={(e) => onPortMouseUp(e, node.id, 'input')} title="Input"></div>
+          <div className={`absolute -right-3 top-1/2 -translate-y-1/2 w-3 h-3 rounded-full border-2 border-gray-300 bg-white flex items-center justify-center transition-all duration-200 hover:border-blue-500 cursor-crosshair z-50 ${isConnecting ? 'ring-2 ring-blue-400 animate-pulse' : ''}`} onMouseDown={(e) => onPortMouseDown(e, node.id, 'output')} onMouseUp={(e) => onPortMouseUp(e, node.id, 'output')} title="Output"></div>
+          <div className="w-full h-full flex flex-col relative rounded-lg overflow-hidden bg-white"><div className="flex-1 min-h-0 relative bg-gray-50">{renderMediaContent()}</div></div>
+          {/* 底部面板已彻底删除 - 用户不需要这个功能 */}
+          {/* {renderBottomPanel()} */}
+          <div className="absolute -bottom-2 -right-2 w-4 h-4 flex items-center justify-center cursor-nwse-resize text-gray-400 hover:text-blue-500 transition-colors opacity-0 group-hover:opacity-100 z-50" onMouseDown={(e) => onResizeMouseDown(e, node.id, nodeWidth, nodeHeight)}><div className="w-1 h-1 rounded-full bg-current" /></div>
+      </div>
+      
+      {/* 🔥 AI 输入框 - 浮动在节点下方，比节点稍宽 */}
+      {node.type === NodeType.PROMPT_INPUT && isSelected && <AIInputBarWrapper 
+        node={node}
+        nodeWidth={nodeWidth}
+        nodeHeight={nodeHeight}
+        isWorking={isWorking}
+        onUpdate={onUpdate}
+      />}
+    </>
   );
 };
 

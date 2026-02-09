@@ -260,6 +260,141 @@ export const getDisplayUrl = (imageData: string | undefined): string | undefined
 };
 
 // ============================================
+// 🔥 新增：画布节点图片持久化（阶段1）
+// ============================================
+
+/**
+ * 保存节点图片到 IndexedDB
+ * @param nodeId - 节点 ID
+ * @param imageUrl - 图片 URL（Blob URL 或 Base64）
+ */
+export const saveNodeImageBlob = async (
+  nodeId: string,
+  imageUrl: string
+): Promise<void> => {
+  if (!imageUrl) return;
+  
+  try {
+    // 如果是 Blob URL，先转换为 Blob
+    let blob: Blob;
+    if (imageUrl.startsWith('blob:')) {
+      blob = await fetch(imageUrl).then(r => r.blob());
+    } else if (imageUrl.startsWith('data:')) {
+      // 如果是 Base64，转换为 Blob
+      blob = await base64ToBlob(imageUrl);
+    } else {
+      console.warn(`[BlobStorage] 不支持的图片格式: ${imageUrl.substring(0, 50)}`);
+      return;
+    }
+    
+    // 保存到 IndexedDB
+    const storageKey = `blob-node-${nodeId}-image`;
+    await saveToStorage(storageKey, blob);
+    console.log(`[BlobStorage] 节点图片已保存: ${nodeId}, 大小: ${(blob.size / 1024).toFixed(2)}KB`);
+  } catch (error) {
+    console.error('[BlobStorage] 保存节点图片失败:', error);
+  }
+};
+
+/**
+ * 从 IndexedDB 加载节点图片
+ * @param nodeId - 节点 ID
+ * @returns Blob URL 或 undefined
+ */
+export const loadNodeImageBlob = async (
+  nodeId: string
+): Promise<string | undefined> => {
+  try {
+    const storageKey = `blob-node-${nodeId}-image`;
+    const blob = await loadFromStorage<Blob>(storageKey);
+    
+    if (!blob) {
+      return undefined;
+    }
+    
+    // 创建 Blob URL
+    const blobUrl = URL.createObjectURL(blob);
+    console.log(`[BlobStorage] 节点图片已恢复: ${nodeId}, 大小: ${(blob.size / 1024).toFixed(2)}KB`);
+    return blobUrl;
+  } catch (error) {
+    console.error('[BlobStorage] 加载节点图片失败:', error);
+    return undefined;
+  }
+};
+
+/**
+ * 删除节点图片
+ * @param nodeId - 节点 ID
+ */
+export const deleteNodeImageBlob = async (
+  nodeId: string
+): Promise<void> => {
+  try {
+    const storageKey = `blob-node-${nodeId}-image`;
+    // TODO: storage.ts 需要添加 deleteFromStorage 函数
+    // await deleteFromStorage(storageKey);
+    console.log(`[BlobStorage] 节点图片已删除（暂未实现）: ${nodeId}`);
+  } catch (error) {
+    console.error('[BlobStorage] 删除节点图片失败:', error);
+  }
+};
+
+/**
+ * 批量保存节点图片数组到 IndexedDB
+ * @param nodeId - 节点 ID
+ * @param images - 图片 URL 数组
+ */
+export const saveNodeImagesBlob = async (
+  nodeId: string,
+  images: string[]
+): Promise<void> => {
+  if (!images || images.length === 0) return;
+  
+  console.log(`[BlobStorage] 批量保存节点图片: ${nodeId}, 数量: ${images.length}`);
+  
+  try {
+    await Promise.all(
+      images.map((imageUrl, idx) => 
+        saveImageToBlob(imageUrl, nodeId, `image-${idx}`)
+      )
+    );
+    console.log(`[BlobStorage] 批量保存完成: ${nodeId}`);
+  } catch (error) {
+    console.error('[BlobStorage] 批量保存节点图片失败:', error);
+  }
+};
+
+/**
+ * 批量加载节点图片数组
+ * @param nodeId - 节点 ID
+ * @param count - 图片数量
+ * @returns Blob URL 数组
+ */
+export const loadNodeImagesBlob = async (
+  nodeId: string,
+  count: number
+): Promise<string[]> => {
+  if (count === 0) return [];
+  
+  console.log(`[BlobStorage] 批量加载节点图片: ${nodeId}, 数量: ${count}`);
+  
+  try {
+    const blobUrls: string[] = [];
+    for (let i = 0; i < count; i++) {
+      const url = await loadImageFromBlob(nodeId, `image-${i}`);
+      if (url) {
+        blobUrls.push(url);
+      }
+    }
+    console.log(`[BlobStorage] 批量加载完成: ${nodeId}, 成功: ${blobUrls.length}/${count}`);
+    return blobUrls;
+  } catch (error) {
+    console.error('[BlobStorage] 批量加载节点图片失败:', error);
+    return [];
+  }
+};
+
+// ============================================
 // 🔥 新增：零拷贝方案（内存优化）
 // ============================================
 
@@ -400,3 +535,132 @@ export const ensureBase64Array = async (imageDataArray: string[]): Promise<strin
     console.log(`[BlobStorage] 批量转换完成`);
     return base64Array;
 };
+
+// ============================================
+// 🔥 新增：文字节点图片上传（带压缩）
+// ============================================
+
+/**
+ * 压缩图片文件
+ * @param file - 原始图片文件
+ * @param maxWidth - 最大宽度（默认 1024）
+ * @param maxHeight - 最大高度（默认 1024）
+ * @param quality - 压缩质量（默认 0.8）
+ * @returns 压缩后的 File 对象
+ */
+export const compressImage = async (
+    file: File,
+    maxWidth: number = 1024,
+    maxHeight: number = 1024,
+    quality: number = 0.8
+): Promise<File> => {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        
+        reader.onload = (e) => {
+            const img = new Image();
+            
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                let width = img.width;
+                let height = img.height;
+                
+                // 计算缩放比例
+                if (width > maxWidth || height > maxHeight) {
+                    const ratio = Math.min(maxWidth / width, maxHeight / height);
+                    width *= ratio;
+                    height *= ratio;
+                }
+                
+                canvas.width = width;
+                canvas.height = height;
+                
+                const ctx = canvas.getContext('2d');
+                if (!ctx) {
+                    reject(new Error('无法获取 Canvas 上下文'));
+                    return;
+                }
+                
+                ctx.drawImage(img, 0, 0, width, height);
+                
+                canvas.toBlob((blob) => {
+                    if (!blob) {
+                        reject(new Error('图片压缩失败'));
+                        return;
+                    }
+                    
+                    const compressedFile = new File([blob], file.name, { 
+                        type: 'image/jpeg',
+                        lastModified: Date.now(),
+                    });
+                    
+                    console.log(`[BlobStorage] 图片压缩完成: ${(file.size / 1024).toFixed(2)}KB → ${(compressedFile.size / 1024).toFixed(2)}KB`);
+                    resolve(compressedFile);
+                }, 'image/jpeg', quality);
+            };
+            
+            img.onerror = () => reject(new Error('图片加载失败'));
+            img.src = e.target!.result as string;
+        };
+        
+        reader.onerror = () => reject(new Error('文件读取失败'));
+        reader.readAsDataURL(file);
+    });
+};
+
+/**
+ * 保存文字节点图片到 IndexedDB（带压缩）
+ * @param nodeId - 节点 ID
+ * @param file - 图片文件
+ * @returns Blob URL
+ */
+export const saveTextNodeImage = async (
+    nodeId: string,
+    file: File
+): Promise<string> => {
+    try {
+        console.log(`[BlobStorage] 开始保存文字节点图片: ${nodeId}`);
+        
+        // 1. 压缩图片
+        const compressedFile = await compressImage(file);
+        
+        // 2. 保存到 IndexedDB
+        const storageKey = `blob-${nodeId}-text-input`;
+        await saveToStorage(storageKey, compressedFile);
+        
+        // 3. 创建 Blob URL
+        const blobUrl = URL.createObjectURL(compressedFile);
+        
+        console.log(`[BlobStorage] 文字节点图片保存成功: ${storageKey}, URL: ${blobUrl}`);
+        return blobUrl;
+    } catch (error) {
+        console.error('[BlobStorage] 文字节点图片保存失败:', error);
+        throw error;
+    }
+};
+
+/**
+ * 从 IndexedDB 加载文字节点图片
+ * @param nodeId - 节点 ID
+ * @returns Blob URL 或 undefined
+ */
+export const loadTextNodeImage = async (nodeId: string): Promise<string | undefined> => {
+    try {
+        const storageKey = `blob-${nodeId}-text-input`;
+        const blob = await loadFromStorage<Blob>(storageKey);
+        
+        if (!blob) {
+            console.warn(`[BlobStorage] 未找到文字节点图片: ${storageKey}`);
+            return undefined;
+        }
+        
+        // 创建 Blob URL
+        const blobUrl = URL.createObjectURL(blob);
+        console.log(`[BlobStorage] 文字节点图片加载成功: ${storageKey}, URL: ${blobUrl}`);
+        return blobUrl;
+    } catch (error) {
+        console.error('[BlobStorage] 文字节点图片加载失败:', error);
+        return undefined;
+    }
+};
+

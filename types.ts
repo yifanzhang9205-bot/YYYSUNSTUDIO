@@ -129,6 +129,16 @@ export interface AppNode {
     // 新增：镜头相关属性
     cameraAngle?: string;      // 镜头角度
     cameraMovement?: string;   // 镜头运动
+    
+    // 🔥 新增：文字节点升级相关字段（2026-02-03）
+    mode?: TextNodeMode;                    // 节点模式（initial/manual/reverse/text-to-image/prompt-generator）
+    analyzedPrompt?: string;                // 分析生成的提示词
+    userInput?: string;                     // 用户输入（用于提示词生成）
+    generatedPrompt?: string;               // AI 生成的提示词
+    outputNodeId?: string;                  // 输出节点 ID（文生图模式）
+    isAnalyzing?: boolean;                  // 是否正在分析图片
+    isGenerating?: boolean;                 // 是否正在生成提示词
+    pendingRequestId?: string;              // 当前请求 ID（用于取消旧请求）
   };
   inputs: string[]; // IDs of nodes this node connects FROM
 }
@@ -230,7 +240,11 @@ export interface Group {
   height: number;
   title: string;
   nodeIds?: string[]; // 组内节点 ID 列表（可选）
+  color?: GroupColor; // 🔥 新增：组颜色（2026-02-08）
 }
+
+// 🔥 新增：组颜色类型（2026-02-08）
+export type GroupColor = 'default' | 'blue' | 'green' | 'yellow' | 'red' | 'purple' | 'orange';
 
 export interface Connection {
   from: string;
@@ -261,6 +275,95 @@ export interface SmartSequenceItem {
         duration: number; // 1-6s
         prompt: string;
     };
+}
+
+// ========== 文字节点类型定义 ==========
+
+/**
+ * 文字节点模式枚举
+ */
+export enum TextNodeMode {
+  INITIAL = 'initial',              // 初始状态（显示功能选项列表）
+  MANUAL = 'manual',                // 自己编写内容
+  REVERSE = 'reverse',              // 图片反推提示词
+  TEXT_TO_IMAGE = 'text-to-image',  // 文生图
+  PROMPT_GENERATOR = 'prompt-generator', // 提示词生成
+}
+
+/**
+ * 文字节点错误类型枚举
+ */
+export enum TextNodeErrorType {
+  EMPTY_PROMPT = 'EMPTY_PROMPT',                   // 提示词为空
+  PROMPT_TOO_LONG = 'PROMPT_TOO_LONG',             // 提示词过长
+  NO_IMAGE = 'NO_IMAGE',                           // 没有输入图片
+  INVALID_IMAGE = 'INVALID_IMAGE',                 // 图片格式无效
+  IMAGE_TOO_LARGE = 'IMAGE_TOO_LARGE',             // 图片过大
+  MULTIPLE_INPUTS = 'MULTIPLE_INPUTS',             // 多个输入连接
+  API_ERROR = 'API_ERROR',                         // API 调用失败
+  NETWORK_ERROR = 'NETWORK_ERROR',                 // 网络错误
+  TIMEOUT = 'TIMEOUT',                             // 超时
+  RATE_LIMIT = 'RATE_LIMIT',                       // 限流
+  UNKNOWN = 'UNKNOWN',                             // 未知错误
+}
+
+/**
+ * 文字节点错误接口
+ */
+export interface TextNodeError {
+  type: TextNodeErrorType;
+  message: string;
+  details?: string;
+  timestamp: number;
+}
+
+/**
+ * 文字节点数据接口
+ */
+export interface TextNodeData {
+  // ========== 通用字段 ==========
+  /** 当前模式 */
+  mode?: TextNodeMode;
+  
+  /** 用户输入的文字/提示词 */
+  prompt?: string;
+  
+  /** 选择的 AI 模型 */
+  model?: string;
+  
+  /** 错误信息（字符串） */
+  error?: string;
+  
+  // ========== 图片反推模式 ==========
+  /** 输入图片（Base64 或 Blob URL） */
+  inputImage?: string;
+  
+  /** AI 分析生成的提示词 */
+  analyzedPrompt?: string;
+  
+  /** 用户编辑后的提示词 */
+  editedPrompt?: string;
+  
+  /** 是否正在分析 */
+  isAnalyzing?: boolean;
+  
+  // ========== 文生图模式 ==========
+  /** 自动生成的输出节点 ID */
+  outputNodeId?: string;
+  
+  // ========== 提示词生成模式 ==========
+  /** 用户的自然语言描述 */
+  userInput?: string;
+  
+  /** AI 生成的提示词 */
+  generatedPrompt?: string;
+  
+  /** 是否正在生成 */
+  isGenerating?: boolean;
+  
+  // ========== 请求管理（防止竞态条件）==========
+  /** 当前请求 ID */
+  pendingRequestId?: string;
 }
 
 // Window interface for Google AI Studio key selection

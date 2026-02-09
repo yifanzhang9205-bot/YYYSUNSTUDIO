@@ -18,6 +18,7 @@
 
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
+import { persist, createJSONStorage } from 'zustand/middleware';
 import { enableMapSet } from 'immer'; // 启用 Map/Set 支持
 import { AppNode, NodeStatus, NodeType } from '../../types';
 
@@ -117,9 +118,10 @@ export interface NodeStore {
 // ============================================
 
 export const useNodeStore = create<NodeStore>()(
-  immer((set, get) => ({
-    // ========== 初始数据 ==========
-    nodes: new Map(),
+  persist(
+    immer((set, get) => ({
+      // ========== 初始数据 ==========
+      nodes: new Map(),
 
     // ========== 查询操作 ==========
     getNode: (id) => {
@@ -278,7 +280,7 @@ export const useNodeStore = create<NodeStore>()(
 
     duplicateNodes: (ids, offsetX = 50, offsetY = 50) => {
       const newNodes: AppNode[] = [];
-      
+
       ids.forEach(id => {
         const node = get().getNode(id);
         if (node) {
@@ -305,8 +307,28 @@ export const useNodeStore = create<NodeStore>()(
         state.nodes = new Map(nodes.map(node => [node.id, node]));
       }
     }),
-  }))
-);
+  })),
+  {
+    name: 'canvas-nodes-storage',
+    storage: createJSONStorage(() => localStorage),
+    partialize: (state) => ({
+      // 只持久化 nodes，序列化为数组
+      nodes: Array.from(state.nodes.entries()),
+    }),
+    merge: (persistedState: any, currentState) => {
+      // 反序列化：将数组转回 Map
+      const nodes = Array.isArray(persistedState?.nodes)
+        ? new Map(persistedState.nodes)
+        : new Map();
+      
+      return {
+        ...currentState,
+        nodes,
+      };
+    },
+  }
+)
+)
 
 // ============================================
 // 工具函数（可选）
