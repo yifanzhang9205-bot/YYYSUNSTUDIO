@@ -104,6 +104,9 @@ export const useAssetLibraryStore = create<AssetLibraryState>()(
        * 删除资产
        */
       deleteAsset: (id: string) => {
+        // 先获取资产数据（用于清理）
+        const asset = get().assets.find(a => a.id === id);
+        
         set((state) => {
           const index = state.assets.findIndex(a => a.id === id);
           if (index !== -1) {
@@ -113,9 +116,65 @@ export const useAssetLibraryStore = create<AssetLibraryState>()(
               URL.revokeObjectURL(asset.thumbnail);
             }
             
+            // 🔥 清理节点图片的 Blob URL
+            asset.nodes.forEach(node => {
+              if (node.data.image && node.data.image.startsWith('blob:')) {
+                URL.revokeObjectURL(node.data.image);
+              }
+              if (node.data.images && Array.isArray(node.data.images)) {
+                node.data.images.forEach((img: string) => {
+                  if (img && img.startsWith('blob:')) {
+                    URL.revokeObjectURL(img);
+                  }
+                });
+              }
+              if (node.data.gridImages && Array.isArray(node.data.gridImages)) {
+                node.data.gridImages.forEach((img: string) => {
+                  if (img && img.startsWith('blob:')) {
+                    URL.revokeObjectURL(img);
+                  }
+                });
+              }
+            });
+            
             state.assets.splice(index, 1);
           }
         });
+        
+        // 🔥 数据持久化：清理 IndexedDB（阶段2完整修复）
+        if (asset) {
+          (async () => {
+            try {
+              console.log('[AssetLibraryStore] 开始清理 IndexedDB', { 
+                assetId: id, 
+                nodesCount: asset.nodes.length 
+              });
+              
+              const { 
+                deleteAssetThumbnail, 
+                deleteAssetNodeImages 
+              } = await import('../../services/blobStorage');
+              
+              // 1. 清理缩略图
+              await deleteAssetThumbnail(id);
+              console.log('[AssetLibraryStore] 缩略图已清理', { assetId: id });
+              
+              // 2. 清理所有节点图片（批量删除）
+              const nodeIds = asset.nodes.map(node => node.id);
+              if (nodeIds.length > 0) {
+                await deleteAssetNodeImages(id, nodeIds);
+                console.log('[AssetLibraryStore] 所有节点图片已清理', { 
+                  assetId: id, 
+                  nodesCount: nodeIds.length 
+                });
+              }
+              
+              console.log('[AssetLibraryStore] IndexedDB 清理完成', { assetId: id });
+            } catch (error) {
+              console.error('[AssetLibraryStore] 清理 IndexedDB 失败:', error);
+            }
+          })();
+        }
         
         console.log('[AssetLibraryStore] 删除资产', { id });
       },

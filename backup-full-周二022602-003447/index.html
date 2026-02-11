@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0" />
+    <title>SunStudio</title>
+    
+    <!-- Inter 字体 - React Flow 风格 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      :root {
+        --glass-border: rgba(255, 255, 255, 0.12);
+        --glass-surface: rgba(30, 30, 32, 0.75);
+        --glass-highlight: rgba(255, 255, 255, 0.08);
+        --apple-spring: cubic-bezier(0.32, 0.72, 0, 1);
+      }
+
+      body {
+        /* React Flow 风格背景 - 柔和中性灰 */
+        background-color: #e5e7eb;
+        color: #1f2937;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', "PingFang SC", "Microsoft YaHei", sans-serif;
+        overflow: hidden;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        user-select: none;
+      }
+      
+      /* Hide native scrollbars */
+      ::-webkit-scrollbar {
+        width: 0px;
+        background: transparent;
+      }
+
+      /* Apple-style Custom Scrollbar */
+      .custom-scrollbar::-webkit-scrollbar {
+        width: 4px;
+        height: 4px;
+      }
+      .custom-scrollbar::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      .custom-scrollbar::-webkit-scrollbar-thumb {
+        background-color: rgba(255, 255, 255, 0.2);
+        border-radius: 100px;
+      }
+      .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+        background-color: rgba(255, 255, 255, 0.4);
+      }
+
+      /* Node Flow Animation */
+      @keyframes dash-flow {
+        to {
+          stroke-dashoffset: -24;
+        }
+      }
+      .animate-flow {
+        animation: dash-flow 1s linear infinite;
+      }
+
+      /* 🆕 节点动画 - React Flow 风格 */
+      @keyframes nodeEnter {
+        from {
+          opacity: 0;
+          transform: scale(0.95);
+        }
+        to {
+          opacity: 1;
+          transform: scale(1);
+        }
+      }
+      
+      @keyframes nodeExit {
+        from {
+          opacity: 1;
+          transform: scale(1);
+        }
+        to {
+          opacity: 0;
+          transform: scale(0.95);
+        }
+      }
+      
+      .node-enter {
+        animation: nodeEnter 200ms cubic-bezier(0.32, 0.72, 0, 1);
+      }
+      
+      .node-exit {
+        animation: nodeExit 150ms cubic-bezier(0.32, 0.72, 0, 1);
+        animation-fill-mode: forwards;
+      }
+      
+      /* Selection */
+      ::selection {
+        background: rgba(6, 182, 212, 0.3);
+        color: white;
+      }
+      
+      /* Utility for subtle noise overlay */
+      .noise-bg {
+        position: absolute;
+        inset: 0;
+        background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.02'/%3E%3C/svg%3E");
+        pointer-events: none;
+        mix-blend-mode: overlay;
+        z-index: 0;
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.555.0",
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.30.0",
+    "react-dom/client": "https://aistudiocdn.com/react-dom@^19.2.0/client",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "react": "https://aistudiocdn.com/react@^19.2.0"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+  <body>
+    <div id="root"></div>
+  <script type="module" src="/index.tsx"></script>
+</body>
+</html>

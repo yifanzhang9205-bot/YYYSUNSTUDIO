@@ -98,6 +98,9 @@ export interface AppNode {
     // 新增：九宫格处理节点数据
     inputImage?: string;       // 输入的九宫格图片
     croppedImages?: string[];  // 切割后的 9 张图片
+    
+    // 🔥 新增：引用追踪（数据清理机制）
+    historyAssetId?: string;   // 来自哪个历史记录（用于引用检查）
     selectedIndex?: number;    // 选中的图片索引
     outputImage?: string;      // 输出的图片（选中的那张）
     

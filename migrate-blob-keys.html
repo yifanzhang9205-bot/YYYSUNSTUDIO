@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blob 键名迁移工具</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .description {
+            color: #666;
+            margin-bottom: 30px;
+            line-height: 1.6;
+        }
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-primary {
+            background: #3b82f6;
+            color: white;
+        }
+        .btn-primary:hover {
+            background: #2563eb;
+        }
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+        }
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+        .btn-secondary {
+            background: #6b7280;
+            color: white;
+        }
+        .btn-secondary:hover {
+            background: #4b5563;
+        }
+        .log {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 20px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            max-height: 400px;
+            overflow-y: auto;
+            margin-top: 20px;
+        }
+        .log-entry {
+            margin-bottom: 8px;
+            line-height: 1.5;
+        }
+        .log-success {
+            color: #10b981;
+        }
+        .log-error {
+            color: #ef4444;
+        }
+        .log-info {
+            color: #3b82f6;
+        }
+        .log-warning {
+            color: #f59e0b;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .stat-card {
+            background: #f8fafc;
+            padding: 15px;
+            border-radius: 6px;
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 32px;
+            font-weight: bold;
+            color: #3b82f6;
+        }
+        .stat-label {
+            font-size: 12px;
+            color: #64748b;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Blob 键名迁移工具</h1>
+        <div class="description">
+            <p><strong>用途：</strong>将旧格式的 IndexedDB 键名迁移到新格式。</p>
+            <p><strong>旧格式：</strong><code>blob-{nodeId}-image-{index}</code></p>
+            <p><strong>新格式：</strong><code>blob-node-{nodeId}-image-{index}</code></p>
+            <p><strong>注意：</strong>迁移前请确保已备份重要数据！</p>
+        </div>
+
+        <div class="button-group">
+            <button class="btn-secondary" onclick="scanOldKeys()">扫描旧键名</button>
+            <button class="btn-primary" onclick="migrateKeys()">开始迁移</button>
+            <button class="btn-danger" onclick="clearAllBlobs()">清空所有 Blob</button>
+        </div>
+
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-value" id="oldKeysCount">0</div>
+                <div class="stat-label">旧键名数量</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="migratedCount">0</div>
+                <div class="stat-label">已迁移</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="newKeysCount">0</div>
+                <div class="stat-label">新键名数量</div>
+            </div>
+        </div>
+
+        <div class="log" id="log"></div>
+    </div>
+
+    <script>
+        // 日志函数
+        function log(message, type = 'info') {
+            const logDiv = document.getElementById('log');
+            const entry = document.createElement('div');
+            entry.className = `log-entry log-${type}`;
+            entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logDiv.appendChild(entry);
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        // 更新统计
+        function updateStats(oldCount, migratedCount, newCount) {
+            document.getElementById('oldKeysCount').textContent = oldCount;
+            document.getElementById('migratedCount').textContent = migratedCount;
+            document.getElementById('newKeysCount').textContent = newCount;
+        }
+
+        // 打开 IndexedDB
+        async function openDatabase() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open('sunstudio_db', 1);
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        // 扫描旧键名
+        async function scanOldKeys() {
+            try {
+                log('开始扫描旧键名...', 'info');
+                const db = await openDatabase();
+                const tx = db.transaction('app_data', 'readonly');
+                const store = tx.objectStore('app_data');
+                const allKeys = await store.getAllKeys();
+
+                // 筛选旧格式的键名
+                const oldKeys = allKeys.filter(key => {
+                    // 旧格式：blob-{nodeId}-image-{index}
+                    // 新格式：blob-node-{nodeId}-image-{index}
+                    return typeof key === 'string' && 
+                           key.startsWith('blob-') && 
+                           !key.startsWith('blob-node-') &&
+                           (key.includes('-image-') || key.endsWith('-image'));
+                });
+
+                // 筛选新格式的键名
+                const newKeys = allKeys.filter(key => {
+                    return typeof key === 'string' && key.startsWith('blob-node-');
+                });
+
+                log(`扫描完成！`, 'success');
+                log(`找到 ${oldKeys.length} 个旧键名`, 'info');
+                log(`找到 ${newKeys.length} 个新键名`, 'info');
+
+                if (oldKeys.length > 0) {
+                    log('旧键名示例：', 'warning');
+                    oldKeys.slice(0, 5).forEach(key => log(`  - ${key}`, 'warning'));
+                    if (oldKeys.length > 5) {
+                        log(`  ... 还有 ${oldKeys.length - 5} 个`, 'warning');
+                    }
+                }
+
+                updateStats(oldKeys.length, 0, newKeys.length);
+            } catch (error) {
+                log(`扫描失败: ${error.message}`, 'error');
+            }
+        }
+
+        // 迁移键名
+        async function migrateKeys() {
+            try {
+                log('开始迁移...', 'info');
+                const db = await openDatabase();
+                
+                // 读取所有键
+                const txRead = db.transaction('app_data', 'readonly');
+                const storeRead = txRead.objectStore('app_data');
+                const allKeys = await storeRead.getAllKeys();
+
+                // 筛选旧格式的键名
+                const oldKeys = allKeys.filter(key => {
+                    return typeof key === 'string' && 
+                           key.startsWith('blob-') && 
+                           !key.startsWith('blob-node-') &&
+                           (key.includes('-image-') || key.endsWith('-image'));
+                });
+
+                if (oldKeys.length === 0) {
+                    log('没有需要迁移的旧键名', 'warning');
+                    return;
+                }
+
+                log(`找到 ${oldKeys.length} 个需要迁移的键名`, 'info');
+
+                let migratedCount = 0;
+
+                // 逐个迁移
+                for (const oldKey of oldKeys) {
+                    try {
+                        // 读取旧数据
+                        const txRead = db.transaction('app_data', 'readonly');
+                        const storeRead = txRead.objectStore('app_data');
+                        const blob = await storeRead.get(oldKey);
+
+                        if (!blob) {
+                            log(`跳过空数据: ${oldKey}`, 'warning');
+                            continue;
+                        }
+
+                        // 生成新键名
+                        // 旧格式：blob-{nodeId}-image-{index}
+                        // 新格式：blob-node-{nodeId}-image-{index}
+                        const newKey = oldKey.replace(/^blob-/, 'blob-node-');
+
+                        // 保存到新键名
+                        const txWrite = db.transaction('app_data', 'readwrite');
+                        const storeWrite = txWrite.objectStore('app_data');
+                        await storeWrite.put(blob, newKey);
+
+                        // 删除旧键名
+                        await storeWrite.delete(oldKey);
+
+                        migratedCount++;
+                        log(`✓ ${oldKey} → ${newKey}`, 'success');
+                        updateStats(oldKeys.length - migratedCount, migratedCount, 0);
+                    } catch (error) {
+                        log(`✗ 迁移失败: ${oldKey} - ${error.message}`, 'error');
+                    }
+                }
+
+                log(`迁移完成！成功迁移 ${migratedCount}/${oldKeys.length} 个键名`, 'success');
+                
+                // 重新扫描
+                await scanOldKeys();
+            } catch (error) {
+                log(`迁移失败: ${error.message}`, 'error');
+            }
+        }
+
+        // 清空所有 Blob
+        async function clearAllBlobs() {
+            if (!confirm('确定要清空所有 Blob 数据吗？此操作不可恢复！')) {
+                return;
+            }
+
+            try {
+                log('开始清空所有 Blob 数据...', 'warning');
+                const db = await openDatabase();
+                const tx = db.transaction('app_data', 'readwrite');
+                const store = tx.objectStore('app_data');
+                const allKeys = await store.getAllKeys();
+
+                // 筛选所有 Blob 键名
+                const blobKeys = allKeys.filter(key => {
+                    return typeof key === 'string' && key.startsWith('blob-');
+                });
+
+                log(`找到 ${blobKeys.length} 个 Blob 键名`, 'info');
+
+                let deletedCount = 0;
+                for (const key of blobKeys) {
+                    await store.delete(key);
+                    deletedCount++;
+                    if (deletedCount % 10 === 0) {
+                        log(`已删除 ${deletedCount}/${blobKeys.length}...`, 'info');
+                    }
+                }
+
+                log(`清空完成！删除了 ${deletedCount} 个 Blob 数据`, 'success');
+                updateStats(0, 0, 0);
+            } catch (error) {
+                log(`清空失败: ${error.message}`, 'error');
+            }
+        }
+
+        // 页面加载时自动扫描
+        window.addEventListener('load', () => {
+            log('Blob 键名迁移工具已就绪', 'info');
+            log('点击"扫描旧键名"开始检查', 'info');
+        });
+    </script>
+</body>
+</html>

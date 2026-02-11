@@ -514,10 +514,10 @@ const NodeComponent: React.FC<NodeProps> = ({
           // 2. 立即更新节点（不等待保存）
           onUpdate(node.id, { image: blobUrl });
           
-          // 3. 异步保存到 IndexedDB（不阻塞 UI）
-          const { saveFileToIndexedDBAsync } = await import('../services/blobStorage');
-          saveFileToIndexedDBAsync(node.id, file).catch(error => {
-              console.error('[Node] 图片异步保存失败:', error);
+          // 3. 🔥 数据持久化：保存到 IndexedDB（阶段1）
+          const { saveNodeImageBlob } = await import('../services/blobStorage');
+          saveNodeImageBlob(node.id, blobUrl).catch(error => {
+              console.error('[Node] 图片持久化失败:', error);
           });
       }
   };

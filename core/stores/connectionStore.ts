@@ -9,6 +9,7 @@
 
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
+import { persist, createJSONStorage } from 'zustand/middleware';
 import { Connection } from '../../types';
 
 // ============================================
@@ -64,9 +65,10 @@ export interface ConnectionStore {
 // ============================================
 
 export const useConnectionStore = create<ConnectionStore>()(
-  immer((set, get) => ({
-    // ========== 初始数据 ==========
-    connections: [],
+  persist(
+    immer((set, get) => ({
+      // ========== 初始数据 ==========
+      connections: [],
 
     // ========== 查询操作 ==========
     getAllConnections: () => {
@@ -137,5 +139,10 @@ export const useConnectionStore = create<ConnectionStore>()(
     setConnections: (connections) => set((state) => {
       state.connections = [...connections];
     }),
-  }))
+  })),
+  {
+    name: 'canvas-connections-storage',
+    storage: createJSONStorage(() => localStorage),
+  }
+)
 );

@@ -151,6 +151,36 @@ export const useNodeStore = create<NodeStore>()(
     // ========== 增删改操作 ==========
     addNode: (node) => set((state) => {
       state.nodes.set(node.id, node);
+      
+      // 🔥 自动保存图片到 IndexedDB（异步，不阻塞 UI）
+      (async () => {
+        try {
+          const { saveNodeImageBlob, saveNodeImagesBlob } = await import('../../services/blobStorage');
+          
+          // 1. 保存单张图片（image 字段）
+          if (node.data.image && (node.data.image.startsWith('blob:') || node.data.image.startsWith('data:'))) {
+            await saveNodeImageBlob(node.id, node.data.image);
+          }
+          
+          // 2. 保存九宫格图片（gridImages 字段）
+          if (node.data.gridImages && Array.isArray(node.data.gridImages) && node.data.gridImages.length > 0) {
+            const firstImage = node.data.gridImages[0];
+            if (firstImage && (firstImage.startsWith('blob:') || firstImage.startsWith('data:'))) {
+              await saveNodeImagesBlob(node.id, node.data.gridImages);
+            }
+          }
+          
+          // 3. 保存裁剪后的图片数组（croppedImages 字段）
+          if (node.data.croppedImages && Array.isArray(node.data.croppedImages) && node.data.croppedImages.length > 0) {
+            const firstImage = node.data.croppedImages[0];
+            if (firstImage && (firstImage.startsWith('blob:') || firstImage.startsWith('data:'))) {
+              await saveNodeImagesBlob(node.id, node.data.croppedImages);
+            }
+          }
+        } catch (error) {
+          console.error('[NodeStore] 自动保存图片到 IndexedDB 失败:', error);
+        }
+      })();
     }),
 
     addNodes: (nodes) => set((state) => {
@@ -176,13 +206,72 @@ export const useNodeStore = create<NodeStore>()(
     }),
 
     deleteNode: (id) => set((state) => {
-      state.nodes.delete(id);
+      const node = state.nodes.get(id);
+      if (node) {
+        // 🔥 数据清理机制：释放节点专用的 Blob URL（不影响历史记录和资产库）
+        // 原理：节点的 Blob URL 是从 IndexedDB 独立创建的，不是共享的
+        // 历史记录、资产库、画布节点各自有独立的 Blob URL
+        if (node.data.image && node.data.image.startsWith('blob:')) {
+          URL.revokeObjectURL(node.data.image);
+          console.log(`[NodeStore] 已释放节点 Blob URL: ${node.data.image.substring(0, 50)}`);
+        }
+        
+        if (node.data.gridImages && Array.isArray(node.data.gridImages)) {
+          node.data.gridImages.forEach(url => {
+            if (url && url.startsWith('blob:')) {
+              URL.revokeObjectURL(url);
+            }
+          });
+          console.log(`[NodeStore] 已释放 ${node.data.gridImages.length} 个九宫格 Blob URL`);
+        }
+        
+        if (node.data.croppedImages && Array.isArray(node.data.croppedImages)) {
+          node.data.croppedImages.forEach(url => {
+            if (url && url.startsWith('blob:')) {
+              URL.revokeObjectURL(url);
+            }
+          });
+          console.log(`[NodeStore] 已释放 ${node.data.croppedImages.length} 个裁剪图片 Blob URL`);
+        }
+        
+        // 删除节点数据
+        state.nodes.delete(id);
+        
+        // IndexedDB 不清理（等待历史记录清除时统一清理）
+        console.log(`[NodeStore] 节点已删除: ${id}，IndexedDB 数据保留（等待历史记录清除）`);
+      }
     }),
 
     deleteNodes: (ids) => set((state) => {
       ids.forEach(id => {
+        const node = state.nodes.get(id);
+        if (node) {
+          // 🔥 释放节点专用的 Blob URL
+          if (node.data.image && node.data.image.startsWith('blob:')) {
+            URL.revokeObjectURL(node.data.image);
+          }
+          
+          if (node.data.gridImages && Array.isArray(node.data.gridImages)) {
+            node.data.gridImages.forEach(url => {
+              if (url && url.startsWith('blob:')) {
+                URL.revokeObjectURL(url);
+              }
+            });
+          }
+          
+          if (node.data.croppedImages && Array.isArray(node.data.croppedImages)) {
+            node.data.croppedImages.forEach(url => {
+              if (url && url.startsWith('blob:')) {
+                URL.revokeObjectURL(url);
+              }
+            });
+          }
+        }
+        
         state.nodes.delete(id);
       });
+      
+      console.log(`[NodeStore] 批量删除完成: ${ids.length} 个节点，Blob URL 已释放`);
     }),
 
     clearNodes: () => set((state) => {
@@ -197,6 +286,36 @@ export const useNodeStore = create<NodeStore>()(
           ...node,
           data: { ...node.data, ...data },
         });
+        
+        // 🔥 自动保存图片到 IndexedDB（异步，不阻塞 UI）
+        (async () => {
+          try {
+            const { saveNodeImageBlob, saveNodeImagesBlob } = await import('../../services/blobStorage');
+            
+            // 1. 保存单张图片（image 字段）
+            if (data.image && (data.image.startsWith('blob:') || data.image.startsWith('data:'))) {
+              await saveNodeImageBlob(id, data.image);
+            }
+            
+            // 2. 保存九宫格图片（gridImages 字段）
+            if (data.gridImages && Array.isArray(data.gridImages) && data.gridImages.length > 0) {
+              const firstImage = data.gridImages[0];
+              if (firstImage && (firstImage.startsWith('blob:') || firstImage.startsWith('data:'))) {
+                await saveNodeImagesBlob(id, data.gridImages);
+              }
+            }
+            
+            // 3. 保存裁剪后的图片数组（croppedImages 字段）
+            if (data.croppedImages && Array.isArray(data.croppedImages) && data.croppedImages.length > 0) {
+              const firstImage = data.croppedImages[0];
+              if (firstImage && (firstImage.startsWith('blob:') || firstImage.startsWith('data:'))) {
+                await saveNodeImagesBlob(id, data.croppedImages);
+              }
+            }
+          } catch (error) {
+            console.error('[NodeStore] 自动保存图片到 IndexedDB 失败:', error);
+          }
+        })();
       }
     }),
 
@@ -324,6 +443,101 @@ export const useNodeStore = create<NodeStore>()(
       return {
         ...currentState,
         nodes,
+      };
+    },
+    // 🔥 页面刷新后恢复 Blob URL
+    onRehydrateStorage: () => {
+      return async (state, error) => {
+        if (error) {
+          console.error('[NodeStore] 恢复失败:', error);
+          return;
+        }
+        
+        if (!state) {
+          console.warn('[NodeStore] state 为空，跳过 Blob URL 恢复');
+          return;
+        }
+        
+        // 延迟执行，确保 Store 完全恢复
+        setTimeout(async () => {
+          console.log('[NodeStore] 开始恢复 Blob URL...', `节点数量: ${state.nodes.size}`);
+          
+          if (state.nodes.size === 0) {
+            console.log('[NodeStore] 没有节点需要恢复');
+            return;
+          }
+          
+          // 动态导入 blobStorage（避免循环依赖）
+          const { loadNodeImageBlob, loadNodeImagesBlob, loadGridImages } = await import('../../services/blobStorage');
+          
+          // 遍历所有节点，恢复 Blob URL
+          const updates: Array<{ id: string; updates: Partial<AppNode> }> = [];
+          
+          for (const [nodeId, node] of state.nodes.entries()) {
+            const nodeUpdates: Partial<AppNode> = {};
+            
+            // 1. 恢复单张图片（image 字段）
+            if (node.data.image && node.data.image.startsWith('blob:')) {
+              console.log(`[NodeStore] 尝试恢复节点图片: ${nodeId}`);
+              const restoredUrl = await loadNodeImageBlob(nodeId);
+              if (restoredUrl) {
+                nodeUpdates.data = { ...node.data, image: restoredUrl };
+                console.log(`[NodeStore] ✅ 恢复节点图片成功: ${nodeId}`);
+              } else {
+                console.warn(`[NodeStore] ❌ 恢复节点图片失败: ${nodeId} - 未找到 IndexedDB 数据`);
+              }
+            }
+            
+            // 2. 恢复九宫格图片（gridImages 字段）
+            if (node.data.gridImages && node.data.gridImages.length > 0) {
+              const firstImage = node.data.gridImages[0];
+              if (firstImage && firstImage.startsWith('blob:')) {
+                console.log(`[NodeStore] 尝试恢复九宫格图片: ${nodeId}, 数量: ${node.data.gridImages.length}`);
+                const restoredImages = await loadGridImages(nodeId, node.data.gridImages.length);
+                if (restoredImages.length > 0) {
+                  nodeUpdates.data = { 
+                    ...nodeUpdates.data || node.data, 
+                    gridImages: restoredImages 
+                  };
+                  console.log(`[NodeStore] ✅ 恢复九宫格图片成功: ${nodeId}, 数量: ${restoredImages.length}`);
+                } else {
+                  console.warn(`[NodeStore] ❌ 恢复九宫格图片失败: ${nodeId} - 未找到 IndexedDB 数据`);
+                }
+              }
+            }
+            
+            // 3. 恢复裁剪后的图片数组（croppedImages 字段）
+            if (node.data.croppedImages && node.data.croppedImages.length > 0) {
+              const firstImage = node.data.croppedImages[0];
+              if (firstImage && firstImage.startsWith('blob:')) {
+                console.log(`[NodeStore] 尝试恢复裁剪图片: ${nodeId}, 数量: ${node.data.croppedImages.length}`);
+                const restoredImages = await loadNodeImagesBlob(nodeId, node.data.croppedImages.length);
+                if (restoredImages.length > 0) {
+                  nodeUpdates.data = { 
+                    ...nodeUpdates.data || node.data, 
+                    croppedImages: restoredImages 
+                  };
+                  console.log(`[NodeStore] ✅ 恢复裁剪图片成功: ${nodeId}, 数量: ${restoredImages.length}`);
+                } else {
+                  console.warn(`[NodeStore] ❌ 恢复裁剪图片失败: ${nodeId} - 未找到 IndexedDB 数据`);
+                }
+              }
+            }
+            
+            // 如果有更新，添加到批量更新列表
+            if (Object.keys(nodeUpdates).length > 0) {
+              updates.push({ id: nodeId, updates: nodeUpdates });
+            }
+          }
+          
+          // 批量更新节点
+          if (updates.length > 0) {
+            state.updateNodes(updates);
+            console.log(`[NodeStore] ✅ Blob URL 恢复完成，共 ${updates.length} 个节点`);
+          } else {
+            console.log('[NodeStore] 无需恢复 Blob URL（没有失效的 Blob URL）');
+          }
+        }, 500); // 延迟 500ms，确保 Store 完全恢复
       };
     },
   }

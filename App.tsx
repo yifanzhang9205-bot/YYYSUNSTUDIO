@@ -164,6 +164,7 @@ import { useUIState } from './hooks/useUIState';
 import { useNodeActions } from './hooks/useNodeActions'; // 🔥 新增：节点操作 Hook
 import { useContextMenu } from './hooks/useContextMenu'; // 🔥 新增：上下文菜单 Hook（架构重构）
 import { useAssetLibrary } from './hooks/useAssetLibrary'; // 🔥 资产库重构：资产库 Hook
+import { useBlobRestore } from './hooks/useBlobRestore'; // 🔥 新增：Blob URL 恢复 Hook
 
 // 引入 Stores（架构重构 - 阶段 A - 第 2 步）
 import { useNodeStore } from './core/stores/nodeStore';
@@ -314,56 +315,6 @@ export const App = () => {
     initializeNodeRegistry();
   }, []);
   
-  // === 🔥 数据持久化架构升级 - 阶段1：恢复节点图片（2026-02-10）===
-  useEffect(() => {
-    const restoreNodeImages = async () => {
-      const { getAllNodes, updateNodeData } = useNodeStore.getState();
-      const nodes = getAllNodes();
-      
-      if (nodes.length === 0) {
-        console.log('[App] 没有节点需要恢复');
-        return;
-      }
-      
-      console.log(`[App] 开始恢复 ${nodes.length} 个节点的图片...`);
-      
-      for (const node of nodes) {
-        try {
-          // 恢复单张图片（node.data.image）
-          if (node.data.image && node.data.image.startsWith('blob:')) {
-            const { loadNodeImageBlob } = await import('./services/blobStorage');
-            const newBlobUrl = await loadNodeImageBlob(node.id);
-            if (newBlobUrl) {
-              updateNodeData(node.id, { image: newBlobUrl });
-              console.log(`[App] 节点 ${node.id} 图片已恢复`);
-            }
-          }
-          
-          // 恢复图片数组（node.data.images）
-          if (node.data.images && node.data.images.length > 0) {
-            const { loadNodeImagesBlob } = await import('./services/blobStorage');
-            const newImages = await loadNodeImagesBlob(node.id, node.data.images.length);
-            if (newImages.length > 0) {
-              updateNodeData(node.id, { images: newImages });
-              console.log(`[App] 节点 ${node.id} 图片数组已恢复: ${newImages.length}/${node.data.images.length}`);
-            }
-          }
-        } catch (error) {
-          console.error(`[App] 恢复节点 ${node.id} 图片失败:`, error);
-        }
-      }
-      
-      console.log('[App] 节点图片恢复完成');
-    };
-    
-    // 延迟执行，避免阻塞初始渲染
-    const timer = setTimeout(() => {
-      restoreNodeImages();
-    }, 100);
-    
-    return () => clearTimeout(timer);
-  }, []);
-  
   // === 架构重构 - 阶段 B：使用 Store 管理所有状态 ===
   
   // --- UI 面板状态（从 uiStore 获取）---
@@ -441,38 +392,20 @@ export const App = () => {
       if (ids.length === 0) return;
       saveHistory();
       
-      // 性能优化：清理 Blob URL（避免内存泄漏）
+      // 🔥 修复：只清理节点专用的 IndexedDB，不删除历史记录和资产库的
       ids.forEach(async (id) => {
-          const node = nodes.get(id);
-          if (node) {
-              // 清理 gridImages
-              if (node.data.gridImages && Array.isArray(node.data.gridImages)) {
-                  node.data.gridImages.forEach((url: string) => {
-                      if (url && url.startsWith('blob:')) {
-                          URL.revokeObjectURL(url);
-                      }
-                  });
-              }
-              // 清理 images
-              if (node.data.images && Array.isArray(node.data.images)) {
-                  node.data.images.forEach((url: string) => {
-                      if (url && url.startsWith('blob:')) {
-                          URL.revokeObjectURL(url);
-                      }
-                  });
-              }
-              // 清理 image
-              if (node.data.image && node.data.image.startsWith('blob:')) {
-                  URL.revokeObjectURL(node.data.image);
-              }
+          try {
+              const { deleteFromStorage } = await import('./services/storage');
               
-              // 🔥 数据持久化：清理 IndexedDB（阶段1）
-              try {
-                  const { deleteNodeImageBlob } = await import('./services/blobStorage');
-                  await deleteNodeImageBlob(id);
-              } catch (error) {
-                  console.error(`[App] 清理节点 ${id} IndexedDB 失败:`, error);
-              }
+              // 只删除节点专用的键（blob-node-{id}-image）
+              await deleteFromStorage(`blob-node-${id}-image`);
+              
+              // 不删除 asset-{id}（历史记录）
+              // 不删除 asset-thumbnail-{id}（资产库）
+              
+              console.log(`[App] 节点 ${id} IndexedDB 已清理`);
+          } catch (error) {
+              console.error(`[App] 清理节点 ${id} IndexedDB 失败:`, error);
           }
       });
       
@@ -502,11 +435,22 @@ export const App = () => {
   } = useNodeHelpers();
 
   const { 
+    restoreHistoryImages,
     handleAssetGenerated, 
     handleDeleteAsset,
     handleDeleteMultipleAssets,
     downloadSelectedImagesAndClear 
   } = useAssetHistory();
+
+  // === 🔥 数据持久化架构升级 - 阶段1：恢复历史记录图片（2026-02-10）===
+  useEffect(() => {
+    // 延迟执行，避免阻塞初始渲染
+    const timer = setTimeout(() => {
+      restoreHistoryImages();
+    }, 300); // 比资产库恢复晚一点
+    
+    return () => clearTimeout(timer);
+  }, []); // 🔥 移除依赖项，只在组件挂载时执行一次
 
   // === 架构重构：使用 useContextMenu Hook（上下文菜单逻辑抽离）===
   const { 
@@ -665,15 +609,15 @@ export const App = () => {
   const { createAsset, useAsset } = useAssetLibrary();
 
   // 🔥 资产库重构：处理创建资产对话框确认
-  const handleConfirmCreateAsset = useCallback((name: string, category: any) => {
+  const handleConfirmCreateAsset = useCallback(async (name: string, category: any) => {
     // ✅ 使用保存的数据，而不是 selectedNodeIds（修复 Bug：节点数据为空）
     if (!assetDataToCreate) {
       console.error('[资产库] 没有要创建的资产数据');
       return;
     }
     
-    // ✅ 使用保存的节点数据
-    createAsset(name, category, assetDataToCreate.nodes, assetDataToCreate.connections);
+    // ✅ 使用保存的节点数据（异步调用）
+    await createAsset(name, category, assetDataToCreate.nodes, assetDataToCreate.connections);
     
     // 清理
     setAssetDataToCreate(null);
@@ -1000,7 +944,7 @@ export const App = () => {
   }, [assetHistory, nodes, connections, groups, isLoaded]);
 
   // === 使用 NodeRegistry 创建节点（架构重构 - 阶段 A - 第 2 步）===
-  const addNode = useCallback((type: NodeType, x?: number, y?: number, initialData?: any) => {
+  const addNode = useCallback((type: NodeType, x?: number, y?: number, initialData?: any, customNodeId?: string) => {
       if (type === NodeType.IMAGE_EDITOR) {
           setSketchEditorOpen(true);
           return;
@@ -1012,11 +956,12 @@ export const App = () => {
       const safeX = x !== undefined ? x : (-pan.x + window.innerWidth/2)/scale - 210;
       const safeY = y !== undefined ? y : (-pan.y + window.innerHeight/2)/scale - 180;
 
-      // 使用 NodeRegistry 创建节点
+      // 使用 NodeRegistry 创建节点（支持自定义 nodeId）
       const newNode = nodeRegistry.createNode(type, {
           x: isNaN(safeX) ? 100 : safeX,
           y: isNaN(safeY) ? 100 : safeY,
           data: initialData,
+          id: customNodeId, // 🔥 支持传入自定义 nodeId
       });
       
       if (!newNode) {
@@ -1026,6 +971,9 @@ export const App = () => {
       
       // === 使用 Store 添加节点 ===
       useNodeStore.getState().addNode(newNode);
+      
+      // 🔥 返回节点 ID，方便后续操作
+      return newNode.id;
   }, [pan, scale, saveHistory]);
 
   const handleSketchResult = (type: 'image' | 'video', result: string, prompt: string) => {
@@ -1581,8 +1529,63 @@ export const App = () => {
                       img.src = asset.originalImage;
                       return;
                   }
-                  // 原有的资产拖放逻辑
-                  if (asset.type === 'image') addNode(NodeType.IMAGE_GENERATOR, dropX - 210, dropY - 180, { image: asset.src, prompt: asset.title });
+                  // 🔥 数据持久化：处理历史记录拖拽（完整修复 - 独立 Blob URL）
+                  if (asset.type === 'image') {
+                      // 🔥 关键修复：先从 IndexedDB 读取并创建独立的 Blob URL，再创建节点
+                      (async () => {
+                          try {
+                              const newNodeId = `node-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+                              
+                              console.log('[App] 从历史记录拖拽，创建独立的 Blob URL', { 
+                                  nodeId: newNodeId, 
+                                  assetId: asset.id 
+                              });
+                              
+                              // 1. 从历史记录 IndexedDB 读取图片（键名：asset-{assetId}）
+                              const { loadFromStorage, saveToStorage } = await import('./services/storage');
+                              const storageKey = `asset-${asset.id}`;
+                              const blob = await loadFromStorage<Blob>(storageKey);
+                              
+                              if (blob) {
+                                  // 2. 创建节点专用的 Blob URL（独立于历史记录）
+                                  const newBlobUrl = URL.createObjectURL(blob);
+                                  
+                                  // 3. 保存到节点专用的 IndexedDB（键名：blob-node-{nodeId}-image）
+                                  const nodeStorageKey = `blob-node-${newNodeId}-image`;
+                                  await saveToStorage(nodeStorageKey, blob);
+                                  
+                                  // 4. 创建节点（使用节点专用的 Blob URL）
+                                  // 🔥 数据清理机制：保存 historyAssetId（用于引用检查）
+                                  addNode(NodeType.IMAGE_GENERATOR, dropX - 210, dropY - 180, { 
+                                      image: newBlobUrl,  // ✅ 使用节点专用的 Blob URL
+                                      prompt: asset.title,
+                                      historyAssetId: asset.id  // 🔥 保存历史记录 ID
+                                  }, newNodeId);
+                                  
+                                  console.log('[App] 节点创建成功，使用独立的 Blob URL', { nodeId: newNodeId });
+                              } else {
+                                  console.warn('[App] 历史记录图片未找到，使用原 Blob URL（降级方案）', { assetId: asset.id });
+                                  
+                                  // 降级方案：使用历史记录的 Blob URL（可能失效）
+                                  addNode(NodeType.IMAGE_GENERATOR, dropX - 210, dropY - 180, { 
+                                      image: asset.src, 
+                                      prompt: asset.title,
+                                      historyAssetId: asset.id
+                                  }, newNodeId);
+                              }
+                          } catch (error) {
+                              console.error('[App] 创建节点失败:', error);
+                              
+                              // 降级方案：使用历史记录的 Blob URL
+                              const newNodeId = `node-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+                              addNode(NodeType.IMAGE_GENERATOR, dropX - 210, dropY - 180, { 
+                                  image: asset.src, 
+                                  prompt: asset.title,
+                                  historyAssetId: asset.id
+                              }, newNodeId);
+                          }
+                      })()
+                  }
                   else if (asset.type === 'video') addNode(NodeType.VIDEO_GENERATOR, dropX - 210, dropY - 180, { videoUri: asset.src });
               }
               return;

@@ -9,6 +9,7 @@
 
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
+import { persist, createJSONStorage } from 'zustand/middleware';
 import { Group } from '../../types';
 
 // ============================================
@@ -68,9 +69,10 @@ export interface GroupStore {
 // ============================================
 
 export const useGroupStore = create<GroupStore>()(
-  immer((set, get) => ({
-    // ========== 初始数据 ==========
-    groups: [],
+  persist(
+    immer((set, get) => ({
+      // ========== 初始数据 ==========
+      groups: [],
 
     // ========== 查询操作 ==========
     getAllGroups: () => {
@@ -136,5 +138,10 @@ export const useGroupStore = create<GroupStore>()(
         state.groups[index] = { ...state.groups[index], width, height };
       }
     }),
-  }))
+  })),
+  {
+    name: 'canvas-groups-storage',
+    storage: createJSONStorage(() => localStorage),
+  }
+)
 );

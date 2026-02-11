@@ -985,11 +985,17 @@ ${cameraPositions.join('\n')}
             // 3. 添加节点到 Store
             useNodeStore.getState().addNode(newNode);
             
-            // 4. 异步保存到 IndexedDB（不阻塞 UI）
-            const { saveFileToIndexedDBAsync } = await import('../services/blobStorage');
-            saveFileToIndexedDBAsync(nodeId, file).catch(error => {
-                console.error('[ImageFile] 异步保存失败:', error);
-            });
+            // 4. 🔥 修复：直接保存 File 对象（零拷贝，键名匹配）
+            (async () => {
+                try {
+                    const storageKey = `blob-node-${nodeId}-image`;
+                    const { saveToStorage } = await import('../services/storage');
+                    await saveToStorage(storageKey, file); // 直接保存 File，不读取内容
+                    console.log(`[ImageFile] 图片已保存到 IndexedDB: ${storageKey}, 大小: ${(file.size / 1024).toFixed(2)}KB`);
+                } catch (error) {
+                    console.error('[ImageFile] 保存到 IndexedDB 失败:', error);
+                }
+            })();
             
             console.log(`[ImageFile] 节点创建完成: ${nodeId}`);
         } catch (error) {
